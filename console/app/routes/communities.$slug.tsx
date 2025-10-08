@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
+  ArrowRight,
   CheckCircle,
   Clock,
   ExternalLink,
@@ -321,6 +322,18 @@ export default function CommunityDetails() {
                   <ArrowLeft className="h-4 w-4 mr-2" />내 커뮤
                 </Button>
               </Link>
+            )}
+            {currentUser && community?.membership_status === "member" && (
+              <a
+                href={`https://${community.slug}.${env.domain}`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Button size="sm">
+                  <ArrowRight className="h-4 w-4 mr-2" />
+                  입장
+                </Button>
+              </a>
             )}
           </div>
           <div className="flex gap-2">
