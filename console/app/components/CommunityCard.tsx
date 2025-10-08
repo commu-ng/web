@@ -184,7 +184,7 @@ export function CommunityCard({ community }: CommunityCardProps) {
 
           {/* Birth year requirement */}
           {community.minimum_birth_year && (
-            <div className="text-xs text-muted-foreground bg-gray-50 px-2 py-1 rounded">
+            <div className="text-xs text-muted-foreground bg-gray-50 dark:bg-gray-800 px-2 py-1 rounded">
               {community.minimum_birth_year}년생 이상 가입 가능
             </div>
           )}
