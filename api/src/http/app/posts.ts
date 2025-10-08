@@ -17,6 +17,7 @@ import {
   postQuerySchema,
   postReactionCreateSchema,
   postReactionDeleteSchema,
+  postSearchQuerySchema,
   profileIdQuerySchema,
   scheduledPostsQuerySchema,
 } from "../../schemas";
@@ -221,6 +222,32 @@ export const postsRouter = new Hono<{ Variables: AuthVariables }>()
       );
 
       return c.json(result);
+    },
+  )
+  .get(
+    "/posts/search",
+    appAuthMiddleware,
+    communityMiddleware,
+    membershipMiddleware,
+    zValidator("query", postSearchQuerySchema),
+    async (c) => {
+      const community = c.get("community");
+      const { q, limit = 20, cursor, profile_id } = c.req.valid("query");
+
+      try {
+        const result = await postService.searchPosts(
+          q,
+          community.id,
+          limit,
+          cursor,
+          profile_id,
+        );
+
+        return c.json(result);
+      } catch (error: unknown) {
+        logger.http.error("Error searching posts", { error });
+        return c.json({ error: "게시물 검색에 실패했습니다" }, 500);
+      }
     },
   )
   .get(

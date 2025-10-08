@@ -983,6 +983,209 @@ export async function getPosts(
 }
 
 /**
+ * Search posts by content using PostgreSQL full-text search
+ * Returns posts matching the search query, ordered by relevance and creation date
+ */
+export async function searchPosts(
+  searchQuery: string,
+  communityId: string,
+  limit: number = 20,
+  cursor?: string,
+  profileId?: string,
+) {
+  // Sanitize and prepare the search query
+  // Replace special characters and spaces with '&' for AND search
+  const sanitizedQuery = searchQuery
+    .trim()
+    .replace(/[&|!():*]/g, " ")
+    .split(/\s+/)
+    .filter((term) => term.length > 0)
+    .join(" & ");
+
+  if (!sanitizedQuery) {
+    return { data: [], nextCursor: null, hasMore: false };
+  }
+
+  // Build where conditions
+  const conditions = [
+    isNull(postTable.deletedAt),
+    isNotNull(postTable.publishedAt),
+    eq(postTable.depth, 0), // Only root posts
+    eq(postTable.communityId, communityId),
+    eq(profileTable.communityId, communityId),
+    sql`to_tsvector('simple', ${postTable.content}) @@ to_tsquery('simple', ${sanitizedQuery})`,
+  ];
+
+  // Add cursor condition if provided (for pagination)
+  if (cursor) {
+    conditions.push(sql`${postTable.id} < ${cursor}`);
+  }
+
+  // Search posts with relevance ranking
+  const posts = await db
+    .select({
+      post: postTable,
+      profile: profileTable,
+      rank: sql<number>`ts_rank(to_tsvector('simple', ${postTable.content}), to_tsquery('simple', ${sanitizedQuery}))`,
+    })
+    .from(postTable)
+    .leftJoin(profileTable, eq(postTable.authorId, profileTable.id))
+    .where(and(...conditions))
+    .orderBy(
+      sql`ts_rank(to_tsvector('simple', ${postTable.content}), to_tsquery('simple', ${sanitizedQuery})) DESC`,
+      desc(postTable.id),
+    )
+    .limit(limit + 1);
+
+  // Early return if no posts
+  if (posts.length === 0) {
+    return { data: [], nextCursor: null, hasMore: false };
+  }
+
+  // Check if there are more posts beyond the limit
+  const hasMore = posts.length > limit;
+  const postsToReturn = hasMore ? posts.slice(0, limit) : posts;
+  const nextCursor =
+    hasMore && postsToReturn.length > 0
+      ? postsToReturn[postsToReturn.length - 1].post?.id || null
+      : null;
+
+  // Collect all profile IDs and post IDs for batch loading
+  const profileIds = new Set<string>();
+  const postIds: string[] = [];
+
+  for (const row of postsToReturn) {
+    if (row.post && row.profile) {
+      profileIds.add(row.profile.id);
+      postIds.push(row.post.id);
+    }
+  }
+
+  // Batch load all related data
+  const [
+    profilePictureMap,
+    allPostImages,
+    allBookmarks,
+    allReactions,
+    profiles,
+  ] = await Promise.all([
+    batchLoadProfilePictures(Array.from(profileIds)),
+    db.query.postImage.findMany({
+      where: inArray(postImageTable.postId, postIds),
+      with: {
+        image: true,
+      },
+    }),
+    profileId
+      ? db.query.postBookmark.findMany({
+          where: and(
+            eq(postBookmarkTable.profileId, profileId),
+            inArray(postBookmarkTable.postId, postIds),
+          ),
+        })
+      : Promise.resolve([]),
+    db.query.postReaction.findMany({
+      where: inArray(postReactionTable.postId, postIds),
+      with: {
+        profile: true,
+      },
+    }),
+    db.query.profile.findMany({
+      where: inArray(profileTable.id, Array.from(profileIds)),
+    }),
+  ]);
+
+  // Group data by post ID for O(1) lookup
+  const imagesByPostId = new Map<string, typeof allPostImages>();
+  const reactionsByPostId = new Map<string, typeof allReactions>();
+  const bookmarkedPostIds = new Set(allBookmarks.map((b) => b.postId));
+  const profileMap = new Map(profiles.map((p) => [p.id, p]));
+
+  allPostImages.forEach((pi) => {
+    if (!imagesByPostId.has(pi.postId)) {
+      imagesByPostId.set(pi.postId, []);
+    }
+    imagesByPostId.get(pi.postId)?.push(pi);
+  });
+
+  allReactions.forEach((reaction) => {
+    if (!reactionsByPostId.has(reaction.postId)) {
+      reactionsByPostId.set(reaction.postId, []);
+    }
+    reactionsByPostId.get(reaction.postId)?.push(reaction);
+  });
+
+  // Batch load threaded replies for all posts
+  const repliesMap = await buildThreadedRepliesForMultiplePosts(
+    postIds,
+    communityId,
+    10,
+    profileId,
+  );
+
+  // Build result using pre-loaded data
+  const result = [];
+  for (const row of postsToReturn) {
+    const post = row.post;
+    if (!post) continue;
+
+    const profile = profileMap.get(post.authorId);
+    if (!profile) continue;
+
+    const profile_picture_url = profilePictureMap.get(profile.id) || null;
+
+    const postImages = imagesByPostId.get(post.id) || [];
+    const images = postImages.map((pi) => ({
+      id: pi.image.id,
+      url: addImageUrl(pi.image).url,
+      width: pi.image.width,
+      height: pi.image.height,
+      filename: pi.image.filename,
+    }));
+
+    const threaded_replies = repliesMap.get(post.id) || [];
+    const is_bookmarked = bookmarkedPostIds.has(post.id);
+    const reactions = reactionsByPostId.get(post.id) || [];
+
+    result.push({
+      id: post.id,
+      content: post.content,
+      createdAt: post.createdAt,
+      updatedAt: post.updatedAt,
+      announcement: post.announcement,
+      content_warning: post.contentWarning,
+      author: {
+        id: profile.id,
+        name: profile.name,
+        username: profile.username,
+        profile_picture_url,
+      },
+      images,
+      in_reply_to_id: null,
+      depth: 0,
+      root_post_id: null,
+      is_bookmarked,
+      replies: [],
+      threaded_replies,
+      reactions: reactions.map((reaction) => ({
+        emoji: reaction.emoji,
+        user: {
+          id: reaction.profile.id,
+          username: reaction.profile.username,
+          name: reaction.profile.name,
+        },
+      })),
+    });
+  }
+
+  return {
+    data: result,
+    nextCursor,
+    hasMore,
+  };
+}
+
+/**
  * Batch version: Build threaded replies for multiple root posts in a single query
  */
 async function buildThreadedRepliesForMultiplePosts(

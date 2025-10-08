@@ -250,6 +250,13 @@ export const postQuerySchema = z.object({
   profile_id: z.uuid().optional(),
 });
 
+export const postSearchQuerySchema = z.object({
+  q: z.string().min(2, "Search query must be at least 2 characters"),
+  limit: z.string().regex(/^\d+$/).transform(Number).optional(),
+  cursor: z.string().optional(),
+  profile_id: z.uuid().optional(),
+});
+
 export const scheduledPostsQuerySchema = z.object({
   profile_id: z.uuid(),
   limit: z.string().regex(/^\d+$/).transform(Number).optional(),

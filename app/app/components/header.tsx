@@ -6,6 +6,7 @@ import {
   Home,
   Megaphone,
   MessageCircle,
+  Search,
   Settings,
   User,
   UserCheck,
@@ -144,6 +145,14 @@ export function Header({
             >
               <Bookmark className="h-4 w-4" />
               <span className="hidden sm:inline">북마크</span>
+            </Link>
+            <Link
+              to="/search"
+              className={getNavLinkClasses("/search")}
+              title="검색"
+            >
+              <Search className="h-4 w-4" />
+              <span className="hidden sm:inline">검색</span>
             </Link>
             <Link
               to="/profiles"

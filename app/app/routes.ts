@@ -15,6 +15,7 @@ export default [
   route("/profiles", "routes/profiles.tsx"),
   route("/notifications", "routes/notifications.tsx"),
   route("/bookmarks", "routes/bookmarks.tsx"),
+  route("/search", "routes/search.tsx"),
   route("/messages", "routes/messages.tsx"),
   route("/messages/:username", "routes/messages.$username.tsx"),
   route("/group-chats/:group_chat_id", "routes/group-chats.$group_chat_id.tsx"),
