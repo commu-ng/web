@@ -20,6 +20,8 @@ Hono API server. Uses Hono RPC, Drizzle ORM.
 
 Run tests with `pnpm test`.
 
+Use `pnpm drizzle-kit generate` to generate migrations.
+
 ## console
 
 React Router frontend for management console.
