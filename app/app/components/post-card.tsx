@@ -68,6 +68,44 @@ export const PostCard = memo(function PostCard({
     !isUserPartOfThread(),
   );
 
+  // Filter replies to show only relevant ones (for collapsed view)
+  const filterRelevantReplies = useCallback(() => {
+    if (!currentProfileId || !currentProfile || !post.threaded_replies) {
+      return [];
+    }
+
+    const currentUsername = currentProfile.username;
+    const replies = post.threaded_replies;
+    const relevantIds = new Set<string>();
+
+    // Mark directly relevant replies
+    for (const reply of replies) {
+      if (
+        reply.author.id === currentProfileId ||
+        reply.content.includes(`@${currentUsername}`)
+      ) {
+        relevantIds.add(reply.id);
+      }
+    }
+
+    // Add immediate context (parent and children)
+    const withContext = new Set(relevantIds);
+    for (const replyId of relevantIds) {
+      const reply = replies.find((r) => r.id === replyId);
+      if (reply?.in_reply_to_id) {
+        withContext.add(reply.in_reply_to_id);
+      }
+      // Add direct children
+      for (const r of replies) {
+        if (r.in_reply_to_id === replyId) {
+          withContext.add(r.id);
+        }
+      }
+    }
+
+    return replies.filter((r) => withContext.has(r.id));
+  }, [currentProfileId, currentProfile, post.threaded_replies]);
+
   // Use the markdown hook for mention validation and rendering
   // For read-only posts, disable username validation to avoid API calls
   const { md } = useMarkdownWithMentions({
@@ -332,25 +370,39 @@ export const PostCard = memo(function PostCard({
         {/* Nested replies - only show for root posts (depth 0 or undefined) to avoid infinite nesting */}
         {post.threaded_replies &&
           post.threaded_replies.length > 0 &&
-          (post.depth === 0 || post.depth === undefined) && (
-            <div className="mt-3 pt-3 border-t border-border">
-              <button
-                type="button"
-                onClick={() => setIsThreadCollapsed(!isThreadCollapsed)}
-                className="flex items-center gap-2 mb-2 hover:opacity-70 transition-opacity"
-              >
-                <span className="text-xs text-muted-foreground font-medium">
-                  답글 {post.threaded_replies.length}개
-                </span>
-                {isThreadCollapsed ? (
-                  <ChevronDown className="w-3 h-3 text-muted-foreground" />
-                ) : (
-                  <ChevronUp className="w-3 h-3 text-muted-foreground" />
+          (post.depth === 0 || post.depth === undefined) &&
+          (() => {
+            const filteredReplies = filterRelevantReplies();
+            const repliesToShow = isThreadCollapsed
+              ? filteredReplies
+              : post.threaded_replies;
+            const hasHiddenReplies =
+              filteredReplies.length < post.threaded_replies.length;
+
+            return (
+              <div className="mt-3 pt-3 border-t border-border">
+                {/* Show toggle button only if there are hidden replies */}
+                {hasHiddenReplies && (
+                  <button
+                    type="button"
+                    onClick={() => setIsThreadCollapsed(!isThreadCollapsed)}
+                    className="flex items-center gap-2 mb-2 hover:opacity-70 transition-opacity"
+                  >
+                    <span className="text-xs text-muted-foreground font-medium">
+                      {isThreadCollapsed
+                        ? `답글 ${filteredReplies.length}/${post.threaded_replies.length}개`
+                        : `답글 ${post.threaded_replies.length}개`}
+                    </span>
+                    {isThreadCollapsed ? (
+                      <ChevronDown className="w-3 h-3 text-muted-foreground" />
+                    ) : (
+                      <ChevronUp className="w-3 h-3 text-muted-foreground" />
+                    )}
+                  </button>
                 )}
-              </button>
-              {!isThreadCollapsed && (
+                {/* Always show replies (filtered when collapsed, all when expanded) */}
                 <div className="space-y-1">
-                  {post.threaded_replies.map((reply) => (
+                  {repliesToShow.map((reply) => (
                     <PostCard
                       key={reply.id}
                       post={reply}
@@ -363,9 +415,9 @@ export const PostCard = memo(function PostCard({
                     />
                   ))}
                 </div>
-              )}
-            </div>
-          )}
+              </div>
+            );
+          })()}
       </div>
 
       {/* Image Modal */}
