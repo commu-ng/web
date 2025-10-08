@@ -399,7 +399,7 @@ export default function CommunityDetails() {
               href={`https://${community.slug}.${env.domain}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-3 text-3xl font-bold text-gray-900 hover:text-gray-700 transition-colors"
+              className="inline-flex items-center gap-3 text-3xl font-bold text-gray-900 dark:text-gray-100 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
             >
               {community.name}
               <ExternalLink className="w-6 h-6" />
@@ -422,7 +422,7 @@ export default function CommunityDetails() {
                   <Badge
                     key={hashtag.id}
                     variant="outline"
-                    className="px-3 py-1.5 bg-blue-50 text-blue-700 border-blue-200 text-sm"
+                    className="px-3 py-1.5 bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800 text-sm"
                   >
                     <Hash className="h-3.5 w-3.5 mr-1.5" />
                     {hashtag.tag}
@@ -578,13 +578,13 @@ export default function CommunityDetails() {
           <CardContent>
             {links.length === 0 ? (
               <div className="text-center py-8">
-                <ExternalLink className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                <h4 className="text-lg font-medium text-gray-900 mb-2">
+                <ExternalLink className="h-12 w-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
+                <h4 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
                   등록된 링크가 없습니다
                 </h4>
                 {userRole === "owner" ? (
                   <>
-                    <p className="text-gray-500 mb-4">
+                    <p className="text-gray-500 dark:text-gray-400 mb-4">
                       커뮤 관리 페이지에서 링크를 추가해보세요
                     </p>
                     <Link to={`/communities/${slug}/links`}>
@@ -592,7 +592,9 @@ export default function CommunityDetails() {
                     </Link>
                   </>
                 ) : (
-                  <p className="text-gray-500">아직 등록된 링크가 없습니다</p>
+                  <p className="text-gray-500 dark:text-gray-400">
+                    아직 등록된 링크가 없습니다
+                  </p>
                 )}
               </div>
             ) : (
@@ -600,7 +602,7 @@ export default function CommunityDetails() {
                 {links.map((link) => (
                   <div
                     key={link.id}
-                    className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors"
+                    className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                   >
                     <div className="flex-1">
                       <div className="flex items-center gap-3">
@@ -608,14 +610,16 @@ export default function CommunityDetails() {
                           href={link.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="flex items-center gap-2 text-blue-600 hover:text-blue-700 font-medium transition-colors"
+                          className="flex items-center gap-2 text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium transition-colors"
                         >
                           <span>{link.title}</span>
                           <ExternalLink className="h-4 w-4" />
                         </a>
                       </div>
-                      <p className="text-sm text-gray-500 mt-1">{link.url}</p>
-                      <p className="text-xs text-gray-400 mt-1">
+                      <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                        {link.url}
+                      </p>
+                      <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
                         생성일:{" "}
                         {new Date(link.created_at).toLocaleString("ko-KR")}
                       </p>
@@ -642,17 +646,17 @@ export default function CommunityDetails() {
                   <Link
                     key={application.id}
                     to={`/communities/${slug}/applications/${application.id}`}
-                    className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 transition-colors"
+                    className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                   >
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
                         <Badge
                           className={
                             application.status === "pending"
-                              ? "bg-yellow-100 text-yellow-800"
+                              ? "bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200"
                               : application.status === "approved"
-                                ? "bg-green-100 text-green-800"
-                                : "bg-red-100 text-red-800"
+                                ? "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200"
+                                : "bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200"
                           }
                         >
                           {application.status === "pending"
@@ -661,18 +665,18 @@ export default function CommunityDetails() {
                               ? "승인됨"
                               : "거절됨"}
                         </Badge>
-                        <span className="text-sm text-gray-600">
+                        <span className="text-sm text-gray-600 dark:text-gray-400">
                           {new Date(application.created_at).toLocaleDateString(
                             "ko-KR",
                           )}
                         </span>
                       </div>
-                      <p className="text-sm text-gray-700 mt-1">
+                      <p className="text-sm text-gray-700 dark:text-gray-300 mt-1">
                         {application.profile_name} (@
                         {application.profile_username})
                       </p>
                       {application.rejection_reason && (
-                        <p className="text-xs text-red-600 mt-1">
+                        <p className="text-xs text-red-600 dark:text-red-400 mt-1">
                           거절 사유: {application.rejection_reason}
                         </p>
                       )}
