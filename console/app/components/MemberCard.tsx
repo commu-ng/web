@@ -1,4 +1,10 @@
-import { MoreVertical, Shield, UserMinus } from "lucide-react";
+import {
+  MoreVertical,
+  Shield,
+  UserMinus,
+  VolumeX,
+  Volume2,
+} from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import {
@@ -22,6 +28,7 @@ import {
 import { api, getErrorMessage } from "~/lib/api-client";
 import { canModifyMember, canRemoveMember } from "~/lib/role-utils";
 import type { CommunityMember } from "~/types/member";
+import { MuteProfileDialog, UnmuteProfileDialog } from "./MuteProfileDialog";
 import { RoleUpdateDialog } from "./RoleUpdateDialog";
 import { type Role, RoleBadge } from "./shared/RoleBadge";
 import { Badge } from "./ui/badge";
@@ -43,6 +50,12 @@ export function MemberCard({
 }: MemberCardProps) {
   const [showRoleDialog, setShowRoleDialog] = useState(false);
   const [showRemoveDialog, setShowRemoveDialog] = useState(false);
+  const [showMuteDialog, setShowMuteDialog] = useState(false);
+  const [showUnmuteDialog, setShowUnmuteDialog] = useState(false);
+  const [selectedProfile, setSelectedProfile] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
   const [isRemoving, setIsRemoving] = useState(false);
   const [error, setError] = useState("");
 
@@ -83,6 +96,21 @@ export function MemberCard({
 
   // Allow self-removal for non-owners
   const canLeave = isCurrentUser && member.role !== "owner";
+
+  // Can mute/unmute if owner or moderator (but not self)
+  const canModerateProfiles =
+    (currentUserRole === "owner" || currentUserRole === "moderator") &&
+    !isCurrentUser;
+
+  const handleMuteProfile = (profileId: string, profileName: string) => {
+    setSelectedProfile({ id: profileId, name: profileName });
+    setShowMuteDialog(true);
+  };
+
+  const handleUnmuteProfile = (profileId: string, profileName: string) => {
+    setSelectedProfile({ id: profileId, name: profileName });
+    setShowUnmuteDialog(true);
+  };
 
   const handleRemoveMember = async () => {
     setIsRemoving(true);
@@ -199,16 +227,66 @@ export function MemberCard({
                     </div>
                     <div className="flex flex-wrap gap-1">
                       {member.profiles.map((profile) => (
-                        <Badge
+                        <div
                           key={profile.id}
-                          variant="outline"
-                          className={`text-xs ${
-                            profile.primary ? "border-primary" : "border-muted"
-                          }`}
+                          className="flex items-center gap-1"
                         >
-                          {profile.name} (@{profile.username})
-                          {profile.primary && " ★"}
-                        </Badge>
+                          <Badge
+                            variant="outline"
+                            className={`text-xs ${
+                              profile.primary
+                                ? "border-primary"
+                                : "border-muted"
+                            } ${profile.muted_at ? "bg-orange-50 border-orange-300 dark:bg-orange-950 dark:border-orange-700" : ""}`}
+                          >
+                            {profile.muted_at && (
+                              <VolumeX className="w-3 h-3 mr-1 text-orange-600 dark:text-orange-400" />
+                            )}
+                            {profile.name} (@{profile.username})
+                            {profile.primary && " ★"}
+                          </Badge>
+                          {canModerateProfiles && (
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-5 w-5 p-0"
+                                >
+                                  <MoreVertical className="w-3 h-3" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="start">
+                                {profile.muted_at ? (
+                                  <DropdownMenuItem
+                                    onClick={() =>
+                                      handleUnmuteProfile(
+                                        profile.id,
+                                        profile.name,
+                                      )
+                                    }
+                                  >
+                                    <Volume2 className="w-4 h-4 mr-2" />
+                                    음소거 해제
+                                  </DropdownMenuItem>
+                                ) : (
+                                  <DropdownMenuItem
+                                    onClick={() =>
+                                      handleMuteProfile(
+                                        profile.id,
+                                        profile.name,
+                                      )
+                                    }
+                                    className="text-orange-600 dark:text-orange-400"
+                                  >
+                                    <VolumeX className="w-4 h-4 mr-2" />
+                                    음소거
+                                  </DropdownMenuItem>
+                                )}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          )}
+                        </div>
                       ))}
                     </div>
                   </div>
@@ -282,6 +360,34 @@ export function MemberCard({
         currentUserRole={currentUserRole}
         onSuccess={onMemberUpdate}
       />
+
+      {selectedProfile && (
+        <>
+          <MuteProfileDialog
+            isOpen={showMuteDialog}
+            onClose={() => {
+              setShowMuteDialog(false);
+              setSelectedProfile(null);
+            }}
+            profileId={selectedProfile.id}
+            profileName={selectedProfile.name}
+            communityId={communityId}
+            onSuccess={onMemberUpdate}
+          />
+
+          <UnmuteProfileDialog
+            isOpen={showUnmuteDialog}
+            onClose={() => {
+              setShowUnmuteDialog(false);
+              setSelectedProfile(null);
+            }}
+            profileId={selectedProfile.id}
+            profileName={selectedProfile.name}
+            communityId={communityId}
+            onSuccess={onMemberUpdate}
+          />
+        </>
+      )}
 
       <AlertDialog open={showRemoveDialog} onOpenChange={setShowRemoveDialog}>
         <AlertDialogContent>

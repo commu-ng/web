@@ -99,6 +99,14 @@ export const profileRelations = relations(profile, ({ one, many }) => ({
     relationName: "notification_recipientId_profile_id",
   }),
   ownerships: many(profileOwnership),
+  mutedBy: one(profile, {
+    fields: [profile.mutedById],
+    references: [profile.id],
+    relationName: "profile_mutedBy_profile_id",
+  }),
+  mutedProfiles: many(profile, {
+    relationName: "profile_mutedBy_profile_id",
+  }),
 }));
 
 export const profileOwnershipRelations = relations(

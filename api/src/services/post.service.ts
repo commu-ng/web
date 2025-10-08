@@ -1564,6 +1564,24 @@ export async function createPost(
     rootPostId = parentPost.rootPostId || parentPost.id;
   }
 
+  // Check if profile is muted
+  const profile = await db.query.profile.findFirst({
+    where: and(
+      eq(profileTable.id, profileId),
+      eq(profileTable.communityId, communityId),
+      isNotNull(profileTable.activatedAt),
+      isNull(profileTable.deletedAt),
+    ),
+  });
+
+  if (!profile) {
+    throw new AppException(404, "프로필을 찾을 수 없습니다");
+  }
+
+  if (profile.mutedAt) {
+    throw new AppException(403, "이 프로필은 음소거되어 게시할 수 없습니다");
+  }
+
   // Validate that at least content or images are provided
   if (!content.trim() && (!imageIds || imageIds.length === 0)) {
     throw new AppException(400, "게시물 내용 또는 이미지를 제공해야 합니다");
@@ -1705,11 +1723,6 @@ export async function createPost(
   // Create mention notifications
   const mentions = content.match(/@([a-zA-Z0-9_]+)/g) || [];
   const uniqueMentions = [...new Set(mentions.map((m) => m.substring(1)))]; // Remove @ and deduplicate
-
-  // Get profile for notification message
-  const profile = await db.query.profile.findFirst({
-    where: eq(profileTable.id, profileId),
-  });
 
   // Batch load all mentioned profiles
   const mentionedProfiles =

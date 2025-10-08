@@ -1213,6 +1213,8 @@ export async function getCommunityMembers(
       bio: string | null;
       primary: boolean;
       activated: boolean;
+      muted_at: string | null;
+      muted_by_id: string | null;
     }>
   >();
   profileOwnerships.forEach((ownership) => {
@@ -1235,6 +1237,8 @@ export async function getCommunityMembers(
           bio: ownership.profile.bio,
           primary: ownership.profile.isPrimary,
           activated: ownership.profile.activatedAt !== null,
+          muted_at: ownership.profile.mutedAt,
+          muted_by_id: ownership.profile.mutedById,
         });
       }
     }

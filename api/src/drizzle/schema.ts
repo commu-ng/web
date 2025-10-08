@@ -39,6 +39,8 @@ export const applicationStatusEnum = pgEnum("application_status", [
 
 export const moderationActionEnum = pgEnum("moderation_action", [
   "delete_post",
+  "mute_profile",
+  "unmute_profile",
 ]);
 
 export const exportStatusEnum = pgEnum("export_status", [
@@ -464,12 +466,19 @@ export const profile = pgTable(
     }),
     deletedAt: timestamp("deleted_at", { withTimezone: true, mode: "string" }),
     isPrimary: boolean("is_primary").default(false).notNull(),
+    mutedAt: timestamp("muted_at", { withTimezone: true, mode: "string" }),
+    mutedById: uuid("muted_by_id"),
   },
   (table) => [
     foreignKey({
       columns: [table.communityId],
       foreignColumns: [community.id],
       name: "profile_community_id_fkey",
+    }),
+    foreignKey({
+      columns: [table.mutedById],
+      foreignColumns: [table.id],
+      name: "profile_muted_by_id_fkey",
     }),
     unique("unique_username_community").on(table.username, table.communityId),
     sql`CONSTRAINT valid_username CHECK (username ~ '^[a-zA-Z0-9_]+$' AND length(username) > 0 AND length(username) <= 50)`,

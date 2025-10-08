@@ -18,6 +18,8 @@ export interface CommunityMember {
     bio: string | null;
     primary: boolean;
     activated: boolean;
+    muted_at: string | null;
+    muted_by_id: string | null;
   }>;
   application: {
     id: string;
