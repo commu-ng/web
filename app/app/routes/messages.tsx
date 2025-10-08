@@ -240,10 +240,10 @@ export default function Messages() {
         query: { limit: "100" },
       });
       if (response.ok) {
-        const profiles = await response.json();
+        const result = await response.json();
 
         // Filter out current profile
-        const otherProfiles = profiles.filter(
+        const otherProfiles = result.data.filter(
           (profile) => profile.id !== currentProfile.id,
         );
         setAvailableProfiles(otherProfiles);
