@@ -1,3 +1,4 @@
+import { useQuery } from "@tanstack/react-query";
 import {
   AlertCircle,
   FileText,
@@ -11,12 +12,49 @@ import {
 import { Link } from "react-router";
 import { ThemeToggle } from "~/components/ThemeToggle";
 import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert";
+import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { Spinner } from "~/components/ui/spinner";
 import { useAuth } from "~/hooks/useAuth";
+import { api } from "~/lib/api-client";
+
+interface Community {
+  id: string;
+  name: string;
+  slug: string;
+  starts_at: string;
+  ends_at: string;
+  created_at: string;
+  role: string;
+  custom_domain?: string | null;
+  domain_verified?: string | null;
+  banner_image_url?: string | null;
+  banner_image_width?: number | null;
+  banner_image_height?: number | null;
+  hashtags?: { id: string; tag: string }[];
+  pending_application_count?: number;
+}
+
+async function fetchMyCommunities(): Promise<Community[]> {
+  const res = await api.console.communities.mine.$get();
+  return await res.json();
+}
 
 export function Navigation() {
   const { isAuthenticated, isLoading, user } = useAuth();
+
+  // Fetch communities to get pending application counts
+  const { data: communities } = useQuery({
+    queryKey: ["communities", "mine"],
+    queryFn: fetchMyCommunities,
+    enabled: isAuthenticated,
+  });
+
+  // Calculate total pending applications across owned/moderated communities
+  const totalPendingApplications =
+    communities
+      ?.filter((c) => c.role === "owner" || c.role === "moderator")
+      .reduce((sum, c) => sum + (c.pending_application_count || 0), 0) || 0;
 
   return (
     <nav>
@@ -58,10 +96,15 @@ export function Navigation() {
                 variant="outline"
                 size="sm"
                 asChild
-                className="w-full md:w-auto"
+                className="w-full md:w-auto relative"
               >
                 <Link to="/communities/mine">
                   <Home className="h-4 w-4" />내 커뮤
+                  {totalPendingApplications > 0 && (
+                    <Badge className="ml-1 bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
+                      {totalPendingApplications}
+                    </Badge>
+                  )}
                 </Link>
               </Button>
               <Button

@@ -699,6 +699,36 @@ export async function getUserCommunities(userId: string) {
     ownerMemberships.map((m) => [m.communityId, m.userId]),
   );
 
+  // Batch fetch pending application counts for communities where user is owner or moderator
+  const managedCommunityIds = validMemberships
+    .filter((m) => m.role === "owner" || m.role === "moderator")
+    .map((m) => m.community.id);
+
+  const pendingApplicationCounts =
+    managedCommunityIds.length > 0
+      ? await db
+          .select({
+            communityId: communityApplicationTable.communityId,
+            count: count(communityApplicationTable.id),
+          })
+          .from(communityApplicationTable)
+          .where(
+            and(
+              inArray(
+                communityApplicationTable.communityId,
+                managedCommunityIds,
+              ),
+              eq(communityApplicationTable.status, "pending"),
+            ),
+          )
+          .groupBy(communityApplicationTable.communityId)
+      : [];
+
+  // Build map of community ID -> pending application count
+  const pendingCountMap = new Map(
+    pendingApplicationCounts.map((c) => [c.communityId, Number(c.count)]),
+  );
+
   // Collect all unique owner user IDs and their communities
   const ownerUserCommunityPairs = Array.from(ownerUserIdMap.entries()).map(
     ([communityId, userId]) => ({ userId, communityId }),
@@ -727,6 +757,7 @@ export async function getUserCommunities(userId: string) {
     }));
 
     const ownerProfileId = ownerProfileIds.get(community.id) || null;
+    const pendingApplicationCount = pendingCountMap.get(community.id) || 0;
 
     return {
       id: community.id,
@@ -747,6 +778,7 @@ export async function getUserCommunities(userId: string) {
       banner_image_height: bannerInfo?.height || null,
       hashtags: hashtagTableData,
       owner_profile_id: ownerProfileId,
+      pending_application_count: pendingApplicationCount,
     };
   });
 

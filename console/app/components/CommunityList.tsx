@@ -28,6 +28,7 @@ interface Community {
   banner_image_width?: number | null;
   banner_image_height?: number | null;
   hashtags?: { id: string; tag: string }[];
+  pending_application_count?: number;
 }
 
 async function fetchMyCommunities(): Promise<Community[]> {

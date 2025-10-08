@@ -28,6 +28,7 @@ interface Community {
   is_member?: boolean;
   minimum_birth_year?: number | null;
   hashtags?: { id: string; tag: string }[];
+  pending_application_count?: number;
 }
 
 interface CommunityCardProps {
@@ -152,6 +153,13 @@ export function CommunityCard({ community }: CommunityCardProps) {
                     : "참여 중"}
               </Badge>
             )}
+            {(community.role === "owner" || community.role === "moderator") &&
+              community.pending_application_count !== undefined &&
+              community.pending_application_count > 0 && (
+                <Badge className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200 rounded-full">
+                  신청 {community.pending_application_count}
+                </Badge>
+              )}
           </div>
         </div>
       </CardHeader>
