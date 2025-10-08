@@ -25,9 +25,9 @@ export function useCommunityProfiles() {
       });
 
       if (response.ok) {
-        const data = await response.json();
-        // API now returns a flat array of profiles
-        setProfiles(data);
+        const result = await response.json();
+        // API returns { data, nextCursor, hasMore }
+        setProfiles(result.data || []);
       } else {
         console.error("Failed to fetch community profiles");
         setProfiles([]);
