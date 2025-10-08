@@ -8,7 +8,7 @@ import {
   User as UserIcon,
   Users,
 } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "~/components/ui/button";
 import {
   Empty,
@@ -92,7 +92,7 @@ export function CommunityMemberManagement({
     initialPageParam: 0,
   });
 
-  const members = data?.pages.flat() ?? [];
+  const members = useMemo(() => data?.pages.flat() ?? [], [data?.pages]);
 
   // Infinite scroll trigger
   const loadMore = useCallback(() => {
