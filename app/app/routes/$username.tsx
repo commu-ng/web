@@ -16,6 +16,7 @@ import {
 import { useAuth } from "~/hooks/useAuth";
 import { client } from "~/lib/api-client";
 import { getGradientForUser } from "~/lib/gradient-utils";
+import { getReadOnlyMarkdownInstance } from "~/lib/markdown-utils";
 import type { Post } from "~/types/post";
 import type { Profile } from "~/types/profile";
 
@@ -26,6 +27,7 @@ export default function ProfileProfile() {
 
   const [isCommunityOwner, _setIsCommunityOwner] = useState(false);
   const POSTS_PER_PAGE = 20;
+  const md = getReadOnlyMarkdownInstance();
 
   // Only allow usernames that start with @
   useEffect(() => {
@@ -230,9 +232,13 @@ export default function ProfileProfile() {
                   <h2 className="text-2xl font-bold">{profile.name}</h2>
                   <p className="text-blue-100 text-lg">@{profile.username}</p>
                   {profile.bio && (
-                    <p className="text-blue-50 text-sm mt-2 leading-relaxed max-w-md">
-                      {profile.bio}
-                    </p>
+                    <div
+                      className="prose prose-sm dark:prose-invert text-blue-50 mt-2 leading-relaxed max-w-md prose-headings:text-white prose-a:text-blue-100 prose-a:hover:text-white prose-strong:text-white prose-code:text-blue-100"
+                      // biome-ignore lint/security/noDangerouslySetInnerHtml: sanitized html
+                      dangerouslySetInnerHTML={{
+                        __html: md.render(profile.bio),
+                      }}
+                    />
                   )}
                   <div className="flex items-center gap-2 mt-3 text-blue-100">
                     <Calendar className="h-4 w-4" />
