@@ -1,9 +1,9 @@
 import { ImageIcon, X } from "lucide-react";
 import { useId, useRef } from "react";
+import { CommunityDateTimePicker } from "~/components/CommunityDateTimePicker";
 import { HashtagInput } from "~/components/hashtag-input";
 import { Button } from "~/components/ui/button";
 import { Checkbox } from "~/components/ui/checkbox";
-import { DateTimePicker } from "~/components/ui/datetime-picker";
 import { Field, FieldDescription, FieldLabel } from "~/components/ui/field";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
@@ -247,7 +247,7 @@ export function CommunityFormFields({
 
       <Field>
         <FieldLabel>시작일시</FieldLabel>
-        <DateTimePicker
+        <CommunityDateTimePicker
           value={startDate}
           onChange={onStartDateChange}
           maxDate={endDate ? new Date(endDate.getTime() - 1) : undefined}
@@ -256,7 +256,7 @@ export function CommunityFormFields({
 
       <Field>
         <FieldLabel>종료일시</FieldLabel>
-        <DateTimePicker
+        <CommunityDateTimePicker
           value={endDate}
           onChange={onEndDateChange}
           minDate={startDate ? new Date(startDate.getTime() + 1) : undefined}
@@ -291,7 +291,7 @@ export function CommunityFormFields({
         <>
           <Field>
             <FieldLabel>모집 시작일시</FieldLabel>
-            <DateTimePicker
+            <CommunityDateTimePicker
               value={recruitingStartDate}
               onChange={onRecruitingStartDateChange}
             />
@@ -299,7 +299,7 @@ export function CommunityFormFields({
 
           <Field>
             <FieldLabel>모집 종료일시</FieldLabel>
-            <DateTimePicker
+            <CommunityDateTimePicker
               value={recruitingEndDate}
               onChange={onRecruitingEndDateChange}
               minDate={
