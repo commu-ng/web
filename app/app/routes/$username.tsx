@@ -2,7 +2,6 @@ import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import {
   ArrowLeft,
   Calendar,
-  FileText,
   MessageCircle,
   User,
 } from "lucide-react";
@@ -261,23 +260,6 @@ export default function ProfileProfile() {
                 </div>
               </div>
             </div>
-
-            {/* Bio Section (if exists) */}
-            {profile.bio && (
-              <div className="px-6 py-4 border-b border-border">
-                <div className="flex items-start gap-3">
-                  <FileText className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-                  <div>
-                    <h4 className="text-sm font-medium text-foreground mb-1">
-                      소개
-                    </h4>
-                    <p className="text-muted-foreground text-sm leading-relaxed whitespace-pre-wrap">
-                      {profile.bio}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
 
             {/* Posts Stats */}
             <div className="px-6 py-4 border-b border-border">
