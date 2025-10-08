@@ -371,7 +371,7 @@ export default function MessageConversation() {
       });
 
       if (response.ok) {
-        const sentMessage: Message = await response.json();
+        const sentMessage = await response.json();
         setMessages((prev) => [...prev, sentMessage]);
         setNewMessage("");
         setImages([]);
