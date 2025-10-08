@@ -65,18 +65,24 @@ export default function RecruitingCommunities() {
     queryFn: fetchRecruitingCommunities,
   });
 
-  // Get all unique hashtags from communities
+  // Get top 30 most frequently used hashtags from communities
   const allHashtags = useMemo(() => {
     if (!communities) return [];
 
-    const hashtagSet = new Set<string>();
+    const hashtagCounts = new Map<string, number>();
     communities.forEach((community) => {
       community.hashtags?.forEach((hashtag) => {
-        hashtagSet.add(hashtag.tag);
+        hashtagCounts.set(
+          hashtag.tag,
+          (hashtagCounts.get(hashtag.tag) || 0) + 1,
+        );
       });
     });
 
-    return Array.from(hashtagSet).sort();
+    return Array.from(hashtagCounts.entries())
+      .sort((a, b) => b[1] - a[1]) // Sort by count descending
+      .slice(0, 30) // Take top 30
+      .map((entry) => entry[0]); // Extract hashtag names
   }, [communities]);
 
   // Filter communities based on selected hashtags
