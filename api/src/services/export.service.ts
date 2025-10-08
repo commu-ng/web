@@ -121,21 +121,21 @@ async function* streamPostsForExport(
   communityId: string,
 ): AsyncGenerator<ExportPost[], void, unknown> {
   const batchSize = 100;
-  let offset = 0;
+  let cursor: string | undefined;
 
   while (true) {
-    const posts = await postService.getPosts(
+    const result = await postService.getPosts(
       communityId,
       batchSize,
-      offset,
+      cursor,
       undefined,
     );
 
-    if (posts.length === 0) break;
+    if (result.data.length === 0) break;
 
     // Convert batch to export format
     const exportBatch: ExportPost[] = [];
-    for (const post of posts) {
+    for (const post of result.data) {
       exportBatch.push({
         id: post.id,
         content: post.content,
@@ -162,8 +162,8 @@ async function* streamPostsForExport(
     // Yield batch and free memory
     yield exportBatch;
 
-    if (posts.length < batchSize) break;
-    offset += batchSize;
+    if (!result.hasMore) break;
+    cursor = result.nextCursor ?? undefined;
   }
 }
 
