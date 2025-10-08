@@ -7,11 +7,13 @@ import {
   Megaphone,
   MessageCircle,
   Settings,
+  User,
   UserCheck,
 } from "lucide-react";
 import { Link, useLocation } from "react-router";
 import { ProfileSwitcher } from "~/components/profile-switcher";
 import { ThemeToggle } from "~/components/ThemeToggle";
+import { useAuth } from "~/hooks/useAuth";
 
 interface HeaderProps {
   communityName: string;
@@ -27,6 +29,7 @@ export function Header({
   unreadMessageCount,
 }: HeaderProps) {
   const location = useLocation();
+  const { currentProfile } = useAuth();
 
   const getNavLinkClasses = (path: string) => {
     const isActive =
@@ -82,6 +85,16 @@ export function Header({
               <Home className="h-4 w-4" />
               <span className="hidden sm:inline">홈</span>
             </Link>
+            {currentProfile && (
+              <Link
+                to={`/@${currentProfile.username}`}
+                className={getNavLinkClasses(`/@${currentProfile.username}`)}
+                title="내 프로필"
+              >
+                <User className="h-4 w-4" />
+                <span className="hidden sm:inline">프로필</span>
+              </Link>
+            )}
             <Link
               to="/notifications"
               className={getNavLinkClasses("/notifications")}
