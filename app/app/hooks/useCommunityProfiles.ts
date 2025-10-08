@@ -21,7 +21,7 @@ export function useCommunityProfiles() {
     setLoading(true);
     try {
       const response = await client.app.profiles.$get({
-        query: { limit: "100", offset: "0" },
+        query: { limit: "100" },
       });
 
       if (response.ok) {
