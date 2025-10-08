@@ -71,7 +71,7 @@ export function Navigation() {
           타임라인 기반 커뮤 플랫폼
         </p>
 
-        {isAuthenticated && user && !user.emailVerified && (
+        {/* {isAuthenticated && user && !user.emailVerified && (
           <Alert variant="destructive" className="max-w-2xl">
             <AlertCircle className="h-4 w-4" />
             <AlertTitle>이메일 인증이 필요합니다</AlertTitle>
@@ -83,7 +83,7 @@ export function Navigation() {
               </Link>
             </AlertDescription>
           </Alert>
-        )}
+        )} */}
 
         <div className="grid grid-cols-2 sm:grid-cols-3 md:flex md:flex-wrap justify-center gap-2 max-w-2xl w-full">
           {isLoading ? (
