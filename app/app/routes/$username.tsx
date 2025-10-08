@@ -1,10 +1,5 @@
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
-import {
-  ArrowLeft,
-  Calendar,
-  MessageCircle,
-  User,
-} from "lucide-react";
+import { ArrowLeft, Calendar, MessageCircle, User } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { PostCard } from "~/components/post-card";
