@@ -296,13 +296,12 @@ describe("Posts Routes", () => {
         communityId: community.id,
         headers: {
           Origin: `https://${community.slug}.localhost`,
-          "Content-Type": "application/json",
         },
-        body: JSON.stringify({
+        body: {
           content: "This is an announcement",
           profile_id: profile.id,
           announcement: true,
-        }),
+        },
       });
 
       expect(res.status).toBe(201);
@@ -334,13 +333,12 @@ describe("Posts Routes", () => {
           communityId: community.id,
           headers: {
             Origin: `https://${community.slug}.localhost`,
-            "Content-Type": "application/json",
           },
-          body: JSON.stringify({
+          body: {
             content: "Trying to create an announcement",
             profile_id: memberProfile.id,
             announcement: true,
-          }),
+          },
         },
       );
 
@@ -373,13 +371,12 @@ describe("Posts Routes", () => {
           communityId: community.id,
           headers: {
             Origin: `https://${community.slug}.localhost`,
-            "Content-Type": "application/json",
           },
-          body: JSON.stringify({
+          body: {
             content: "Trying to create an announcement",
             profile_id: moderatorProfile.id,
             announcement: true,
-          }),
+          },
         },
       );
 
@@ -413,14 +410,13 @@ describe("Posts Routes", () => {
         communityId: community.id,
         headers: {
           Origin: `https://${community.slug}.localhost`,
-          "Content-Type": "application/json",
         },
-        body: JSON.stringify({
+        body: {
           content: "Reply as announcement",
           profile_id: profile.id,
           in_reply_to_id: parentPost.id,
           announcement: true,
-        }),
+        },
       });
 
       expect(res.status).toBe(400);
