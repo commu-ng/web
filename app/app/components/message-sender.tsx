@@ -396,17 +396,17 @@ export function MessageSender({
     <div className="bg-card border border-border rounded-xl shadow-sm relative">
       {/* Header with toggle buttons */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-background rounded-t-xl">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1 sm:gap-2">
           <Button
             type="button"
             variant={!isPreviewMode ? "default" : "ghost"}
             size="sm"
             onClick={() => setIsPreviewMode(false)}
             disabled={isPosting}
-            className="h-8 px-3"
+            className="h-8 px-2 sm:px-3"
           >
-            <Edit3 className="h-3 w-3 mr-1.5" />
-            작성
+            <Edit3 className="h-3 w-3 sm:mr-1.5" />
+            <span className="hidden sm:inline">작성</span>
           </Button>
           <Button
             type="button"
@@ -414,14 +414,14 @@ export function MessageSender({
             size="sm"
             onClick={() => setIsPreviewMode(true)}
             disabled={isPosting || !canPreview}
-            className="h-8 px-3"
+            className="h-8 px-2 sm:px-3"
           >
-            <Eye className="h-3 w-3 mr-1.5" />
-            미리보기
+            <Eye className="h-3 w-3 sm:mr-1.5" />
+            <span className="hidden sm:inline">미리보기</span>
           </Button>
         </div>
 
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-0.5 sm:gap-1">
           {canBeAnnouncement && (
             <Button
               type="button"
@@ -486,14 +486,14 @@ export function MessageSender({
             onClick={sendMessage}
             disabled={!canPost}
             size="sm"
-            className="h-8 px-4 ml-2"
+            className="h-8 px-2 sm:px-4 ml-1 sm:ml-2"
           >
             {isPosting ? (
               <Spinner className="h-3 w-3 text-white" />
             ) : (
               <>
-                <Send className="h-3 w-3 mr-1.5" />
-                게시
+                <Send className="h-3 w-3 sm:mr-1.5" />
+                <span className="hidden sm:inline">게시</span>
               </>
             )}
           </Button>
@@ -673,7 +673,7 @@ export function MessageSender({
             : "border-t border-border rounded-b-xl"
         }`}
       >
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0">
           <p className="text-xs text-muted-foreground">
             <MarkdownHelpModal /> 문법을 사용할 수 있습니다.
           </p>
