@@ -10,6 +10,8 @@ interface CurrentInstance {
   role: string | null;
   description: string | null;
   banner_image_url: string | null;
+  starts_at: string;
+  ends_at: string;
 }
 
 export function useCurrentInstance() {

@@ -558,4 +558,54 @@ export const postsRouter = new Hono<{ Variables: AuthVariables }>()
         return c.json({ error: "반응 제거에 실패했습니다" }, 500);
       }
     },
+  )
+  .post(
+    "/posts/:post_id/pin",
+    appAuthMiddleware,
+    communityMiddleware,
+    membershipMiddleware,
+    zValidator("param", postIdParamSchema),
+    zValidator("query", profileIdQuerySchema),
+    async (c) => {
+      const { post_id: postId } = c.req.valid("param");
+      const { profile_id: profileId } = c.req.valid("query");
+      const user = c.get("user");
+      const community = c.get("community");
+
+      try {
+        await postService.pinPost(user.id, profileId, postId, community.id);
+        return c.json({ message: "게시물이 성공적으로 고정되었습니다" });
+      } catch (error: unknown) {
+        if (error instanceof AppException) {
+          return c.json({ error: error.message }, error.statusCode);
+        }
+        logger.http.error("Error pinning post", { error });
+        return c.json({ error: "게시물 고정에 실패했습니다" }, 500);
+      }
+    },
+  )
+  .delete(
+    "/posts/:post_id/pin",
+    appAuthMiddleware,
+    communityMiddleware,
+    membershipMiddleware,
+    zValidator("param", postIdParamSchema),
+    zValidator("query", profileIdQuerySchema),
+    async (c) => {
+      const { post_id: postId } = c.req.valid("param");
+      const { profile_id: profileId } = c.req.valid("query");
+      const user = c.get("user");
+      const community = c.get("community");
+
+      try {
+        await postService.unpinPost(user.id, profileId, postId, community.id);
+        return c.json({ message: "게시물 고정이 성공적으로 해제되었습니다" });
+      } catch (error: unknown) {
+        if (error instanceof AppException) {
+          return c.json({ error: error.message }, error.statusCode);
+        }
+        logger.http.error("Error unpinning post", { error });
+        return c.json({ error: "게시물 고정 해제에 실패했습니다" }, 500);
+      }
+    },
   );

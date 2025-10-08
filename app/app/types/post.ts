@@ -23,6 +23,7 @@ export interface Post {
   content_warning: string | null;
   scheduled_at?: string | null;
   published_at?: string | null;
+  pinned_at?: string | null;
   author: PostAuthor;
   images: PostImage[];
   in_reply_to_id: string | null;
@@ -50,6 +51,7 @@ export interface PostCardProps {
   isCommunityOwner?: boolean;
   isModerator?: boolean;
   hideBorder?: boolean;
+  isProfileView?: boolean;
 }
 
 export interface PostListRef {

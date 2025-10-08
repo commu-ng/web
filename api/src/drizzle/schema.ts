@@ -942,6 +942,10 @@ export const post = pgTable(
       withTimezone: true,
       mode: "string",
     }),
+    pinnedAt: timestamp("pinned_at", {
+      withTimezone: true,
+      mode: "string",
+    }),
   },
   (table) => [
     index("idx_post_depth").using(

@@ -640,9 +640,13 @@ export async function getProfilePosts(
   }
 
   // Get posts by this profile
+  // Order by pinnedAt first (pinned posts at top), then by createdAt
   const postTableList = await db.query.post.findMany({
     where: and(eq(postTable.authorId, profile.id), isNull(postTable.deletedAt)),
-    orderBy: [desc(postTable.createdAt)],
+    orderBy: [
+      sql`${postTable.pinnedAt} DESC NULLS LAST`,
+      desc(postTable.createdAt),
+    ],
     limit: limit,
     offset: offset,
     with: {
@@ -689,6 +693,7 @@ export async function getProfilePosts(
       updatedAt: post.updatedAt,
       announcement: post.announcement,
       content_warning: post.contentWarning,
+      pinned_at: post.pinnedAt,
       author: {
         id: profile.id,
         name: profile.name,

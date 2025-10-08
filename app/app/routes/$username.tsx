@@ -28,11 +28,8 @@ import type { Profile } from "~/types/profile";
 export default function ProfileProfile() {
   const { username } = useParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, currentProfile } = useAuth();
 
-  const [currentProfile, _setCurrentProfile] = useState<{ id: string } | null>(
-    null,
-  );
   const [isCommunityOwner, _setIsCommunityOwner] = useState(false);
   const POSTS_PER_PAGE = 20;
 
@@ -344,6 +341,7 @@ export default function ProfileProfile() {
                       }}
                       currentProfileId={currentProfile?.id}
                       isCommunityOwner={isCommunityOwner}
+                      isProfileView={true}
                     />
                   ))}
                 </div>

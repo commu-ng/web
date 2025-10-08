@@ -1,4 +1,4 @@
-import { Megaphone, Shield, Trash2 } from "lucide-react";
+import { Megaphone, Pin, Shield, Trash2 } from "lucide-react";
 import { Link } from "react-router";
 import { ProfileAvatar } from "~/components/profile-avatar";
 import {
@@ -25,6 +25,7 @@ interface PostCardHeaderProps {
   author: PostAuthor;
   createdAt: string;
   isAnnouncement?: boolean;
+  isPinned?: boolean;
   isReply?: boolean;
   currentProfileId?: string;
   isModerator?: boolean;
@@ -37,6 +38,7 @@ export function PostCardHeader({
   author,
   createdAt,
   isAnnouncement = false,
+  isPinned = false,
   isReply = false,
   currentProfileId,
   isModerator = false,
@@ -87,9 +89,15 @@ export function PostCardHeader({
               </span>
             </Link>
             {isAnnouncement && (
-              <div className="flex items-center gap-1 bg-amber-100 text-amber-800 px-2 py-1 rounded-full text-xs font-medium">
+              <div className="flex items-center gap-1 bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200 px-2 py-1 rounded-full text-xs font-medium">
                 <Megaphone className="h-3 w-3" />
                 <span>공지사항</span>
+              </div>
+            )}
+            {isPinned && (
+              <div className="flex items-center gap-1 bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 px-2 py-1 rounded-full text-xs font-medium">
+                <Pin className="h-3 w-3" />
+                <span>고정됨</span>
               </div>
             )}
           </div>

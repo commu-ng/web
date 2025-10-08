@@ -1602,6 +1602,116 @@ export async function createPost(
 }
 
 /**
+ * Pin a post to a profile
+ */
+export async function pinPost(
+  _userId: string,
+  profileId: string,
+  postId: string,
+  communityId: string,
+) {
+  // Validate post belongs to this community
+  const hasAccess = await validatePostCommunityAccess(postId, communityId);
+  if (!hasAccess) {
+    throw new AppException(404, "게시물을 찾을 수 없습니다");
+  }
+
+  // Find the post
+  const post = await db.query.post.findFirst({
+    where: and(
+      eq(postTable.id, postId),
+      eq(postTable.communityId, communityId),
+      isNull(postTable.deletedAt),
+    ),
+  });
+
+  if (!post) {
+    throw new AppException(404, "게시물을 찾을 수 없습니다");
+  }
+
+  // Validate that the post belongs to the user's profile
+  if (post.authorId !== profileId) {
+    throw new AppException(403, "본인의 게시물만 고정할 수 있습니다");
+  }
+
+  // Check if already pinned
+  if (post.pinnedAt) {
+    throw new AppException(409, "이미 고정된 게시물입니다");
+  }
+
+  // Optional: Limit number of pinned posts (e.g., max 3 per profile)
+  const pinnedPosts = await db.query.post.findMany({
+    where: and(
+      eq(postTable.authorId, profileId),
+      isNotNull(postTable.pinnedAt),
+      isNull(postTable.deletedAt),
+    ),
+  });
+
+  if (pinnedPosts.length >= 3) {
+    throw new AppException(
+      400,
+      "최대 3개의 게시물만 고정할 수 있습니다. 다른 게시물을 고정 해제하세요.",
+    );
+  }
+
+  // Pin the post
+  await db
+    .update(postTable)
+    .set({
+      pinnedAt: sql`NOW()`,
+    })
+    .where(eq(postTable.id, postId));
+}
+
+/**
+ * Unpin a post from a profile
+ */
+export async function unpinPost(
+  _userId: string,
+  profileId: string,
+  postId: string,
+  communityId: string,
+) {
+  // Validate post belongs to this community
+  const hasAccess = await validatePostCommunityAccess(postId, communityId);
+  if (!hasAccess) {
+    throw new AppException(404, "게시물을 찾을 수 없습니다");
+  }
+
+  // Find the post
+  const post = await db.query.post.findFirst({
+    where: and(
+      eq(postTable.id, postId),
+      eq(postTable.communityId, communityId),
+      isNull(postTable.deletedAt),
+    ),
+  });
+
+  if (!post) {
+    throw new AppException(404, "게시물을 찾을 수 없습니다");
+  }
+
+  // Validate that the post belongs to the user's profile
+  if (post.authorId !== profileId) {
+    throw new AppException(403, "본인의 게시물만 고정 해제할 수 있습니다");
+  }
+
+  // Check if not pinned
+  if (!post.pinnedAt) {
+    throw new AppException(400, "고정되지 않은 게시물입니다");
+  }
+
+  // Unpin the post
+  await db
+    .update(postTable)
+    .set({
+      pinnedAt: null,
+    })
+    .where(eq(postTable.id, postId));
+}
+
+/**
  * Delete a post
  */
 export async function deletePost(

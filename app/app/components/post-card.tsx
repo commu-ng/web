@@ -1,7 +1,7 @@
-import { useQuery } from "@tanstack/react-query";
 import { memo, useCallback, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useAuth } from "~/hooks/useAuth";
+import { useCurrentInstance } from "~/hooks/useCurrentInstance";
 import { useMarkdownWithMentions } from "~/hooks/useMarkdownWithMentions";
 import { client } from "~/lib/api-client";
 import type { PostCardProps } from "~/types/post";
@@ -21,6 +21,7 @@ export const PostCard = memo(function PostCard({
   isCommunityOwner = false,
   isModerator = false,
   hideBorder = false,
+  isProfileView = false,
 }: PostCardProps) {
   const { currentProfile } = useAuth();
   const [showReplyForm, setShowReplyForm] = useState(false);
@@ -39,16 +40,14 @@ export const PostCard = memo(function PostCard({
   });
 
   // Use shared instance data instead of querying per post
-  const { data: instanceData } = useQuery({
-    queryKey: ["current-instance"],
-  });
+  const { currentInstance } = useCurrentInstance();
 
   const now = new Date();
-  const communityEnded = instanceData
-    ? now > new Date(instanceData.ends_at)
+  const communityEnded = currentInstance
+    ? now > new Date(currentInstance.ends_at)
     : false;
-  const communityNotStarted = instanceData
-    ? now < new Date(instanceData.starts_at)
+  const communityNotStarted = currentInstance
+    ? now < new Date(currentInstance.starts_at)
     : false;
   const canInteract = !communityEnded && !communityNotStarted;
 
@@ -202,6 +201,7 @@ export const PostCard = memo(function PostCard({
           author={post.author}
           createdAt={post.createdAt}
           isAnnouncement={post.announcement}
+          isPinned={!!post.pinned_at}
           isReply={isReply}
           currentProfileId={currentProfileId}
           isModerator={isModerator}
@@ -244,11 +244,18 @@ export const PostCard = memo(function PostCard({
               postId={post.id}
               replyCount={post.replies?.length || 0}
               isBookmarked={post.is_bookmarked || false}
+              isPinned={!!post.pinned_at}
+              isOwnPost={post.author.id === currentProfileId}
+              isProfileView={isProfileView}
               currentProfileId={currentProfileId}
               isReply={isReply}
               onToggleReply={() => setShowReplyForm(!showReplyForm)}
               showReplyForm={showReplyForm}
               onBookmarkChange={() => {}} // Handled internally by PostCardActions
+              onPinChange={() => {
+                // Trigger refresh to update the pinned status
+                (onRefresh || onDelete)?.();
+              }}
             />
 
             {/* Reaction button and reactions display */}
@@ -306,6 +313,7 @@ export const PostCard = memo(function PostCard({
                     onRefresh={onRefresh}
                     isCommunityOwner={isCommunityOwner}
                     isModerator={isModerator}
+                    isProfileView={isProfileView}
                   />
                 ))}
               </div>
