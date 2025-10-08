@@ -1,6 +1,5 @@
 import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
-import { logger } from "../../../config/logger";
 import { AppException } from "../../../exception";
 import { authMiddleware } from "../../../middleware/auth";
 import * as communityService from "../../../services/community.service";
@@ -96,8 +95,7 @@ export const applicationsRouter = new Hono()
         if (error instanceof AppException) {
           return c.json({ error: error.message }, error.statusCode);
         }
-        logger.http.error("Error creating application", { error });
-        return c.json({ error: "지원서 제출에 실패했습니다" }, 500);
+        throw error;
       }
     },
   )

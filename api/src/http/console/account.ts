@@ -2,7 +2,6 @@ import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
 import { setCookie } from "hono/cookie";
 import { z } from "zod";
-import { logger } from "../../config/logger";
 import { authMiddleware } from "../../middleware/auth";
 import {
   accountDeletionConfirmSchema,
@@ -178,17 +177,12 @@ export const consoleAccountRouter = new Hono()
 
     // If user has verified email, send confirmation email instead of deleting immediately
     if (user.emailVerifiedAt && user.email) {
-      try {
-        await emailService.sendAccountDeletionEmail(user.id, user.email);
-        return c.json({
-          message:
-            "계정 삭제 확인 이메일이 전송되었습니다. 이메일을 확인하여 삭제를 완료해주세요.",
-          requiresEmailConfirmation: true,
-        });
-      } catch (error: unknown) {
-        logger.http.error("Error sending deletion email", { error });
-        return c.json({ error: "이메일 전송에 실패했습니다" }, 500);
-      }
+      await emailService.sendAccountDeletionEmail(user.id, user.email);
+      return c.json({
+        message:
+          "계정 삭제 확인 이메일이 전송되었습니다. 이메일을 확인하여 삭제를 완료해주세요.",
+        requiresEmailConfirmation: true,
+      });
     }
 
     // If no verified email, delete immediately

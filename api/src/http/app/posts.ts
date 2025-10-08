@@ -1,6 +1,5 @@
 import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
-import { logger } from "../../config/logger";
 import { AppException } from "../../exception";
 import {
   appAuthMiddleware,
@@ -60,8 +59,7 @@ export const postsRouter = new Hono<{ Variables: AuthVariables }>()
         if (error instanceof AppException) {
           return c.json({ error: error.message }, error.statusCode);
         }
-        logger.http.error("Error creating export job", { error });
-        return c.json({ error: "내보내기 요청에 실패했습니다" }, 500);
+        throw error;
       }
     },
   )
@@ -89,26 +87,19 @@ export const postsRouter = new Hono<{ Variables: AuthVariables }>()
         if (error instanceof AppException) {
           return c.json({ error: error.message }, error.statusCode);
         }
-        logger.http.error("Error getting export job status", { error });
-        return c.json({ error: "내보내기 상태 조회에 실패했습니다" }, 500);
+        throw error;
       }
     },
   )
   .get("/exports", appAuthMiddleware, communityMiddleware, async (c) => {
     const user = c.get("user");
     const community = c.get("community");
+    const exports = await exportJobService.getUserExports(
+      user.id,
+      community.id,
+    );
 
-    try {
-      const exports = await exportJobService.getUserExports(
-        user.id,
-        community.id,
-      );
-
-      return c.json(exports);
-    } catch (error: unknown) {
-      logger.http.error("Error getting user exports", { error });
-      return c.json({ error: "내보내기 내역 조회에 실패했습니다" }, 500);
-    }
+    return c.json(exports);
   })
   .post("/upload/file", appAuthMiddleware, async (c) => {
     // Check Content-Type before parsing formData
@@ -145,8 +136,7 @@ export const postsRouter = new Hono<{ Variables: AuthVariables }>()
       if (error instanceof AppException) {
         return c.json({ error: error.message }, error.statusCode);
       }
-      logger.http.error("Error uploading file", { error });
-      return c.json({ error: "파일 업로드에 실패했습니다" }, 500);
+      throw error;
     }
   })
   .get(
@@ -233,21 +223,15 @@ export const postsRouter = new Hono<{ Variables: AuthVariables }>()
     async (c) => {
       const community = c.get("community");
       const { q, limit = 20, cursor, profile_id } = c.req.valid("query");
+      const result = await postService.searchPosts(
+        q,
+        community.id,
+        limit,
+        cursor,
+        profile_id,
+      );
 
-      try {
-        const result = await postService.searchPosts(
-          q,
-          community.id,
-          limit,
-          cursor,
-          profile_id,
-        );
-
-        return c.json(result);
-      } catch (error: unknown) {
-        logger.http.error("Error searching posts", { error });
-        return c.json({ error: "게시물 검색에 실패했습니다" }, 500);
-      }
+      return c.json(result);
     },
   )
   .get(
@@ -345,8 +329,7 @@ export const postsRouter = new Hono<{ Variables: AuthVariables }>()
         if (error instanceof AppException) {
           return c.json({ error: error.message }, error.statusCode);
         }
-        logger.http.error("Error creating post", { error });
-        return c.json({ error: "게시물 생성에 실패했습니다" }, 500);
+        throw error;
       }
     },
   )
@@ -606,8 +589,7 @@ export const postsRouter = new Hono<{ Variables: AuthVariables }>()
         if (error instanceof AppException) {
           return c.json({ error: error.message }, error.statusCode);
         }
-        logger.http.error("Error pinning post", { error });
-        return c.json({ error: "게시물 고정에 실패했습니다" }, 500);
+        throw error;
       }
     },
   )
@@ -631,8 +613,7 @@ export const postsRouter = new Hono<{ Variables: AuthVariables }>()
         if (error instanceof AppException) {
           return c.json({ error: error.message }, error.statusCode);
         }
-        logger.http.error("Error unpinning post", { error });
-        return c.json({ error: "게시물 고정 해제에 실패했습니다" }, 500);
+        throw error;
       }
     },
   );

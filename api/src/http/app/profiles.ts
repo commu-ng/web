@@ -1,7 +1,6 @@
 import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
 import { z } from "zod";
-import { logger } from "../../config/logger";
 import { AppException } from "../../exception";
 import {
   appAuthMiddleware,
@@ -100,8 +99,7 @@ export const profilesRouter = new Hono<{ Variables: AuthVariables }>()
         if (error instanceof AppException) {
           return c.json({ error: error.message }, error.statusCode);
         }
-        logger.http.error("Profile picture upload error", { error });
-        return c.json({ error: "프로필 사진 업로드에 실패했습니다" }, 500);
+        throw error;
       }
     },
   )
@@ -172,8 +170,7 @@ export const profilesRouter = new Hono<{ Variables: AuthVariables }>()
         if (error instanceof AppException) {
           return c.json({ error: error.message }, error.statusCode);
         }
-        logger.http.error("Error creating profile", { error });
-        return c.json({ error: "프로필 생성에 실패했습니다" }, 500);
+        throw error;
       }
     },
   )
@@ -185,14 +182,8 @@ export const profilesRouter = new Hono<{ Variables: AuthVariables }>()
     zValidator("query", profileIdQuerySchema),
     async (c) => {
       const { profile_id: profileId } = c.req.valid("query");
-
-      try {
-        const postCount = await profileService.getProfilePostCount(profileId);
-        return c.json({ post_count: postCount });
-      } catch (error) {
-        logger.http.error("Error getting post count", { error });
-        return c.json({ error: "게시물 수를 가져오는데 실패했습니다" }, 500);
-      }
+      const postCount = await profileService.getProfilePostCount(profileId);
+      return c.json({ post_count: postCount });
     },
   )
   .delete(
@@ -213,8 +204,7 @@ export const profilesRouter = new Hono<{ Variables: AuthVariables }>()
         if (error instanceof AppException) {
           return c.json({ error: error.message }, error.statusCode);
         }
-        logger.http.error("Error deleting profile", { error });
-        return c.json({ error: "프로필 삭제에 실패했습니다" }, 500);
+        throw error;
       }
     },
   )
@@ -291,8 +281,7 @@ export const profilesRouter = new Hono<{ Variables: AuthVariables }>()
         if (error instanceof AppException) {
           return c.json({ error: error.message }, error.statusCode);
         }
-        logger.http.error("Error setting primary profile", { error });
-        return c.json({ error: "기본 프로필 설정에 실패했습니다" }, 500);
+        throw error;
       }
     },
   )
@@ -324,8 +313,7 @@ export const profilesRouter = new Hono<{ Variables: AuthVariables }>()
         if (error instanceof AppException) {
           return c.json({ error: error.message }, error.statusCode);
         }
-        logger.http.error("Error updating profile", { error });
-        return c.json({ error: "프로필 업데이트에 실패했습니다" }, 500);
+        throw error;
       }
     },
   )
@@ -351,8 +339,7 @@ export const profilesRouter = new Hono<{ Variables: AuthVariables }>()
         if (error instanceof AppException) {
           return c.json({ error: error.message }, error.statusCode);
         }
-        logger.http.error("Error fetching profile users", { error });
-        return c.json({ error: "사용자 목록을 가져오는데 실패했습니다" }, 500);
+        throw error;
       }
     },
   )
@@ -441,8 +428,7 @@ export const profilesRouter = new Hono<{ Variables: AuthVariables }>()
         if (error instanceof AppException) {
           return c.json({ error: error.message }, error.statusCode);
         }
-        logger.http.error("Error removing user from profile", { error });
-        return c.json({ error: "사용자 제거에 실패했습니다" }, 500);
+        throw error;
       }
     },
   );

@@ -1,6 +1,5 @@
 import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
-import { logger } from "../../../config/logger";
 import { AppException } from "../../../exception";
 import {
   authMiddleware,
@@ -73,8 +72,7 @@ export const crudRouter = new Hono()
         if (error instanceof AppException) {
           return c.json({ error: error.message }, error.statusCode);
         }
-        logger.http.error("Error creating community", { error });
-        return c.json({ error: "커뮤 생성에 실패했습니다" }, 500);
+        throw error;
       }
     },
   )
@@ -111,7 +109,7 @@ export const crudRouter = new Hono()
         if (error instanceof AppException) {
           return c.json({ error: error.message }, error.statusCode);
         }
-        return c.json({ error: "커뮤 조회에 실패했습니다" }, 500);
+        throw error;
       }
     },
   )
@@ -153,7 +151,7 @@ export const crudRouter = new Hono()
         if (error instanceof AppException) {
           return c.json({ error: error.message }, error.statusCode);
         }
-        return c.json({ error: "커뮤 소유자만 업데이트할 수 있습니다" }, 403);
+        throw error;
       }
 
       // Update community using service
@@ -193,8 +191,7 @@ export const crudRouter = new Hono()
         if (error instanceof AppException) {
           return c.json({ error: error.message }, error.statusCode);
         }
-        logger.http.error("Error updating community", { error });
-        return c.json({ error: "커뮤 업데이트에 실패했습니다" }, 500);
+        throw error;
       }
     },
   )
@@ -220,7 +217,7 @@ export const crudRouter = new Hono()
         if (error instanceof AppException) {
           return c.json({ error: error.message }, error.statusCode);
         }
-        return c.json({ error: "커뮤 소유자만 삭제할 수 있습니다" }, 403);
+        throw error;
       }
 
       // Delete community using service
@@ -231,8 +228,7 @@ export const crudRouter = new Hono()
         if (error instanceof AppException) {
           return c.json({ error: error.message }, error.statusCode);
         }
-        logger.http.error("Error deleting community", { error });
-        return c.json({ error: "커뮤 삭제에 실패했습니다" }, 500);
+        throw error;
       }
     },
   );

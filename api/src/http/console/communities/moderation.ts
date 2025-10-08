@@ -1,7 +1,6 @@
 import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
 import { z } from "zod";
-import { logger } from "../../../config/logger";
 import { AppException } from "../../../exception";
 import { authMiddleware } from "../../../middleware/auth";
 import * as communityService from "../../../services/community.service";
@@ -47,8 +46,7 @@ export const moderationRouter = new Hono()
         if (error instanceof AppException) {
           return c.json({ error: error.message }, error.statusCode);
         }
-        logger.http.error("Error muting profile", { error });
-        return c.json({ error: "프로필 음소거에 실패했습니다" }, 500);
+        throw error;
       }
     },
   )
@@ -76,8 +74,7 @@ export const moderationRouter = new Hono()
         if (error instanceof AppException) {
           return c.json({ error: error.message }, error.statusCode);
         }
-        logger.http.error("Error unmuting profile", { error });
-        return c.json({ error: "프로필 음소거 해제에 실패했습니다" }, 500);
+        throw error;
       }
     },
   );

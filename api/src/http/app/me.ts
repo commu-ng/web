@@ -1,6 +1,5 @@
 import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
-import { logger } from "../../config/logger";
 import { appAuthMiddleware } from "../../middleware/auth";
 import { communityMiddleware } from "../../middleware/community";
 import { membershipMiddleware } from "../../middleware/membership";
@@ -15,40 +14,22 @@ import { canManageProfile } from "../../utils/profile-ownership";
 export const meRouter = new Hono<{ Variables: AuthVariables }>()
   .get("/instance", communityMiddleware, async (c) => {
     const community = c.get("community");
-
-    try {
-      const result = await userService.getPublicInstanceInfo(community.id);
-      return c.json(result);
-    } catch (error) {
-      logger.http.error("Error fetching public instance info", { error });
-      return c.json({ error: "인스턴스 정보를 가져오는데 실패했습니다" }, 500);
-    }
+    const result = await userService.getPublicInstanceInfo(community.id);
+    return c.json(result);
   })
   .get("/me", appAuthMiddleware, async (c) => {
     const user = c.get("user");
-
-    try {
-      const result = await userService.getCurrentUser(user.id);
-      return c.json(result);
-    } catch (error) {
-      logger.http.error("Error fetching current user", { error });
-      return c.json({ error: "사용자 정보를 가져오는데 실패했습니다" }, 500);
-    }
+    const result = await userService.getCurrentUser(user.id);
+    return c.json(result);
   })
   .get("/me/instance", appAuthMiddleware, communityMiddleware, async (c) => {
     const user = c.get("user");
     const community = c.get("community");
-
-    try {
-      const result = await userService.getCurrentUserInstance(
-        user.id,
-        community.id,
-      );
-      return c.json(result);
-    } catch (error) {
-      logger.http.error("Error fetching user instance", { error });
-      return c.json({ error: "인스턴스 정보를 가져오는데 실패했습니다" }, 500);
-    }
+    const result = await userService.getCurrentUserInstance(
+      user.id,
+      community.id,
+    );
+    return c.json(result);
   })
 
   .put(
@@ -110,8 +91,7 @@ export const meRouter = new Hono<{ Variables: AuthVariables }>()
         if (error instanceof Error && error.message === "Profile not found") {
           return c.json({ message: "프로필을 찾을 수 없습니다" }, 404);
         }
-        logger.http.error("Error updating profile", { error });
-        return c.json({ error: "프로필 업데이트에 실패했습니다" }, 500);
+        throw error;
       }
     },
   )
@@ -123,13 +103,7 @@ export const meRouter = new Hono<{ Variables: AuthVariables }>()
     async (c) => {
       const user = c.get("user");
       const community = c.get("community");
-
-      try {
-        const result = await userService.getUserProfiles(user.id, community.id);
-        return c.json(result);
-      } catch (error) {
-        logger.http.error("Error fetching user profiles", { error });
-        return c.json({ error: "프로필 목록을 가져오는데 실패했습니다" }, 500);
-      }
+      const result = await userService.getUserProfiles(user.id, community.id);
+      return c.json(result);
     },
   );

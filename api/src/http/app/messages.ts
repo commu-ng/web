@@ -1,7 +1,6 @@
 import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
 import { z } from "zod";
-import { logger } from "../../config/logger";
 import { AppException } from "../../exception";
 import { appAuthMiddleware } from "../../middleware/auth";
 import { communityMiddleware } from "../../middleware/community";
@@ -70,8 +69,7 @@ export const messagesRouter = new Hono<{ Variables: AuthVariables }>()
         if (error instanceof AppException) {
           return c.json({ error: error.message }, error.statusCode);
         }
-        logger.http.error("Error creating message", { error });
-        return c.json({ error: "메시지 생성에 실패했습니다" }, 500);
+        throw error;
       }
     },
   )
@@ -115,8 +113,7 @@ export const messagesRouter = new Hono<{ Variables: AuthVariables }>()
         if (error instanceof AppException) {
           return c.json({ error: error.message }, error.statusCode);
         }
-        logger.http.error("Error deleting message", { error });
-        return c.json({ error: "메시지 삭제에 실패했습니다" }, 500);
+        throw error;
       }
     },
   )
@@ -232,8 +229,7 @@ export const messagesRouter = new Hono<{ Variables: AuthVariables }>()
         if (error instanceof AppException) {
           return c.json({ error: error.message }, error.statusCode);
         }
-        logger.http.error("Error marking conversation as read", { error });
-        return c.json({ error: "메시지 읽음 표시에 실패했습니다" }, 500);
+        throw error;
       }
     },
   )
@@ -271,8 +267,7 @@ export const messagesRouter = new Hono<{ Variables: AuthVariables }>()
         if (error instanceof AppException) {
           return c.json({ error: error.message }, error.statusCode);
         }
-        logger.http.error("Error marking all messages as read", { error });
-        return c.json({ error: "메시지 읽음 표시에 실패했습니다" }, 500);
+        throw error;
       }
     },
   )
@@ -347,8 +342,7 @@ export const messagesRouter = new Hono<{ Variables: AuthVariables }>()
         if (error instanceof AppException) {
           return c.json({ error: error.message }, error.statusCode);
         }
-        logger.http.error("Error creating reaction", { error });
-        return c.json({ error: "반응 추가에 실패했습니다" }, 500);
+        throw error;
       }
     },
   )
@@ -396,8 +390,7 @@ export const messagesRouter = new Hono<{ Variables: AuthVariables }>()
         if (error instanceof AppException) {
           return c.json({ error: error.message }, error.statusCode);
         }
-        logger.http.error("Error deleting reaction", { error });
-        return c.json({ error: "반응 제거에 실패했습니다" }, 500);
+        throw error;
       }
     },
   )
@@ -484,8 +477,7 @@ export const messagesRouter = new Hono<{ Variables: AuthVariables }>()
         if (error instanceof AppException) {
           return c.json({ error: error.message }, error.statusCode);
         }
-        logger.http.error("Error creating group chat", { error });
-        return c.json({ error: "그룹 채팅 생성에 실패했습니다" }, 500);
+        throw error;
       }
     },
   )
@@ -615,8 +607,7 @@ export const messagesRouter = new Hono<{ Variables: AuthVariables }>()
         if (error instanceof AppException) {
           return c.json({ error: error.message }, error.statusCode);
         }
-        logger.http.error("Error sending group chat message", { error });
-        return c.json({ error: "메시지 전송에 실패했습니다" }, 500);
+        throw error;
       }
     },
   )
@@ -662,10 +653,7 @@ export const messagesRouter = new Hono<{ Variables: AuthVariables }>()
         if (error instanceof AppException) {
           return c.json({ error: error.message }, error.statusCode);
         }
-        logger.http.error("Error creating group chat message reaction", {
-          error,
-        });
-        return c.json({ error: "반응 추가에 실패했습니다" }, 500);
+        throw error;
       }
     },
   )
@@ -711,10 +699,7 @@ export const messagesRouter = new Hono<{ Variables: AuthVariables }>()
         if (error instanceof AppException) {
           return c.json({ error: error.message }, error.statusCode);
         }
-        logger.http.error("Error deleting group chat message reaction", {
-          error,
-        });
-        return c.json({ error: "반응 제거에 실패했습니다" }, 500);
+        throw error;
       }
     },
   )
@@ -755,10 +740,7 @@ export const messagesRouter = new Hono<{ Variables: AuthVariables }>()
         if (error instanceof AppException) {
           return c.json({ error: error.message }, error.statusCode);
         }
-        logger.http.error("Error marking group chat messages as read", {
-          error,
-        });
-        return c.json({ error: "메시지 읽음 표시에 실패했습니다" }, 500);
+        throw error;
       }
     },
   );

@@ -1,7 +1,6 @@
 import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
 import { z } from "zod";
-import { logger } from "../../config/logger";
 import { authMiddleware } from "../../middleware/auth";
 import * as searchService from "../../services/search.service";
 
@@ -17,13 +16,7 @@ export const consoleSearchRouter = new Hono().get(
   zValidator("query", searchQuerySchema),
   async (c) => {
     const { q: query } = c.req.valid("query");
-
-    try {
-      const result = await searchService.searchHashtags(query || "", 10);
-      return c.json(result);
-    } catch (error) {
-      logger.http.error("Error searching hashtags", { error });
-      return c.json({ error: "해시태그 검색에 실패했습니다" }, 500);
-    }
+    const result = await searchService.searchHashtags(query || "", 10);
+    return c.json(result);
   },
 );
