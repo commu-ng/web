@@ -33,12 +33,13 @@ export default function Home() {
     scheduledPostsRef.current?.refresh();
   };
 
-  // Refetch posts when navigating to the page
+  // Refetch posts when navigating to the page or switching profiles
+  // biome-ignore lint/correctness/useExhaustiveDependencies: We want to refetch when profile changes
   useEffect(() => {
     if (isAuthenticated && belongsToCurrentInstance) {
       postListRef.current?.refresh();
     }
-  }, [isAuthenticated, belongsToCurrentInstance]);
+  }, [isAuthenticated, belongsToCurrentInstance, currentProfile?.id]);
 
   // Refetch posts when navigating back from deleted post
   useEffect(() => {
