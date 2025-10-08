@@ -1,0 +1,1230 @@
+import { sql } from "drizzle-orm";
+import {
+  boolean,
+  foreignKey,
+  index,
+  integer,
+  pgEnum,
+  pgTable,
+  primaryKey,
+  text,
+  timestamp,
+  unique,
+  uniqueIndex,
+  uuid,
+} from "drizzle-orm/pg-core";
+
+export const communityRoleEnum = pgEnum("community_role", [
+  "owner",
+  "moderator",
+  "member",
+]);
+
+export const notificationTypeEnum = pgEnum("notification_type", [
+  "reply",
+  "mention",
+  "reaction",
+]);
+
+export const profileOwnershipRoleEnum = pgEnum("profile_ownership_role", [
+  "owner",
+  "admin",
+]);
+
+export const applicationStatusEnum = pgEnum("application_status", [
+  "pending",
+  "approved",
+  "rejected",
+]);
+
+export const moderationActionEnum = pgEnum("moderation_action", [
+  "delete_post",
+]);
+
+export const exportStatusEnum = pgEnum("export_status", [
+  "pending",
+  "processing",
+  "completed",
+  "failed",
+]);
+
+export const groupChat = pgTable(
+  "group_chat",
+  {
+    id: uuid().primaryKey().default(sql`uuidv7()`),
+    name: text().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+    deletedAt: timestamp("deleted_at", { withTimezone: true, mode: "string" }),
+    communityId: uuid("community_id").notNull(),
+    createdById: uuid("created_by_id").notNull(),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.communityId],
+      foreignColumns: [community.id],
+      name: "group_chat_community_id_fkey",
+    }),
+    foreignKey({
+      columns: [table.createdById],
+      foreignColumns: [profile.id],
+      name: "group_chat_created_by_id_fkey",
+    }),
+    sql`CONSTRAINT valid_group_chat_name CHECK (length(name) > 0 AND length(name) <= 100)`,
+  ],
+);
+
+export const groupChatMembership = pgTable(
+  "group_chat_membership",
+  {
+    id: uuid().primaryKey().default(sql`uuidv7()`),
+    groupChatId: uuid("group_chat_id").notNull(),
+    profileId: uuid("profile_id").notNull(),
+    addedById: uuid("added_by_id"),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.groupChatId],
+      foreignColumns: [groupChat.id],
+      name: "group_chat_membership_group_chat_id_fkey",
+    }),
+    foreignKey({
+      columns: [table.profileId],
+      foreignColumns: [profile.id],
+      name: "group_chat_membership_profile_id_fkey",
+    }),
+    foreignKey({
+      columns: [table.addedById],
+      foreignColumns: [profile.id],
+      name: "group_chat_membership_added_by_id_fkey",
+    }),
+    unique("unique_group_chat_membership").on(
+      table.groupChatId,
+      table.profileId,
+    ),
+  ],
+);
+
+export const groupChatMessage = pgTable(
+  "group_chat_message",
+  {
+    id: uuid().primaryKey().default(sql`uuidv7()`),
+    content: text().notNull().default(""),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+    deletedAt: timestamp("deleted_at", { withTimezone: true, mode: "string" }),
+    groupChatId: uuid("group_chat_id").notNull(),
+    senderId: uuid("sender_id").notNull(),
+    createdByUserId: uuid("created_by_user_id").notNull(),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.groupChatId],
+      foreignColumns: [groupChat.id],
+      name: "group_chat_message_group_chat_id_fkey",
+    }),
+    foreignKey({
+      columns: [table.senderId],
+      foreignColumns: [profile.id],
+      name: "group_chat_message_sender_id_fkey",
+    }),
+    foreignKey({
+      columns: [table.createdByUserId],
+      foreignColumns: [user.id],
+      name: "group_chat_message_created_by_user_id_fkey",
+    }),
+    index("idx_group_chat_message_history").on(
+      table.groupChatId,
+      table.createdAt,
+    ),
+    sql`CONSTRAINT valid_group_chat_message_content CHECK (length(content) <= 10000)`,
+  ],
+);
+
+export const groupChatMessageRead = pgTable(
+  "group_chat_message_read",
+  {
+    id: uuid().primaryKey().default(sql`uuidv7()`),
+    messageId: uuid("message_id").notNull(),
+    profileId: uuid("profile_id").notNull(),
+    readAt: timestamp("read_at", {
+      withTimezone: true,
+      mode: "string",
+    }).notNull(),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.messageId],
+      foreignColumns: [groupChatMessage.id],
+      name: "group_chat_message_read_message_id_fkey",
+    }),
+    foreignKey({
+      columns: [table.profileId],
+      foreignColumns: [profile.id],
+      name: "group_chat_message_read_profile_id_fkey",
+    }),
+    unique("unique_message_read").on(table.messageId, table.profileId),
+  ],
+);
+
+export const community = pgTable(
+  "community",
+  {
+    id: uuid().primaryKey().default(sql`uuidv7()`),
+    name: text().notNull(),
+    slug: text().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+    deletedAt: timestamp("deleted_at", { withTimezone: true, mode: "string" }),
+    startsAt: timestamp("starts_at", {
+      withTimezone: true,
+      mode: "string",
+    }).notNull(),
+    endsAt: timestamp("ends_at", {
+      withTimezone: true,
+      mode: "string",
+    }).notNull(),
+    isRecruiting: boolean("is_recruiting").notNull(),
+    recruitingStartsAt: timestamp("recruiting_starts_at", {
+      withTimezone: true,
+      mode: "string",
+    }),
+    recruitingEndsAt: timestamp("recruiting_ends_at", {
+      withTimezone: true,
+      mode: "string",
+    }),
+    minimumBirthYear: integer("minimum_birth_year"),
+    customDomain: text("custom_domain"),
+    domainVerifiedAt: timestamp("domain_verified_at", {
+      withTimezone: true,
+      mode: "string",
+    }),
+    description: text(),
+  },
+  (table) => [
+    unique("community_slug_key").on(table.slug),
+    unique("community_custom_domain_key").on(table.customDomain),
+    sql`CONSTRAINT valid_slug CHECK (slug ~ '^[a-z0-9]([a-z0-9-]*[a-z0-9])?$')`,
+    sql`CONSTRAINT valid_name CHECK (length(name) > 0)`,
+    sql`CONSTRAINT valid_description CHECK (description IS NULL OR length(description) <= 10000)`,
+    sql`CONSTRAINT valid_custom_domain CHECK (custom_domain IS NULL OR custom_domain ~ '^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$')`,
+    sql`CONSTRAINT valid_dates CHECK (ends_at > starts_at)`,
+    sql`CONSTRAINT valid_recruiting_dates CHECK (recruiting_ends_at IS NULL OR recruiting_starts_at IS NULL OR recruiting_ends_at > recruiting_starts_at)`,
+    sql`CONSTRAINT valid_recruiting_window CHECK (is_recruiting = false OR (recruiting_starts_at IS NOT NULL AND recruiting_ends_at IS NOT NULL))`,
+    sql`CONSTRAINT valid_minimum_birth_year CHECK (minimum_birth_year IS NULL OR minimum_birth_year >= 1900)`,
+    sql`CONSTRAINT valid_community_timestamps CHECK (deleted_at IS NULL OR deleted_at >= created_at)`,
+    sql`CONSTRAINT valid_domain_verified_at CHECK (domain_verified_at IS NULL OR domain_verified_at >= created_at)`,
+  ],
+);
+
+export const user = pgTable(
+  "user",
+  {
+    id: uuid().primaryKey().default(sql`uuidv7()`),
+    loginName: text("login_name").notNull(),
+    email: text(),
+    emailVerifiedAt: timestamp("email_verified_at", {
+      withTimezone: true,
+      mode: "string",
+    }),
+    passwordHash: text("password_hash").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+    deletedAt: timestamp("deleted_at", { withTimezone: true, mode: "string" }),
+    isAdmin: boolean("is_admin").default(false).notNull(),
+  },
+  (table) => [
+    unique("user_login_name_key").on(table.loginName),
+    unique("user_email_key").on(table.email),
+    sql`CONSTRAINT valid_login_name CHECK (login_name ~ '^[a-z0-9]([a-z0-9_-]*[a-z0-9])?$')`,
+    sql`CONSTRAINT valid_email CHECK (email IS NULL OR email ~ '^[^@]+@[^@]+\.[^@]+$')`,
+  ],
+);
+
+export const exchangeToken = pgTable(
+  "exchange_token",
+  {
+    id: uuid().primaryKey().default(sql`uuidv7()`),
+    token: uuid().notNull(),
+    targetDomain: text("target_domain").notNull(),
+    expiresAt: timestamp("expires_at", {
+      withTimezone: true,
+      mode: "string",
+    }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+    userId: uuid("user_id").notNull(),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.userId],
+      foreignColumns: [user.id],
+      name: "exchange_token_user_id_fkey",
+    }),
+    unique("exchange_token_token_key").on(table.token),
+    index("idx_exchange_token_expires_at").on(table.expiresAt),
+  ],
+);
+
+export const emailVerificationToken = pgTable(
+  "email_verification_token",
+  {
+    id: uuid().primaryKey().default(sql`uuidv7()`),
+    token: uuid().notNull(),
+    email: text().notNull(),
+    expiresAt: timestamp("expires_at", {
+      withTimezone: true,
+      mode: "string",
+    }).notNull(),
+    verifiedAt: timestamp("verified_at", {
+      withTimezone: true,
+      mode: "string",
+    }),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+    userId: uuid("user_id").notNull(),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.userId],
+      foreignColumns: [user.id],
+      name: "email_verification_token_user_id_fkey",
+    }),
+    unique("email_verification_token_token_key").on(table.token),
+  ],
+);
+
+export const accountDeletionToken = pgTable(
+  "account_deletion_token",
+  {
+    id: uuid().primaryKey().default(sql`uuidv7()`),
+    token: uuid().notNull(),
+    expiresAt: timestamp("expires_at", {
+      withTimezone: true,
+      mode: "string",
+    }).notNull(),
+    usedAt: timestamp("used_at", { withTimezone: true, mode: "string" }),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+    userId: uuid("user_id").notNull(),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.userId],
+      foreignColumns: [user.id],
+      name: "account_deletion_token_user_id_fkey",
+    }),
+    unique("account_deletion_token_token_key").on(table.token),
+  ],
+);
+
+export const passwordResetToken = pgTable(
+  "password_reset_token",
+  {
+    id: uuid().primaryKey().default(sql`uuidv7()`),
+    token: uuid().notNull(),
+    expiresAt: timestamp("expires_at", {
+      withTimezone: true,
+      mode: "string",
+    }).notNull(),
+    usedAt: timestamp("used_at", { withTimezone: true, mode: "string" }),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+    userId: uuid("user_id").notNull(),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.userId],
+      foreignColumns: [user.id],
+      name: "password_reset_token_user_id_fkey",
+    }),
+    unique("password_reset_token_token_key").on(table.token),
+    index("idx_password_reset_token_expires_at").on(table.expiresAt),
+  ],
+);
+
+export const session = pgTable(
+  "session",
+  {
+    id: uuid().primaryKey().default(sql`uuidv7()`),
+    token: uuid().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+    expiresAt: timestamp("expires_at", {
+      withTimezone: true,
+      mode: "string",
+    }).notNull(),
+    userId: uuid("user_id").notNull(),
+    communityId: uuid("community_id"),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.userId],
+      foreignColumns: [user.id],
+      name: "session_user_id_fkey",
+    }),
+    foreignKey({
+      columns: [table.communityId],
+      foreignColumns: [community.id],
+      name: "session_community_id_fkey",
+    }),
+    unique("session_token_key").on(table.token),
+    index("idx_session_expires_at").on(table.expiresAt),
+  ],
+);
+
+export const communityBannerImage = pgTable(
+  "community_banner_image",
+  {
+    id: uuid().primaryKey().default(sql`uuidv7()`),
+    communityId: uuid("community_id").notNull(),
+    imageId: uuid("image_id").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+    deletedAt: timestamp("deleted_at", { withTimezone: true, mode: "string" }),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.communityId],
+      foreignColumns: [community.id],
+      name: "community_banner_image_community_id_fkey",
+    }),
+    foreignKey({
+      columns: [table.imageId],
+      foreignColumns: [image.id],
+      name: "community_banner_image_image_id_fkey",
+    }),
+  ],
+);
+
+export const communityDescriptionImage = pgTable(
+  "community_description_image",
+  {
+    id: uuid().primaryKey().default(sql`uuidv7()`),
+    communityId: uuid("community_id").notNull(),
+    imageId: uuid("image_id").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+    deletedAt: timestamp("deleted_at", { withTimezone: true, mode: "string" }),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.communityId],
+      foreignColumns: [community.id],
+      name: "community_description_image_community_id_fkey",
+    }),
+    foreignKey({
+      columns: [table.imageId],
+      foreignColumns: [image.id],
+      name: "community_description_image_image_id_fkey",
+    }),
+  ],
+);
+
+export const profile = pgTable(
+  "profile",
+  {
+    id: uuid().primaryKey().default(sql`uuidv7()`),
+    name: text().notNull(),
+    username: text().notNull(),
+    communityId: uuid("community_id").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+    bio: text(),
+    activatedAt: timestamp("activated_at", {
+      withTimezone: true,
+      mode: "string",
+    }),
+    deletedAt: timestamp("deleted_at", { withTimezone: true, mode: "string" }),
+    isPrimary: boolean("is_primary").default(false).notNull(),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.communityId],
+      foreignColumns: [community.id],
+      name: "profile_community_id_fkey",
+    }),
+    unique("unique_username_community").on(table.username, table.communityId),
+    sql`CONSTRAINT valid_username CHECK (username ~ '^[a-zA-Z0-9_]+$' AND length(username) > 0 AND length(username) <= 50)`,
+    sql`CONSTRAINT valid_name CHECK (length(name) > 0 AND length(name) <= 100)`,
+  ],
+);
+
+export const profileOwnership = pgTable(
+  "profile_ownership",
+  {
+    id: uuid().primaryKey().default(sql`uuidv7()`),
+    profileId: uuid("profile_id").notNull(),
+    userId: uuid("user_id").notNull(),
+    role: profileOwnershipRoleEnum().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+    createdBy: uuid("created_by").notNull(),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.profileId],
+      foreignColumns: [profile.id],
+      name: "profile_ownership_profile_id_fkey",
+    }),
+    foreignKey({
+      columns: [table.userId],
+      foreignColumns: [user.id],
+      name: "profile_ownership_user_id_fkey",
+    }),
+    foreignKey({
+      columns: [table.createdBy],
+      foreignColumns: [user.id],
+      name: "profile_ownership_created_by_fkey",
+    }),
+    unique("unique_profile_user_ownership").on(table.profileId, table.userId),
+    index("idx_profile_ownership_user_id").on(table.userId),
+    index("idx_profile_ownership_profile_id").on(table.profileId),
+  ],
+);
+
+export const image = pgTable(
+  "image",
+  {
+    id: uuid().primaryKey().default(sql`uuidv7()`),
+    width: integer().notNull(),
+    height: integer().notNull(),
+    filename: text().notNull(),
+    key: text().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+    deletedAt: timestamp("deleted_at", { withTimezone: true, mode: "string" }),
+  },
+  (_table) => [
+    sql`CONSTRAINT valid_image_dimensions CHECK (width > 0 AND height > 0)`,
+    sql`CONSTRAINT valid_image_filename CHECK (length(filename) > 0)`,
+    sql`CONSTRAINT valid_image_key CHECK (length(key) > 0)`,
+  ],
+);
+
+export const hashtag = pgTable(
+  "hashtag",
+  {
+    id: uuid().primaryKey().default(sql`uuidv7()`),
+    tag: text().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    unique("hashtag_tag_key").on(table.tag),
+    sql`CONSTRAINT valid_hashtag_tag CHECK (tag ~ '^[a-z0-9가-힣]+$' AND length(tag) > 0)`,
+    // Case-insensitive index for efficient prefix search with LOWER()
+    index("hashtag_tag_lower_idx").on(sql`LOWER(${table.tag})`),
+  ],
+);
+
+export const communityApplication = pgTable(
+  "community_application",
+  {
+    id: uuid().primaryKey().default(sql`uuidv7()`),
+    message: text(),
+    status: applicationStatusEnum().notNull().default("pending"),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+    reviewedAt: timestamp("reviewed_at", {
+      withTimezone: true,
+      mode: "string",
+    }),
+    userId: uuid("user_id").notNull(),
+    communityId: uuid("community_id").notNull(),
+    reviewedById: uuid("reviewed_by_id"),
+    rejectionReason: text("rejection_reason"),
+    profileName: text("profile_name").notNull(),
+    profileUsername: text("profile_username").notNull(),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.communityId],
+      foreignColumns: [community.id],
+      name: "community_application_community_id_fkey",
+    }),
+    foreignKey({
+      columns: [table.reviewedById],
+      foreignColumns: [user.id],
+      name: "community_application_reviewed_by_id_fkey",
+    }),
+    foreignKey({
+      columns: [table.userId],
+      foreignColumns: [user.id],
+      name: "community_application_user_id_fkey",
+    }),
+    uniqueIndex("idx_unique_pending_application")
+      .on(table.userId, table.communityId)
+      .where(sql`${table.status} = 'pending'`),
+    sql`CONSTRAINT valid_application_timestamps CHECK (reviewed_at IS NULL OR reviewed_at >= created_at)`,
+    sql`CONSTRAINT valid_rejection_reason CHECK (status != 'rejected' OR rejection_reason IS NOT NULL)`,
+    sql`CONSTRAINT valid_reviewed_by CHECK (status = 'pending' OR reviewed_by_id IS NOT NULL)`,
+    sql`CONSTRAINT valid_reviewed_at CHECK (status = 'pending' OR reviewed_at IS NOT NULL)`,
+  ],
+);
+
+export const applicationAttachment = pgTable(
+  "application_attachment",
+  {
+    id: uuid().primaryKey().default(sql`uuidv7()`),
+    applicationId: uuid("application_id").notNull(),
+    imageId: uuid("image_id").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.applicationId],
+      foreignColumns: [communityApplication.id],
+      name: "application_attachment_application_id_fkey",
+    }),
+    foreignKey({
+      columns: [table.imageId],
+      foreignColumns: [image.id],
+      name: "application_attachment_image_id_fkey",
+    }),
+  ],
+);
+
+export const communityLink = pgTable(
+  "community_link",
+  {
+    id: uuid().primaryKey().default(sql`uuidv7()`),
+    communityId: uuid("community_id").notNull(),
+    title: text().notNull(),
+    url: text().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+    deletedAt: timestamp("deleted_at", { withTimezone: true, mode: "string" }),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.communityId],
+      foreignColumns: [community.id],
+      name: "community_link_community_id_fkey",
+    }),
+    sql`CONSTRAINT valid_link_title CHECK (length(title) > 0)`,
+    sql`CONSTRAINT valid_link_url CHECK (url ~ '^https?://')`,
+  ],
+);
+
+export const profilePicture = pgTable(
+  "profile_picture",
+  {
+    id: uuid().primaryKey().default(sql`uuidv7()`),
+    profileId: uuid("profile_id").notNull(),
+    imageId: uuid("image_id").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+    deletedAt: timestamp("deleted_at", { withTimezone: true, mode: "string" }),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.profileId],
+      foreignColumns: [profile.id],
+      name: "profile_picture_profile_id_fkey",
+    }),
+    foreignKey({
+      columns: [table.imageId],
+      foreignColumns: [image.id],
+      name: "profile_picture_image_id_fkey",
+    }),
+  ],
+);
+
+export const mention = pgTable(
+  "mention",
+  {
+    id: uuid().primaryKey().default(sql`uuidv7()`),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+    profileId: uuid("profile_id").notNull(),
+    postId: uuid("post_id").notNull(),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.postId],
+      foreignColumns: [post.id],
+      name: "mention_post_id_fkey",
+    }),
+    foreignKey({
+      columns: [table.profileId],
+      foreignColumns: [profile.id],
+      name: "mention_profile_id_fkey",
+    }),
+    unique("unique_mention").on(table.profileId, table.postId),
+  ],
+);
+
+export const postImage = pgTable(
+  "post_image",
+  {
+    id: uuid().primaryKey().default(sql`uuidv7()`),
+    postId: uuid("post_id").notNull(),
+    imageId: uuid("image_id").notNull(),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.imageId],
+      foreignColumns: [image.id],
+      name: "post_image_image_id_fkey",
+    }),
+    foreignKey({
+      columns: [table.postId],
+      foreignColumns: [post.id],
+      name: "post_image_post_id_fkey",
+    }),
+    unique("unique_post_image").on(table.postId, table.imageId),
+  ],
+);
+
+export const postReaction = pgTable(
+  "post_reaction",
+  {
+    id: uuid().primaryKey().default(sql`uuidv7()`),
+    emoji: text().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+    profileId: uuid("profile_id").notNull(),
+    postId: uuid("post_id").notNull(),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.postId],
+      foreignColumns: [post.id],
+      name: "post_reaction_post_id_fkey",
+    }),
+    foreignKey({
+      columns: [table.profileId],
+      foreignColumns: [profile.id],
+      name: "post_reaction_profile_id_fkey",
+    }),
+    sql`CONSTRAINT valid_emoji CHECK (length(emoji) > 0)`,
+    unique("unique_post_reaction").on(
+      table.postId,
+      table.profileId,
+      table.emoji,
+    ),
+  ],
+);
+
+export const groupChatMessageReaction = pgTable(
+  "group_chat_message_reaction",
+  {
+    id: uuid().primaryKey().default(sql`uuidv7()`),
+    emoji: text().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+    profileId: uuid("profile_id").notNull(),
+    messageId: uuid("message_id").notNull(),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.profileId],
+      foreignColumns: [profile.id],
+      name: "group_chat_message_reaction_profile_id_fkey",
+    }),
+    foreignKey({
+      columns: [table.messageId],
+      foreignColumns: [groupChatMessage.id],
+      name: "group_chat_message_reaction_message_id_fkey",
+    }),
+    sql`CONSTRAINT valid_emoji CHECK (length(emoji) > 0)`,
+    unique("unique_group_chat_message_reaction").on(
+      table.messageId,
+      table.profileId,
+      table.emoji,
+    ),
+  ],
+);
+
+export const groupChatMessageImage = pgTable(
+  "group_chat_message_image",
+  {
+    id: uuid().primaryKey().default(sql`uuidv7()`),
+    messageId: uuid("message_id").notNull(),
+    imageId: uuid("image_id").notNull(),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.imageId],
+      foreignColumns: [image.id],
+      name: "group_chat_message_image_image_id_fkey",
+    }),
+    foreignKey({
+      columns: [table.messageId],
+      foreignColumns: [groupChatMessage.id],
+      name: "group_chat_message_image_message_id_fkey",
+    }),
+    unique("unique_group_chat_message_image").on(
+      table.messageId,
+      table.imageId,
+    ),
+  ],
+);
+
+export const directMessageReaction = pgTable(
+  "direct_message_reaction",
+  {
+    id: uuid().primaryKey().default(sql`uuidv7()`),
+    emoji: text().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+    profileId: uuid("profile_id").notNull(),
+    messageId: uuid("message_id").notNull(),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.profileId],
+      foreignColumns: [profile.id],
+      name: "direct_message_reaction_profile_id_fkey",
+    }),
+    foreignKey({
+      columns: [table.messageId],
+      foreignColumns: [directMessage.id],
+      name: "direct_message_reaction_message_id_fkey",
+    }),
+    sql`CONSTRAINT valid_emoji CHECK (length(emoji) > 0)`,
+    unique("unique_direct_message_reaction").on(
+      table.messageId,
+      table.profileId,
+      table.emoji,
+    ),
+  ],
+);
+
+export const directMessageImage = pgTable(
+  "direct_message_image",
+  {
+    id: uuid().primaryKey().default(sql`uuidv7()`),
+    messageId: uuid("message_id").notNull(),
+    imageId: uuid("image_id").notNull(),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.imageId],
+      foreignColumns: [image.id],
+      name: "direct_message_image_image_id_fkey",
+    }),
+    foreignKey({
+      columns: [table.messageId],
+      foreignColumns: [directMessage.id],
+      name: "direct_message_image_message_id_fkey",
+    }),
+    unique("unique_direct_message_image").on(table.messageId, table.imageId),
+  ],
+);
+
+export const directMessage = pgTable(
+  "direct_message",
+  {
+    id: uuid().primaryKey().default(sql`uuidv7()`),
+    content: text().notNull().default(""),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+    communityId: uuid("community_id").notNull(),
+    senderId: uuid("sender_id").notNull(),
+    receiverId: uuid("receiver_id").notNull(),
+    createdByUserId: uuid("created_by_user_id").notNull(),
+    readAt: timestamp("read_at", { withTimezone: true, mode: "string" }),
+    deletedAt: timestamp("deleted_at", { withTimezone: true, mode: "string" }),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.communityId],
+      foreignColumns: [community.id],
+      name: "message_community_id_fkey",
+    }),
+    foreignKey({
+      columns: [table.receiverId],
+      foreignColumns: [profile.id],
+      name: "message_receiver_id_fkey",
+    }),
+    foreignKey({
+      columns: [table.senderId],
+      foreignColumns: [profile.id],
+      name: "message_sender_id_fkey",
+    }),
+    foreignKey({
+      columns: [table.createdByUserId],
+      foreignColumns: [user.id],
+      name: "direct_message_created_by_user_id_fkey",
+    }),
+    index("idx_direct_message_conversation").on(
+      table.senderId,
+      table.receiverId,
+      table.createdAt,
+    ),
+    index("idx_direct_message_unread").on(table.receiverId, table.readAt),
+    sql`CONSTRAINT valid_direct_message_content CHECK (length(content) <= 10000)`,
+    sql`CONSTRAINT valid_sender_receiver CHECK (sender_id != receiver_id)`,
+    sql`CONSTRAINT valid_direct_message_timestamps CHECK (deleted_at IS NULL OR deleted_at >= created_at)`,
+    sql`CONSTRAINT valid_direct_message_read_at CHECK (read_at IS NULL OR read_at >= created_at)`,
+  ],
+);
+
+export const post = pgTable(
+  "post",
+  {
+    id: uuid().primaryKey().default(sql`uuidv7()`),
+    content: text().notNull().default(""),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+    deletedAt: timestamp("deleted_at", { withTimezone: true, mode: "string" }),
+    announcement: boolean().default(false).notNull(),
+    authorId: uuid("author_id").notNull(),
+    createdByUserId: uuid("created_by_user_id").notNull(),
+    communityId: uuid("community_id").notNull(),
+    inReplyToId: uuid("in_reply_to_id"),
+    depth: integer().default(0).notNull(),
+    rootPostId: uuid("root_post_id"),
+    contentWarning: text("content_warning"),
+    scheduledAt: timestamp("scheduled_at", {
+      withTimezone: true,
+      mode: "string",
+    }),
+    publishedAt: timestamp("published_at", {
+      withTimezone: true,
+      mode: "string",
+    }),
+  },
+  (table) => [
+    index("idx_post_depth").using(
+      "btree",
+      table.depth.asc().nullsLast().op("int4_ops"),
+    ),
+    index("idx_post_in_reply_to_id_created").using(
+      "btree",
+      table.inReplyToId.asc().nullsLast().op("uuid_ops"),
+      table.createdAt.asc().nullsLast().op("timestamptz_ops"),
+    ),
+    index("idx_post_root_post_id_created").using(
+      "btree",
+      table.rootPostId.asc().nullsLast().op("uuid_ops"),
+      table.createdAt.asc().nullsLast().op("timestamptz_ops"),
+    ),
+    index("idx_post_community_id_created").using(
+      "btree",
+      table.communityId.asc().nullsLast().op("uuid_ops"),
+      table.createdAt.desc().nullsLast().op("timestamptz_ops"),
+    ),
+    index("idx_post_scheduled_at").using(
+      "btree",
+      table.scheduledAt.asc().nullsLast().op("timestamptz_ops"),
+    ),
+    foreignKey({
+      columns: [table.authorId],
+      foreignColumns: [profile.id],
+      name: "post_author_id_fkey",
+    }),
+    foreignKey({
+      columns: [table.createdByUserId],
+      foreignColumns: [user.id],
+      name: "post_created_by_user_id_fkey",
+    }),
+    foreignKey({
+      columns: [table.communityId],
+      foreignColumns: [community.id],
+      name: "post_community_id_fkey",
+    }),
+    foreignKey({
+      columns: [table.inReplyToId],
+      foreignColumns: [table.id],
+      name: "post_in_reply_to_id_fkey",
+    }),
+    foreignKey({
+      columns: [table.rootPostId],
+      foreignColumns: [table.id],
+      name: "fk_post_root_post_id",
+    }),
+    sql`CONSTRAINT valid_post_content CHECK (length(content) <= 10000)`,
+    sql`CONSTRAINT valid_post_content_warning CHECK (content_warning IS NULL OR length(content_warning) <= 500)`,
+    sql`CONSTRAINT valid_post_depth CHECK (depth >= 0)`,
+    sql`CONSTRAINT valid_reply_depth CHECK (in_reply_to_id IS NULL OR depth > 0)`,
+    sql`CONSTRAINT valid_root_post CHECK ((depth = 0 AND root_post_id IS NULL) OR (depth > 0 AND root_post_id IS NOT NULL))`,
+    sql`CONSTRAINT valid_post_timestamps CHECK (deleted_at IS NULL OR deleted_at >= created_at)`,
+  ],
+);
+
+export const postBookmark = pgTable(
+  "post_bookmark",
+  {
+    id: uuid().primaryKey().default(sql`uuidv7()`),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+    profileId: uuid("profile_id").notNull(),
+    postId: uuid("post_id").notNull(),
+  },
+  (table) => [
+    index("idx_post_bookmark_profile_id_created").using(
+      "btree",
+      table.profileId.asc().nullsLast().op("uuid_ops"),
+      table.createdAt.asc().nullsLast().op("timestamptz_ops"),
+    ),
+    foreignKey({
+      columns: [table.profileId],
+      foreignColumns: [profile.id],
+      name: "post_bookmark_profile_id_fkey",
+    }),
+    foreignKey({
+      columns: [table.postId],
+      foreignColumns: [post.id],
+      name: "post_bookmark_post_id_fkey",
+    }),
+    unique("unique_profile_post_bookmark").on(table.profileId, table.postId),
+  ],
+);
+
+export const membership = pgTable(
+  "membership",
+  {
+    id: uuid().primaryKey().default(sql`uuidv7()`),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+    userId: uuid("user_id").notNull(),
+    communityId: uuid("community_id").notNull(),
+    role: communityRoleEnum().notNull(),
+    activatedAt: timestamp("activated_at", {
+      withTimezone: true,
+      mode: "string",
+    }),
+    applicationId: uuid("application_id"),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.communityId],
+      foreignColumns: [community.id],
+      name: "membership_community_id_fkey",
+    }),
+    foreignKey({
+      columns: [table.userId],
+      foreignColumns: [user.id],
+      name: "membership_user_id_fkey",
+    }),
+    foreignKey({
+      columns: [table.applicationId],
+      foreignColumns: [communityApplication.id],
+      name: "membership_application_id_fkey",
+    }),
+    unique("unique_user_community_membership").on(
+      table.userId,
+      table.communityId,
+    ),
+    unique("unique_membership_application").on(table.applicationId),
+    index("idx_membership_community_active").on(
+      table.communityId,
+      table.activatedAt,
+    ),
+    index("idx_membership_user_community_active").on(
+      table.userId,
+      table.communityId,
+      table.activatedAt,
+    ),
+    uniqueIndex("idx_one_active_owner_per_community")
+      .on(table.communityId)
+      .where(sql`${table.role} = 'owner' AND ${table.activatedAt} IS NOT NULL`),
+  ],
+);
+
+export const moderationLog = pgTable(
+  "moderation_log",
+  {
+    id: uuid().primaryKey().default(sql`uuidv7()`),
+    action: moderationActionEnum().notNull(),
+    description: text().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+    moderatorId: uuid("moderator_id").notNull(),
+    targetUserId: uuid("target_user_id"),
+    targetProfileId: uuid("target_profile_id"),
+    targetPostId: uuid("target_post_id"),
+    extraData: text("extra_data"),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.moderatorId],
+      foreignColumns: [profile.id],
+      name: "moderation_log_moderator_id_fkey",
+    }),
+    foreignKey({
+      columns: [table.targetProfileId],
+      foreignColumns: [profile.id],
+      name: "moderation_log_target_profile_id_fkey",
+    }),
+    foreignKey({
+      columns: [table.targetPostId],
+      foreignColumns: [post.id],
+      name: "moderation_log_target_post_id_fkey",
+    }),
+    foreignKey({
+      columns: [table.targetUserId],
+      foreignColumns: [user.id],
+      name: "moderation_log_target_user_id_fkey",
+    }),
+  ],
+);
+
+export const notification = pgTable(
+  "notification",
+  {
+    id: uuid().primaryKey().default(sql`uuidv7()`),
+    type: notificationTypeEnum().notNull(),
+    title: text().notNull(),
+    message: text().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+    recipientId: uuid("recipient_id").notNull(),
+    profileId: uuid("profile_id").notNull(),
+    postId: uuid("post_id"),
+    readAt: timestamp("read_at", { withTimezone: true, mode: "string" }),
+    directMessageId: uuid("direct_message_id"),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.profileId],
+      foreignColumns: [profile.id],
+      name: "notification_profile_id_fkey",
+    }),
+    foreignKey({
+      columns: [table.postId],
+      foreignColumns: [post.id],
+      name: "notification_post_id_fkey",
+    }),
+    foreignKey({
+      columns: [table.recipientId],
+      foreignColumns: [profile.id],
+      name: "notification_recipient_id_fkey",
+    }),
+    foreignKey({
+      columns: [table.directMessageId],
+      foreignColumns: [directMessage.id],
+      name: "notification_direct_message_id_fkey",
+    }),
+    index("idx_notification_unread").on(table.recipientId, table.readAt),
+    sql`CONSTRAINT valid_notification_read_at CHECK (read_at IS NULL OR read_at >= created_at)`,
+  ],
+);
+
+export const communityHashtag = pgTable(
+  "community_hashtag",
+  {
+    communityId: uuid("community_id").notNull(),
+    hashtagId: uuid("hashtag_id").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.communityId],
+      foreignColumns: [community.id],
+      name: "community_hashtag_community_id_fkey",
+    }),
+    foreignKey({
+      columns: [table.hashtagId],
+      foreignColumns: [hashtag.id],
+      name: "community_hashtag_hashtag_id_fkey",
+    }),
+    primaryKey({
+      columns: [table.communityId, table.hashtagId],
+      name: "community_hashtag_pkey",
+    }),
+  ],
+);
+
+export const communityExport = pgTable(
+  "community_export",
+  {
+    id: uuid().primaryKey().default(sql`uuidv7()`),
+    communityId: uuid("community_id").notNull(),
+    userId: uuid("user_id").notNull(),
+    status: exportStatusEnum().notNull().default("pending"),
+    r2Key: text("r2_key"),
+    errorMessage: text("error_message"),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+    completedAt: timestamp("completed_at", {
+      withTimezone: true,
+      mode: "string",
+    }),
+    expiresAt: timestamp("expires_at", { withTimezone: true, mode: "string" }),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.communityId],
+      foreignColumns: [community.id],
+      name: "community_export_community_id_fkey",
+    }),
+    foreignKey({
+      columns: [table.userId],
+      foreignColumns: [user.id],
+      name: "community_export_user_id_fkey",
+    }),
+    index("community_export_community_id_idx").on(table.communityId),
+    index("community_export_user_id_idx").on(table.userId),
+    index("community_export_status_idx").on(table.status),
+  ],
+);

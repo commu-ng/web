@@ -1,0 +1,91 @@
+import { Hono } from "hono";
+import sharp from "sharp";
+import { logger } from "../../config/logger";
+import { authMiddleware } from "../../middleware/auth";
+import * as imageService from "../../services/image.service";
+import {
+  getFileUrl,
+  uploadFileDirect,
+  validateImageFile,
+} from "../../utils/r2";
+
+export const uploadRouter = new Hono().post(
+  "/upload/file",
+  authMiddleware,
+  async (c) => {
+    // User is authenticated via authMiddleware
+
+    // Check Content-Type before parsing formData
+    const contentType = c.req.header("content-type") || "";
+    if (
+      !contentType.startsWith("multipart/form-data") &&
+      !contentType.startsWith("application/x-www-form-urlencoded")
+    ) {
+      return c.json(
+        {
+          error:
+            'Content-Type은 "multipart/form-data" 또는 "application/x-www-form-urlencoded"여야 합니다',
+        },
+        400,
+      );
+    }
+
+    const formData = await c.req.formData();
+    const file = formData.get("file") as File | null;
+
+    if (!file) {
+      return c.json({ error: "업로드된 파일이 없습니다" }, 400);
+    }
+
+    try {
+      const fileBuffer = await file.arrayBuffer();
+      const contentType = file.type || "application/octet-stream";
+
+      const [isValid, errorMessage] = validateImageFile(contentType, file.size);
+      if (!isValid) {
+        return c.json({ error: errorMessage }, 400);
+      }
+
+      const uniqueKey = await uploadFileDirect(
+        fileBuffer,
+        file.name,
+        contentType,
+      );
+
+      // Use sharp to get image dimensions
+      let width = 0;
+      let height = 0;
+      try {
+        const image = sharp(Buffer.from(fileBuffer));
+        const metadata = await image.metadata();
+        width = metadata.width ?? 0;
+        height = metadata.height ?? 0;
+      } catch (_err) {
+        return c.json({ error: "이미지 크기를 가져오는데 실패했습니다" }, 500);
+      }
+
+      const newImage = await imageService.createImageRecord(
+        uniqueKey,
+        file.name,
+        width,
+        height,
+      );
+
+      return c.json(
+        {
+          id: newImage.id,
+          filename: newImage.filename,
+          width: newImage.width,
+          height: newImage.height,
+          url: getFileUrl(newImage.key),
+          key: uniqueKey,
+          created_at: newImage.createdAt,
+        },
+        201,
+      );
+    } catch (error: unknown) {
+      logger.http.error("Error uploading file", { error });
+      return c.json({ error: "파일 업로드에 실패했습니다" }, 500);
+    }
+  },
+);

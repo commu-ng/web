@@ -1,0 +1,160 @@
+import { useState } from "react";
+import { toast } from "sonner";
+import { uploadImage as uploadImageToServer } from "~/lib/upload-image";
+
+export interface ImageUpload {
+  id: string;
+  file: File;
+  preview: string;
+  uploadedId?: string;
+}
+
+interface UseImageUploadReturn {
+  /**
+   * Image objects with file, preview, and uploaded ID
+   */
+  images: ImageUpload[];
+  /**
+   * Image preview URLs (for backward compatibility)
+   */
+  imagePreviews: string[];
+  /**
+   * Uploaded image IDs from the server (for backward compatibility)
+   */
+  uploadedImageIds: string[];
+  /**
+   * Whether images are currently being uploaded
+   */
+  isUploadingImages: boolean;
+  /**
+   * Handle file selection from input
+   */
+  handleImageSelect: (files: FileList | File[]) => void;
+  /**
+   * Remove an image by index
+   */
+  removeImage: (index: number) => void;
+  /**
+   * Clear all images
+   */
+  clearImages: () => void;
+}
+
+const ALLOWED_TYPES = [
+  "image/jpeg",
+  "image/jpg",
+  "image/png",
+  "image/gif",
+  "image/webp",
+];
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+
+/**
+ * Custom hook for handling image uploads
+ */
+export function useImageUpload(): UseImageUploadReturn {
+  const [images, setImages] = useState<ImageUpload[]>([]);
+  const [isUploadingImages, setIsUploadingImages] = useState(false);
+
+  const uploadImages = async (imageObjects: ImageUpload[]) => {
+    setIsUploadingImages(true);
+    try {
+      const uploadPromises = imageObjects.map(async (imageObj) => {
+        const uploadedId = await uploadImageToServer(imageObj.file);
+        return { id: imageObj.id, uploadedId };
+      });
+
+      const uploadResults = await Promise.all(uploadPromises);
+
+      // Update images with uploaded IDs
+      setImages((prev) =>
+        prev.map((img) => {
+          const result = uploadResults.find((r) => r.id === img.id);
+          return result ? { ...img, uploadedId: result.uploadedId } : img;
+        }),
+      );
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "이미지 업로드에 실패했습니다",
+      );
+      // Remove the files that failed to upload
+      const failedIds = imageObjects.map((obj) => obj.id);
+      setImages((prev) => prev.filter((img) => !failedIds.includes(img.id)));
+    } finally {
+      setIsUploadingImages(false);
+    }
+  };
+
+  const handleImageSelect = (filesInput: FileList | File[]) => {
+    const files = Array.from(filesInput);
+    if (files.length === 0) return;
+
+    const validFiles: File[] = [];
+    for (const file of files) {
+      if (!ALLOWED_TYPES.includes(file.type)) {
+        toast.error("이미지 파일만 업로드 가능합니다 (JPG, PNG, GIF, WebP)");
+        continue;
+      }
+
+      if (file.size > MAX_FILE_SIZE) {
+        toast.error("이미지 크기는 10MB 이하여야 합니다");
+        continue;
+      }
+
+      validFiles.push(file);
+    }
+
+    if (validFiles.length === 0) return;
+
+    const newImageObjects: ImageUpload[] = validFiles.map((file) => ({
+      id: `${Date.now()}-${Math.random()}`,
+      file,
+      preview: "",
+    }));
+
+    setImages((prev) => [...prev, ...newImageObjects]);
+
+    // Create previews asynchronously
+    newImageObjects.forEach((imageObj) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const result = e.target?.result;
+        if (typeof result === "string") {
+          setImages((prev) =>
+            prev.map((img) =>
+              img.id === imageObj.id ? { ...img, preview: result } : img,
+            ),
+          );
+        }
+      };
+      reader.readAsDataURL(imageObj.file);
+    });
+
+    // Upload the files
+    uploadImages(newImageObjects);
+  };
+
+  const removeImage = (index: number) => {
+    setImages((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const clearImages = () => {
+    setImages([]);
+  };
+
+  // Backward compatibility getters
+  const imagePreviews = images.map((img) => img.preview);
+  const uploadedImageIds = images
+    .map((img) => img.uploadedId)
+    .filter((id): id is string => id !== undefined);
+
+  return {
+    images,
+    imagePreviews,
+    uploadedImageIds,
+    isUploadingImages,
+    handleImageSelect,
+    removeImage,
+    clearImages,
+  };
+}

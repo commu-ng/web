@@ -1,0 +1,57 @@
+// Local Post type definitions
+export interface PostImage {
+  id: string;
+  url: string;
+  width: number;
+  height: number;
+  filename: string;
+}
+
+export interface PostAuthor {
+  id: string;
+  name: string;
+  username: string;
+  profile_picture_url: string | null;
+}
+
+export interface Post {
+  id: string;
+  content: string;
+  createdAt: string;
+  updatedAt: string;
+  announcement: boolean;
+  content_warning: string | null;
+  scheduled_at?: string | null;
+  published_at?: string | null;
+  author: PostAuthor;
+  images: PostImage[];
+  in_reply_to_id: string | null;
+  depth: number;
+  root_post_id: string | null;
+  is_bookmarked: boolean;
+  replies: Post[];
+  threaded_replies?: Post[];
+  reactions?: Array<{
+    emoji: string;
+    user: {
+      id: string;
+      username: string;
+      name: string;
+    };
+  }>;
+}
+
+// Component props interfaces
+export interface PostCardProps {
+  post: Post;
+  currentProfileId?: string;
+  onDelete?: () => void;
+  onRefresh?: () => void;
+  isCommunityOwner?: boolean;
+  isModerator?: boolean;
+  hideBorder?: boolean;
+}
+
+export interface PostListRef {
+  refresh: () => void;
+}

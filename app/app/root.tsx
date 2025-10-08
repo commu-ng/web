@@ -1,0 +1,187 @@
+import * as Sentry from "@sentry/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { ThemeProvider } from "next-themes";
+import { useEffect } from "react";
+import {
+  isRouteErrorResponse,
+  Links,
+  Meta,
+  Outlet,
+  Scripts,
+  ScrollRestoration,
+  useLoaderData,
+} from "react-router";
+import { AppLayout } from "~/components/app-layout";
+import { Toaster } from "~/components/ui/sonner";
+import { client } from "~/lib/api-client";
+import { CurrentProfileProvider } from "~/providers/CurrentProfileProvider";
+import type { Route } from "./+types/root";
+import "./app.css";
+
+Sentry.init({
+  dsn: import.meta.env.VITE_SENTRY_DSN,
+  // Setting this option to true will send default PII data to Sentry.
+  // For example, automatic IP address collection on events
+  sendDefaultPii: true,
+});
+
+// Create a client
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 5, // 5 minutes - data considered fresh for 5 minutes
+      gcTime: 1000 * 60 * 30, // 30 minutes - keep unused data in cache for 30 minutes
+      retry: false,
+      refetchOnWindowFocus: false, // Don't refetch on window focus to reduce network requests
+      refetchOnMount: false, // Don't refetch on component mount if data is fresh
+    },
+  },
+});
+
+export async function loader({ request }: Route.LoaderArgs) {
+  try {
+    // Get host from request headers for SSR
+    const host = request.headers.get("host");
+    const origin = request.headers.get("origin") || `http://${host}`;
+
+    const response = await client.app.instance.$get(
+      {},
+      {
+        headers: {
+          origin: origin,
+          host: host || "",
+        },
+      },
+    );
+
+    if (response.ok) {
+      const data = await response.json();
+      return { instance: data };
+    }
+
+    return { instance: null };
+  } catch (error) {
+    console.error("Failed to fetch instance info:", error);
+    return { instance: null };
+  }
+}
+
+export function meta({ loaderData }: Route.MetaArgs) {
+  const instance = loaderData?.instance as {
+    name?: string;
+    description?: string | null;
+    banner_image_url?: string | null;
+  } | null;
+
+  const title = instance?.name || "Commu";
+  const description = "커뮹! 커뮤 플랫폼";
+  const imageUrl = instance?.banner_image_url;
+
+  const metaTags: Array<
+    | { title: string }
+    | { name: string; content: string }
+    | { property: string; content: string }
+  > = [
+    { title },
+    { name: "description", content: description },
+    { property: "og:title", content: title },
+    { property: "og:description", content: description },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary_large_image" },
+    { name: "twitter:title", content: title },
+    { name: "twitter:description", content: description },
+  ];
+
+  if (imageUrl) {
+    metaTags.push(
+      { property: "og:image", content: imageUrl },
+      { name: "twitter:image", content: imageUrl },
+    );
+  }
+
+  return metaTags;
+}
+
+export const links: Route.LinksFunction = () => [
+  { rel: "preconnect", href: "https://fonts.googleapis.com" },
+  {
+    rel: "preconnect",
+    href: "https://fonts.gstatic.com",
+    crossOrigin: "anonymous",
+  },
+  {
+    rel: "stylesheet",
+    href: "https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap",
+  },
+];
+
+export function Layout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <meta charSet="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <Meta />
+        <Links />
+      </head>
+      <body>
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+          {children}
+          <Toaster />
+          <ScrollRestoration />
+          <Scripts />
+        </ThemeProvider>
+      </body>
+    </html>
+  );
+}
+
+export default function App() {
+  const { instance } = useLoaderData<typeof loader>();
+
+  // Store public instance data in React Query cache for useCurrentInstance to use as initialData
+  useEffect(() => {
+    if (instance) {
+      queryClient.setQueryData(["public-instance"], instance);
+    }
+  }, [instance]);
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <CurrentProfileProvider>
+        <AppLayout>
+          <Outlet />
+        </AppLayout>
+      </CurrentProfileProvider>
+    </QueryClientProvider>
+  );
+}
+
+export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
+  let message = "앗!";
+  let details = "예상치 못한 오류가 발생했습니다.";
+  let stack: string | undefined;
+
+  if (isRouteErrorResponse(error)) {
+    message = error.status === 404 ? "404" : "오류";
+    details =
+      error.status === 404
+        ? "요청한 페이지를 찾을 수 없습니다."
+        : error.statusText || details;
+  } else if (import.meta.env.DEV && error && error instanceof Error) {
+    details = error.message;
+    stack = error.stack;
+  }
+
+  return (
+    <main className="pt-16 p-4 container mx-auto">
+      <h1>{message}</h1>
+      <p>{details}</p>
+      {stack && (
+        <pre className="w-full p-4 overflow-x-auto">
+          <code>{stack}</code>
+        </pre>
+      )}
+    </main>
+  );
+}

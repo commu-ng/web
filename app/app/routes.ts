@@ -1,0 +1,23 @@
+import { index, type RouteConfig, route } from "@react-router/dev/routes";
+
+export default [
+  index("routes/home.tsx"),
+  route("/auth/callback", "routes/auth.callback.tsx"),
+  route("/settings", "routes/settings.tsx"),
+  route("/settings/profile", "routes/settings.profile.tsx"),
+  route("/settings/profiles", "routes/settings.profiles.tsx"),
+  route(
+    "/settings/profiles/:profileId",
+    "routes/settings.profiles.$profileId.tsx",
+  ),
+  route("/settings/account", "routes/settings.account.tsx"),
+  route("/announcements", "routes/announcements.tsx"),
+  route("/profiles", "routes/profiles.tsx"),
+  route("/notifications", "routes/notifications.tsx"),
+  route("/bookmarks", "routes/bookmarks.tsx"),
+  route("/messages", "routes/messages.tsx"),
+  route("/messages/:username", "routes/messages.$username.tsx"),
+  route("/group-chats/:group_chat_id", "routes/group-chats.$group_chat_id.tsx"),
+  route("/:username/:post_id", "routes/$username.$post_id.tsx"),
+  route("/:username", "routes/$username.tsx"),
+] satisfies RouteConfig;

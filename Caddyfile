@@ -1,0 +1,14 @@
+https://local.commu.ng {
+	tls internal
+	reverse_proxy http://localhost:5173
+}
+
+https://*.local.commu.ng {
+	tls internal
+	reverse_proxy http://localhost:5174
+}
+
+https://api.local.commu.ng {
+	tls internal
+	reverse_proxy http://localhost:3000
+}

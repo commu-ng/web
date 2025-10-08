@@ -1,0 +1,79 @@
+import { serve } from "@hono/node-server";
+import * as Sentry from "@sentry/node";
+import "dotenv/config";
+import { Hono } from "hono";
+import { cors } from "hono/cors";
+import { env } from "./config/env";
+import { configureLogger, logger } from "./config/logger";
+import { appRouter } from "./http/app/index";
+import { auth } from "./http/auth";
+import { consoleRouter } from "./http/console";
+import { startScheduler } from "./services/scheduler.service";
+
+// Configure logger
+await configureLogger();
+
+Sentry.init({
+  dsn: env.sentry.dsn,
+  // Setting this option to true will send default PII data to Sentry.
+  // For example, automatic IP address collection on events
+  sendDefaultPii: true,
+});
+
+// Create the main app with middleware
+const app = new Hono()
+  .use(
+    "/*",
+    cors({
+      origin: (origin) => {
+        const domain = env.consoleDomain;
+
+        // Allow requests from the main domain and all subdomains
+        if (!origin) return origin; // Allow requests with no origin (like Postman)
+
+        const originHost = new URL(origin).hostname;
+
+        // Allow exact domain match or subdomain
+        if (originHost === domain || originHost.endsWith(`.${domain}`)) {
+          return origin;
+        }
+
+        return null;
+      },
+      allowMethods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+      allowHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+      credentials: true,
+    }),
+  )
+  .get("/", (c) => {
+    return c.text("OK");
+  })
+  .get("/health", (c) => {
+    return c.text("OK");
+  })
+  .route("/auth", auth)
+  .route("/app", appRouter)
+  .route("/console", consoleRouter)
+  .onError((err, c) => {
+    logger.http.error("Unhandled error: {message} {stack}", {
+      message: err.message,
+      stack: err.stack,
+    });
+    Sentry.captureException(err);
+
+    return c.json({ error: "Internal Server Error" }, 500);
+  });
+
+const port = env.port;
+
+logger.http.info("Starting server on port {port}", { port });
+
+// Start the post scheduler
+startScheduler();
+
+serve({
+  fetch: app.fetch,
+  port,
+});
+
+export type AppType = typeof app;

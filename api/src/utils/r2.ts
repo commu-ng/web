@@ -1,0 +1,124 @@
+import {
+  DeleteObjectCommand,
+  PutObjectCommand,
+  S3Client,
+} from "@aws-sdk/client-s3";
+import { Upload } from "@aws-sdk/lib-storage";
+import { env } from "../config/env";
+import { logger } from "../config/logger";
+import { R2_KEY_PREFIXES } from "../constants/r2";
+
+const s3Client = new S3Client({
+  region: "auto",
+  endpoint: env.r2.endpointUrl,
+  credentials: {
+    accessKeyId: env.r2.accessKeyId,
+    secretAccessKey: env.r2.secretAccessKey,
+  },
+});
+
+export function getFileUrl(key: string): string {
+  return `${env.r2.publicUrl}/${key}`;
+}
+
+export function addImageUrl<
+  T extends { key: string; createdAt: string; deletedAt: string | null },
+>(
+  image: T,
+): Omit<T, "createdAt" | "deletedAt"> & {
+  url: string;
+  created_at: string;
+  deleted_at: string | null;
+} {
+  const { createdAt, deletedAt, ...rest } = image;
+  return {
+    ...(rest as Omit<T, "createdAt" | "deletedAt">),
+    url: getFileUrl(image.key),
+    created_at: createdAt,
+    deleted_at: deletedAt,
+  };
+}
+
+export async function uploadFileDirect(
+  fileContent: ArrayBuffer,
+  filename: string,
+  contentType: string,
+): Promise<string> {
+  const fileExtension = filename.split(".").pop() || "";
+  const uniqueKey = `${R2_KEY_PREFIXES.IMAGE}/${crypto.randomUUID()}.${fileExtension}`;
+
+  const uploadParams = {
+    Bucket: env.r2.bucketName,
+    Key: uniqueKey,
+    Body: Buffer.from(fileContent),
+    ContentType: contentType,
+  };
+
+  await s3Client.send(new PutObjectCommand(uploadParams));
+  return uniqueKey;
+}
+
+export function validateImageFile(
+  contentType: string,
+  fileSize: number,
+  maxSizeMb: number = 10,
+): [boolean, string] {
+  const allowedTypes = [
+    "image/jpeg",
+    "image/jpg",
+    "image/png",
+    "image/gif",
+    "image/webp",
+  ];
+
+  if (!allowedTypes.includes(contentType)) {
+    return [false, "Only image files are allowed (JPG, PNG, GIF, WebP)"];
+  }
+
+  const maxSizeBytes = maxSizeMb * 1024 * 1024;
+  if (fileSize > maxSizeBytes) {
+    return [false, `File size must be less than ${maxSizeMb}MB`];
+  }
+
+  if (fileSize === 0) {
+    return [false, "File cannot be empty"];
+  }
+
+  return [true, ""];
+}
+
+export async function deleteFile(key: string): Promise<boolean> {
+  try {
+    const deleteParams = {
+      Bucket: env.r2.bucketName,
+      Key: key,
+    };
+    await s3Client.send(new DeleteObjectCommand(deleteParams));
+    return true;
+  } catch (error) {
+    logger.service.error("Failed to delete file from R2", { key, error });
+    return false;
+  }
+}
+
+export async function uploadExportFile(
+  stream: NodeJS.ReadableStream,
+  filename: string,
+): Promise<string> {
+  const uniqueKey = `${R2_KEY_PREFIXES.EXPORT}/${crypto.randomUUID()}-${filename}`;
+
+  // Use Upload class for streaming without known content length
+  // It handles multipart uploads automatically for large files
+  const upload = new Upload({
+    client: s3Client,
+    params: {
+      Bucket: env.r2.bucketName,
+      Key: uniqueKey,
+      Body: stream,
+      ContentType: "application/zip",
+    },
+  });
+
+  await upload.done();
+  return uniqueKey;
+}

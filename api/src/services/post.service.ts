@@ -1,0 +1,1688 @@
+import { and, desc, eq, inArray, isNotNull, isNull, sql } from "drizzle-orm";
+import sharp from "sharp";
+import { db } from "../db";
+import {
+  community as communityTable,
+  image as imageTable,
+  membership as membershipTable,
+  mention as mentionTable,
+  moderationLog as moderationLogTable,
+  notification as notificationTable,
+  postBookmark as postBookmarkTable,
+  postImage as postImageTable,
+  postReaction as postReactionTable,
+  post as postTable,
+  profile as profileTable,
+} from "../drizzle/schema";
+import { AppException } from "../exception";
+import { validateCommunityActive } from "../utils/community-validation";
+import { batchLoadProfilePictures } from "../utils/profile-picture-helper";
+import { addImageUrl, uploadFileDirect, validateImageFile } from "../utils/r2";
+import * as membershipService from "./membership.service";
+
+/**
+ * Validate that a post belongs to a specific community
+ * This ensures posts from other communities are never accessed
+ */
+async function validatePostCommunityAccess(
+  postId: string,
+  communityId: string,
+): Promise<boolean> {
+  const post = await db.query.post.findFirst({
+    where: and(eq(postTable.id, postId), isNull(postTable.deletedAt)),
+  });
+
+  if (!post) {
+    return false;
+  }
+
+  // Direct community check on post table
+  if (post.communityId !== communityId) {
+    return false;
+  }
+
+  // Additional validation: verify author's profile also belongs to this community
+  const profile = await db.query.profile.findFirst({
+    where: eq(profileTable.id, post.authorId),
+  });
+
+  if (!profile || profile.communityId !== communityId) {
+    return false;
+  }
+
+  return true;
+}
+
+/**
+ * Publish scheduled posts that are due
+ * This function is called by the scheduler to publish posts whose scheduled time has arrived
+ */
+export async function publishScheduledPosts(): Promise<number> {
+  try {
+    // Find all posts that are scheduled to be published now or earlier, but haven't been published yet
+    const duePostsResult = await db
+      .update(postTable)
+      .set({
+        publishedAt: sql`NOW()`,
+      })
+      .where(
+        and(
+          isNotNull(postTable.scheduledAt),
+          isNull(postTable.publishedAt),
+          sql`${postTable.scheduledAt} <= NOW()`,
+          isNull(postTable.deletedAt),
+        ),
+      )
+      .returning({ id: postTable.id });
+
+    return duePostsResult.length;
+  } catch (error) {
+    console.error("Error publishing scheduled posts:", error);
+    throw error;
+  }
+}
+
+/**
+ * Get scheduled posts for a specific profile
+ * Returns posts that are scheduled but not yet published
+ */
+export async function getScheduledPosts(
+  profileId: string,
+  communityId: string,
+  limit: number = 20,
+  cursor?: string,
+) {
+  // Build where conditions
+  const conditions = [
+    eq(postTable.authorId, profileId),
+    eq(postTable.communityId, communityId),
+    isNotNull(postTable.scheduledAt),
+    isNull(postTable.publishedAt),
+    isNull(postTable.deletedAt),
+    eq(profileTable.communityId, communityId),
+  ];
+
+  if (cursor) {
+    conditions.push(sql`${postTable.id} < ${cursor}`);
+  }
+
+  const scheduledPosts = await db
+    .select()
+    .from(postTable)
+    .leftJoin(profileTable, eq(postTable.authorId, profileTable.id))
+    .where(and(...conditions))
+    .orderBy(desc(postTable.id)) // Use ID for cursor consistency
+    .limit(limit + 1);
+
+  // Early return if no scheduled posts
+  if (scheduledPosts.length === 0) {
+    return { data: [], nextCursor: null, hasMore: false };
+  }
+
+  // Check if there are more results
+  const hasMore = scheduledPosts.length > limit;
+  const postsToReturn = hasMore
+    ? scheduledPosts.slice(0, limit)
+    : scheduledPosts;
+  const nextCursor =
+    hasMore && postsToReturn.length > 0
+      ? postsToReturn[postsToReturn.length - 1].post?.id || null
+      : null;
+
+  // Collect all profile IDs and post IDs for batch loading
+  const profileIds = new Set<string>();
+  const postIds: string[] = [];
+
+  for (const row of postsToReturn) {
+    if (row.post && row.profile) {
+      profileIds.add(row.profile.id);
+      postIds.push(row.post.id);
+    }
+  }
+
+  // Batch load profile pictures and post images
+  const [profilePictureMap, allPostImages, allReactions] = await Promise.all([
+    batchLoadProfilePictures(Array.from(profileIds)),
+    db.query.postImage.findMany({
+      where: inArray(postImageTable.postId, postIds),
+      with: { image: true },
+    }),
+    db.query.postReaction.findMany({
+      where: inArray(postReactionTable.postId, postIds),
+      with: { profile: true },
+    }),
+  ]);
+
+  // Group images and reactions by post ID
+  const imagesByPostId = new Map<string, typeof allPostImages>();
+  const reactionsByPostId = new Map<string, typeof allReactions>();
+
+  allPostImages.forEach((pi) => {
+    if (!imagesByPostId.has(pi.postId)) {
+      imagesByPostId.set(pi.postId, []);
+    }
+    imagesByPostId.get(pi.postId)?.push(pi);
+  });
+
+  allReactions.forEach((reaction) => {
+    if (!reactionsByPostId.has(reaction.postId)) {
+      reactionsByPostId.set(reaction.postId, []);
+    }
+    reactionsByPostId.get(reaction.postId)?.push(reaction);
+  });
+
+  // Build result using pre-loaded data
+  const result = [];
+  for (const row of postsToReturn) {
+    const post = row.post;
+    const profile = row.profile;
+
+    if (!post || !profile) continue;
+
+    const postImages = imagesByPostId.get(post.id) || [];
+    const images = postImages.map((pi) => ({
+      id: pi.image.id,
+      url: addImageUrl(pi.image).url,
+      width: pi.image.width,
+      height: pi.image.height,
+      filename: pi.image.filename,
+    }));
+
+    const reactions = reactionsByPostId.get(post.id) || [];
+
+    result.push({
+      id: post.id,
+      content: post.content,
+      createdAt: post.createdAt,
+      updatedAt: post.updatedAt,
+      announcement: post.announcement,
+      content_warning: post.contentWarning,
+      scheduled_at: post.scheduledAt,
+      published_at: post.publishedAt,
+      author: {
+        id: profile.id,
+        username: profile.username,
+        name: profile.name,
+        profile_picture_url: profilePictureMap.get(profile.id) || null,
+      },
+      images,
+      in_reply_to_id: post.inReplyToId,
+      depth: post.depth,
+      root_post_id: post.rootPostId,
+      is_bookmarked: false, // Scheduled posts can't be bookmarked yet
+      replies: [],
+      reactions: reactions.map((reaction) => ({
+        emoji: reaction.emoji,
+        user: {
+          id: reaction.profile.id,
+          username: reaction.profile.username,
+          name: reaction.profile.name,
+        },
+      })),
+    });
+  }
+
+  return {
+    data: result,
+    nextCursor,
+    hasMore,
+  };
+}
+
+/**
+ * Upload an image file
+ */
+export async function uploadImage(
+  fileBuffer: ArrayBuffer,
+  fileName: string,
+  contentType: string,
+  fileSize: number,
+) {
+  const [isValid, errorMessage] = validateImageFile(contentType, fileSize);
+  if (!isValid) {
+    throw new AppException(400, errorMessage);
+  }
+
+  const uniqueKey = await uploadFileDirect(fileBuffer, fileName, contentType);
+
+  // Use sharp to get image dimensions
+  let width = 0;
+  let height = 0;
+  try {
+    const image = sharp(Buffer.from(fileBuffer));
+    const metadata = await image.metadata();
+    width = metadata.width ?? 0;
+    height = metadata.height ?? 0;
+  } catch (_err) {
+    throw new AppException(400, "이미지 크기 가져오기에 실패했습니다");
+  }
+
+  const newImageResult = await db
+    .insert(imageTable)
+    .values({
+      key: uniqueKey,
+      filename: fileName,
+      width,
+      height,
+    })
+    .returning();
+
+  const newImage = newImageResult[0];
+  if (!newImage) {
+    throw new Error("Failed to create image record");
+  }
+
+  return {
+    id: newImage.id,
+    filename: newImage.filename,
+    width: newImage.width,
+    height: newImage.height,
+    url: newImage.key,
+    key: uniqueKey,
+    createdAt: newImage.createdAt,
+  };
+}
+
+/**
+ * Get announcements for a community
+ */
+export async function getAnnouncements(
+  communityId: string,
+  limit: number = 10,
+  offset: number = 0,
+) {
+  const announcementsList = await db
+    .select()
+    .from(postTable)
+    .leftJoin(profileTable, eq(postTable.authorId, profileTable.id))
+    .where(
+      and(
+        eq(postTable.announcement, true),
+        eq(postTable.communityId, communityId),
+        isNull(postTable.deletedAt),
+        isNotNull(postTable.publishedAt),
+        eq(profileTable.communityId, communityId),
+      ),
+    )
+    .orderBy(desc(postTable.createdAt))
+    .limit(limit)
+    .offset(offset);
+
+  // Early return if no announcements
+  if (announcementsList.length === 0) {
+    return [];
+  }
+
+  // Collect all profile IDs and post IDs for batch loading
+  const profileIds = new Set<string>();
+  const postIds: string[] = [];
+
+  for (const row of announcementsList) {
+    if (row.post && row.profile) {
+      profileIds.add(row.profile.id);
+      postIds.push(row.post.id);
+    }
+  }
+
+  // Batch load profile pictures
+  const profilePictureMap = await batchLoadProfilePictures(
+    Array.from(profileIds),
+  );
+
+  // Batch load post images for all posts
+  const allPostImages = await db.query.postImage.findMany({
+    where: inArray(postImageTable.postId, postIds),
+    with: {
+      image: true,
+    },
+  });
+
+  // Batch load reactions for all posts
+  const allReactions = await db.query.postReaction.findMany({
+    where: inArray(postReactionTable.postId, postIds),
+    with: {
+      profile: true,
+    },
+  });
+
+  // Group images and reactions by post ID
+  const imagesByPostId = new Map<string, typeof allPostImages>();
+  const reactionsByPostId = new Map<string, typeof allReactions>();
+
+  allPostImages.forEach((pi) => {
+    if (!imagesByPostId.has(pi.postId)) {
+      imagesByPostId.set(pi.postId, []);
+    }
+    imagesByPostId.get(pi.postId)?.push(pi);
+  });
+
+  allReactions.forEach((reaction) => {
+    if (!reactionsByPostId.has(reaction.postId)) {
+      reactionsByPostId.set(reaction.postId, []);
+    }
+    reactionsByPostId.get(reaction.postId)?.push(reaction);
+  });
+
+  // Build result using pre-loaded data
+  const result = [];
+  for (const row of announcementsList) {
+    const post = row.post;
+    const profile = row.profile;
+
+    if (!post || !profile) continue;
+
+    const postImages = imagesByPostId.get(post.id) || [];
+    const images = postImages.map((pi) => ({
+      id: pi.image.id,
+      url: addImageUrl(pi.image).url,
+      width: pi.image.width,
+      height: pi.image.height,
+      filename: pi.image.filename,
+    }));
+
+    const reactions = reactionsByPostId.get(post.id) || [];
+
+    result.push({
+      id: post.id,
+      content: post.content,
+      createdAt: post.createdAt,
+      updatedAt: post.updatedAt,
+      images: images,
+      author: {
+        id: profile.id,
+        username: profile.username,
+        name: profile.name,
+        profile_picture_url: profilePictureMap.get(profile.id) || null,
+      },
+      reactions: reactions.map((reaction) => ({
+        emoji: reaction.emoji,
+        user: {
+          id: reaction.profile.id,
+          username: reaction.profile.username,
+          name: reaction.profile.name,
+        },
+      })),
+    });
+  }
+
+  return result;
+}
+
+/**
+ * Get bookmarked posts for an profile
+ */
+export async function getBookmarks(
+  profileId: string,
+  communityId: string,
+  limit: number = 20,
+  cursor?: string,
+) {
+  // Build where conditions
+  const conditions = [eq(postBookmarkTable.profileId, profileId)];
+  if (cursor) {
+    conditions.push(sql`${postBookmarkTable.id} < ${cursor}`);
+  }
+
+  const bookmarks = await db.query.postBookmark.findMany({
+    where: and(...conditions),
+    orderBy: [desc(postBookmarkTable.id)],
+    limit: limit + 1,
+    with: {
+      post: {
+        with: {
+          profile: {
+            with: {
+              profilePictures: {
+                with: {
+                  image: true,
+                },
+              },
+            },
+          },
+          postImages: {
+            with: {
+              image: true,
+            },
+          },
+          postReactions: {
+            with: {
+              profile: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  // Check if there are more results
+  const hasMore = bookmarks.length > limit;
+  const bookmarksToReturn = hasMore ? bookmarks.slice(0, limit) : bookmarks;
+  const nextCursor =
+    hasMore && bookmarksToReturn.length > 0
+      ? bookmarksToReturn[bookmarksToReturn.length - 1].id
+      : null;
+
+  const data = bookmarksToReturn
+    .filter((bookmark) => {
+      // Filter: ensure post exists, belongs to the community, and is not deleted
+      return (
+        bookmark.post &&
+        bookmark.post.communityId === communityId &&
+        bookmark.post.deletedAt === null
+      );
+    })
+    .map((bookmark) => {
+      const post = bookmark.post;
+      const author = post.profile;
+      const profilePicture = author?.profilePictures.find(
+        (pp) => pp.deletedAt === null,
+      )?.image;
+      const profile_picture_url = profilePicture
+        ? addImageUrl(profilePicture).url
+        : null;
+
+      const imageTableData = post.postImages.map((pi) => ({
+        id: pi.image.id,
+        url: addImageUrl(pi.image).url,
+        width: pi.image.width,
+        height: pi.image.height,
+        filename: pi.image.filename,
+      }));
+
+      return {
+        id: post.id,
+        content: post.content,
+        createdAt: post.createdAt,
+        updatedAt: post.updatedAt,
+        announcement: post.announcement,
+        content_warning: post.contentWarning,
+        author: {
+          id: author.id,
+          name: author.name,
+          username: author.username,
+          profile_picture_url: profile_picture_url,
+        },
+        images: imageTableData,
+        bookmarked_at: bookmark.createdAt,
+        reactions:
+          post.postReactions?.map((reaction) => ({
+            emoji: reaction.emoji,
+            user: {
+              id: reaction.profile.id,
+              username: reaction.profile.username,
+              name: reaction.profile.name,
+            },
+          })) || [],
+      };
+    });
+
+  return {
+    data,
+    nextCursor,
+    hasMore,
+  };
+}
+
+/**
+ * Create a bookmark
+ */
+export async function createBookmark(
+  profileId: string,
+  postId: string,
+  communityId: string,
+) {
+  // Validate post belongs to this community
+  const hasAccess = await validatePostCommunityAccess(postId, communityId);
+  if (!hasAccess) {
+    throw new AppException(404, "게시물을 찾을 수 없습니다");
+  }
+
+  // Find the post
+  const post = await db.query.post.findFirst({
+    where: and(
+      eq(postTable.id, postId),
+      eq(postTable.communityId, communityId),
+      isNull(postTable.deletedAt),
+      isNotNull(postTable.publishedAt),
+    ),
+    with: {
+      profile: true,
+    },
+  });
+
+  if (!post) {
+    throw new AppException(404, "게시물을 찾을 수 없습니다");
+  }
+
+  // Check if bookmark already exists
+  const existingBookmark = await db.query.postBookmark.findFirst({
+    where: and(
+      eq(postBookmarkTable.profileId, profileId),
+      eq(postBookmarkTable.postId, post.id),
+    ),
+  });
+
+  if (existingBookmark) {
+    throw new AppException(409, "게시물이 이미 북마크되었습니다");
+  }
+
+  // Create the bookmark
+  const newBookmarkResult = await db
+    .insert(postBookmarkTable)
+    .values({
+      profileId: profileId,
+      postId: post.id,
+    })
+    .returning();
+
+  const newBookmark = newBookmarkResult[0];
+  if (!newBookmark) {
+    throw new Error("Failed to create bookmark");
+  }
+
+  return {
+    message: "게시물이 성공적으로 북마크되었습니다",
+    bookmark_id: newBookmark.id,
+  };
+}
+
+/**
+ * Delete a bookmark
+ */
+export async function deleteBookmark(
+  profileId: string,
+  postId: string,
+  communityId: string,
+) {
+  // Validate post belongs to this community
+  const hasAccess = await validatePostCommunityAccess(postId, communityId);
+  if (!hasAccess) {
+    throw new AppException(404, "게시물을 찾을 수 없습니다");
+  }
+
+  // Find the bookmark
+  const bookmark = await db.query.postBookmark.findFirst({
+    where: and(
+      eq(postBookmarkTable.profileId, profileId),
+      eq(postBookmarkTable.postId, postId),
+    ),
+  });
+
+  if (!bookmark) {
+    throw new AppException(404, "북마크를 찾을 수 없습니다");
+  }
+
+  // Delete the bookmark
+  await db
+    .delete(postBookmarkTable)
+    .where(eq(postBookmarkTable.id, bookmark.id));
+}
+
+/**
+ * Create a post reaction
+ */
+export async function createReaction(
+  profileId: string,
+  postId: string,
+  communityId: string,
+  emoji: string,
+  profileName: string,
+) {
+  // Check if community exists and is active
+  const community = await db.query.community.findFirst({
+    where: eq(communityTable.id, communityId),
+  });
+
+  if (!community) {
+    throw new AppException(404, "커뮤를 찾을 수 없습니다");
+  }
+
+  validateCommunityActive(community.startsAt, community.endsAt, "반응을 추가");
+
+  // Validate post belongs to this community
+  const hasAccess = await validatePostCommunityAccess(postId, communityId);
+  if (!hasAccess) {
+    throw new AppException(
+      404,
+      "게시물을 찾을 수 없거나 접근이 거부되었습니다",
+    );
+  }
+
+  // Validate the post exists and profile has access to it
+  const post = await db.query.post.findFirst({
+    where: and(
+      eq(postTable.id, postId),
+      eq(postTable.communityId, communityId),
+      isNull(postTable.deletedAt),
+      isNotNull(postTable.publishedAt),
+    ),
+    with: {
+      profile: true,
+    },
+  });
+
+  if (!post) {
+    throw new AppException(
+      404,
+      "게시물을 찾을 수 없거나 접근이 거부되었습니다",
+    );
+  }
+
+  // Check if reaction already exists from this user
+  const existingReaction = await db.query.postReaction.findFirst({
+    where: and(
+      eq(postReactionTable.postId, postId),
+      eq(postReactionTable.profileId, profileId),
+      eq(postReactionTable.emoji, emoji),
+    ),
+  });
+
+  if (existingReaction) {
+    throw new AppException(400, "반응이 이미 존재합니다");
+  }
+
+  // Create the reaction and notification in a transaction
+  const reaction = await db.transaction(async (tx) => {
+    // Create the reaction
+    const reactionResult = await tx
+      .insert(postReactionTable)
+      .values({
+        postId,
+        profileId: profileId,
+        emoji: emoji,
+      })
+      .returning();
+
+    const r = reactionResult[0];
+    if (!r) {
+      throw new Error("Failed to create reaction");
+    }
+
+    // Send notification to post author if it's not the same person
+    if (post.authorId !== profileId) {
+      await tx.insert(notificationTable).values({
+        recipientId: post.authorId,
+        profileId: profileId,
+        type: "reaction",
+        title: "새로운 반응",
+        message: `${profileName}님이 게시물에 ${emoji} 반응을 남겼습니다`,
+        postId: post.id,
+      });
+    }
+
+    return r;
+  });
+
+  return {
+    id: reaction.id,
+    message: "반응이 성공적으로 추가되었습니다",
+    emoji: reaction.emoji,
+  };
+}
+
+/**
+ * Delete a post reaction
+ */
+export async function deleteReaction(
+  profileId: string,
+  postId: string,
+  communityId: string,
+  emoji: string,
+) {
+  // Check if community exists and is active
+  const community = await db.query.community.findFirst({
+    where: eq(communityTable.id, communityId),
+  });
+
+  if (!community) {
+    throw new AppException(404, "커뮤를 찾을 수 없습니다");
+  }
+
+  validateCommunityActive(community.startsAt, community.endsAt, "반응을 제거");
+
+  // Validate post belongs to this community
+  const hasAccess = await validatePostCommunityAccess(postId, communityId);
+  if (!hasAccess) {
+    throw new AppException(
+      404,
+      "게시물을 찾을 수 없거나 접근이 거부되었습니다",
+    );
+  }
+
+  // Validate the post exists and profile has access to it
+  const post = await db.query.post.findFirst({
+    where: and(
+      eq(postTable.id, postId),
+      eq(postTable.communityId, communityId),
+      isNull(postTable.deletedAt),
+      isNotNull(postTable.publishedAt),
+    ),
+    with: {
+      profile: true,
+    },
+  });
+
+  if (!post) {
+    throw new AppException(
+      404,
+      "게시물을 찾을 수 없거나 접근이 거부되었습니다",
+    );
+  }
+
+  // Find the reaction to delete
+  const existingReaction = await db.query.postReaction.findFirst({
+    where: and(
+      eq(postReactionTable.postId, postId),
+      eq(postReactionTable.profileId, profileId),
+      eq(postReactionTable.emoji, emoji),
+    ),
+  });
+
+  if (!existingReaction) {
+    throw new AppException(404, "반응을 찾을 수 없습니다");
+  }
+
+  // Delete the reaction
+  await db
+    .delete(postReactionTable)
+    .where(eq(postReactionTable.id, existingReaction.id));
+}
+
+/**
+ * Get posts for a community feed with threaded replies
+ */
+export async function getPosts(
+  communityId: string,
+  limit: number = 20,
+  cursor?: string,
+  profileId?: string,
+) {
+  // Build where conditions
+  const conditions = [
+    isNull(postTable.deletedAt),
+    isNotNull(postTable.publishedAt),
+    eq(postTable.depth, 0), // Only root posts
+    eq(postTable.communityId, communityId), // Direct community filter on post
+    eq(profileTable.communityId, communityId), // Also filter by author's community
+  ];
+
+  // Add cursor condition if provided (for pagination)
+  if (cursor) {
+    conditions.push(sql`${postTable.id} < ${cursor}`);
+  }
+
+  // Only get root posts (depth = 0) for the main feed from this community
+  // Fetch limit + 1 to determine if there are more pages
+  const posts = await db
+    .select()
+    .from(postTable)
+    .leftJoin(profileTable, eq(postTable.authorId, profileTable.id))
+    .where(and(...conditions))
+    .orderBy(desc(postTable.id)) // Use ID for consistent ordering (UUIDv7 is time-ordered)
+    .limit(limit + 1);
+
+  // Early return if no posts
+  if (posts.length === 0) {
+    return { data: [], nextCursor: null, hasMore: false };
+  }
+
+  // Check if there are more posts beyond the limit
+  const hasMore = posts.length > limit;
+  // Remove the extra item if we have more
+  const postsToReturn = hasMore ? posts.slice(0, limit) : posts;
+  // Get the last post's ID as the next cursor
+  const nextCursor =
+    hasMore && postsToReturn.length > 0
+      ? postsToReturn[postsToReturn.length - 1].post?.id || null
+      : null;
+
+  // Collect all profile IDs and post IDs for batch loading
+  const profileIds = new Set<string>();
+  const postIds: string[] = [];
+
+  for (const row of postsToReturn) {
+    if (row.post && row.profile) {
+      profileIds.add(row.profile.id);
+      postIds.push(row.post.id);
+    }
+  }
+
+  // Batch load all related data
+  const [
+    profilePictureMap,
+    allPostImages,
+    allBookmarks,
+    allReactions,
+    profiles,
+  ] = await Promise.all([
+    // Batch load profile pictures
+    batchLoadProfilePictures(Array.from(profileIds)),
+    // Batch load post images for all posts
+    db.query.postImage.findMany({
+      where: inArray(postImageTable.postId, postIds),
+      with: {
+        image: true,
+      },
+    }),
+    // Batch load bookmarks if profileId provided
+    profileId
+      ? db.query.postBookmark.findMany({
+          where: and(
+            eq(postBookmarkTable.profileId, profileId),
+            inArray(postBookmarkTable.postId, postIds),
+          ),
+        })
+      : Promise.resolve([]),
+    // Batch load reactions for all posts
+    db.query.postReaction.findMany({
+      where: inArray(postReactionTable.postId, postIds),
+      with: {
+        profile: true,
+      },
+    }),
+    // Batch load all profiles
+    db.query.profile.findMany({
+      where: inArray(profileTable.id, Array.from(profileIds)),
+    }),
+  ]);
+
+  // Group data by post ID for O(1) lookup
+  const imagesByPostId = new Map<string, typeof allPostImages>();
+  const reactionsByPostId = new Map<string, typeof allReactions>();
+  const bookmarkedPostIds = new Set(allBookmarks.map((b) => b.postId));
+  const profileMap = new Map(profiles.map((p) => [p.id, p]));
+
+  allPostImages.forEach((pi) => {
+    if (!imagesByPostId.has(pi.postId)) {
+      imagesByPostId.set(pi.postId, []);
+    }
+    imagesByPostId.get(pi.postId)?.push(pi);
+  });
+
+  allReactions.forEach((reaction) => {
+    if (!reactionsByPostId.has(reaction.postId)) {
+      reactionsByPostId.set(reaction.postId, []);
+    }
+    reactionsByPostId.get(reaction.postId)?.push(reaction);
+  });
+
+  // Batch load threaded replies for all posts in a single query (fixes N+1)
+  const repliesMap = await buildThreadedRepliesForMultiplePosts(
+    postIds,
+    communityId,
+    10,
+    profileId,
+  );
+
+  // Build result using pre-loaded data
+  const result = [];
+  for (const row of postsToReturn) {
+    const post = row.post;
+    if (!post) continue;
+
+    const profile = profileMap.get(post.authorId);
+    if (!profile) continue;
+
+    const profile_picture_url = profilePictureMap.get(profile.id) || null;
+
+    // Get post images from pre-loaded data
+    const postImages = imagesByPostId.get(post.id) || [];
+    const images = postImages.map((pi) => ({
+      id: pi.image.id,
+      url: addImageUrl(pi.image).url,
+      width: pi.image.width,
+      height: pi.image.height,
+      filename: pi.image.filename,
+    }));
+
+    // Get threaded replies from batched data (no additional query!)
+    const threaded_replies = repliesMap.get(post.id) || [];
+
+    // Check if post is bookmarked using pre-loaded data
+    const is_bookmarked = bookmarkedPostIds.has(post.id);
+
+    // Get reactions from pre-loaded data
+    const reactions = reactionsByPostId.get(post.id) || [];
+
+    result.push({
+      id: post.id,
+      content: post.content,
+      createdAt: post.createdAt,
+      updatedAt: post.updatedAt,
+      announcement: post.announcement,
+      content_warning: post.contentWarning,
+      author: {
+        id: profile.id,
+        name: profile.name,
+        username: profile.username,
+        profile_picture_url,
+      },
+      images,
+      in_reply_to_id: null, // Root posts don't reply to anything
+      depth: 0, // Root posts have depth 0
+      root_post_id: null, // Root posts are the root
+      is_bookmarked,
+      replies: [], // We use threaded_replies instead
+      threaded_replies,
+      reactions: reactions.map((reaction) => ({
+        emoji: reaction.emoji,
+        user: {
+          id: reaction.profile.id,
+          username: reaction.profile.username,
+          name: reaction.profile.name,
+        },
+      })),
+    });
+  }
+
+  return {
+    data: result,
+    nextCursor,
+    hasMore,
+  };
+}
+
+/**
+ * Batch version: Build threaded replies for multiple root posts in a single query
+ */
+async function buildThreadedRepliesForMultiplePosts(
+  rootPostIds: string[],
+  communityId: string,
+  depthLimit: number = 10,
+  profileId?: string,
+): Promise<
+  Map<
+    string,
+    ReturnType<typeof buildThreadedReplies> extends Promise<infer T> ? T : never
+  >
+> {
+  if (rootPostIds.length === 0) {
+    return new Map();
+  }
+
+  // Use PostgreSQL's recursive CTE to get all replies for multiple root posts
+  const result = await db.execute(sql`
+    WITH RECURSIVE thread_replies AS (
+        -- Base case: direct replies to any of the root posts
+        SELECT
+            p.id, p.content, p.created_at, p.updated_at, p.deleted_at, p.announcement, p.content_warning,
+            p.author_id, p.in_reply_to_id, p.depth, p.root_post_id,
+            ARRAY[p.created_at] as sort_path,
+            p.in_reply_to_id as original_root_id
+        FROM post p
+        JOIN profile a ON p.author_id = a.id
+        WHERE p.in_reply_to_id = ANY(${sql.raw(`ARRAY[${rootPostIds.map((id) => `'${id}'`).join(",")}]::uuid[]`)})
+        AND p.deleted_at IS NULL
+        AND p.published_at IS NOT NULL
+        AND p.community_id = ${communityId}
+        AND a.community_id = ${communityId}
+
+        UNION ALL
+
+        -- Recursive case: replies to replies
+        SELECT
+            p.id, p.content, p.created_at, p.updated_at, p.deleted_at, p.announcement, p.content_warning,
+            p.author_id, p.in_reply_to_id, p.depth, p.root_post_id,
+            tr.sort_path || p.created_at,
+            tr.original_root_id
+        FROM post p
+        JOIN profile a ON p.author_id = a.id
+        JOIN thread_replies tr ON p.in_reply_to_id = tr.id
+        WHERE p.deleted_at IS NULL
+        AND p.published_at IS NOT NULL
+        AND p.community_id = ${communityId}
+        AND a.community_id = ${communityId}
+        AND p.depth <= ${depthLimit}
+    )
+    SELECT * FROM thread_replies
+    ORDER BY original_root_id, sort_path
+  `);
+
+  const rows = result.rows as {
+    id: string;
+    content: string;
+    created_at: string;
+    updated_at: string;
+    deleted_at: string | null;
+    announcement: boolean;
+    content_warning: string | null;
+    author_id: string;
+    in_reply_to_id: string | null;
+    depth: number;
+    root_post_id: string | null;
+    sort_path: string[];
+    original_root_id: string;
+  }[];
+
+  if (rows.length === 0) {
+    // Return empty map with all root post IDs as keys
+    const emptyMap = new Map();
+    for (const rootId of rootPostIds) {
+      emptyMap.set(rootId, []);
+    }
+    return emptyMap;
+  }
+
+  // Collect all IDs for batch loading
+  const profileIds = new Set<string>();
+  const postIds: string[] = [];
+
+  rows.forEach((row) => {
+    profileIds.add(row.author_id);
+    postIds.push(row.id);
+  });
+
+  // Batch load all data
+  const [
+    profiles,
+    profilePictureMap,
+    allPostImages,
+    allBookmarks,
+    allReactions,
+  ] = await Promise.all([
+    // Load all profiles
+    db.query.profile.findMany({
+      where: inArray(profileTable.id, Array.from(profileIds)),
+    }),
+    // Load all profile pictures
+    batchLoadProfilePictures(Array.from(profileIds)),
+    // Load all post images
+    db.query.postImage.findMany({
+      where: inArray(postImageTable.postId, postIds),
+      with: { image: true },
+    }),
+    // Load bookmarks if profileId provided
+    profileId
+      ? db.query.postBookmark.findMany({
+          where: and(
+            eq(postBookmarkTable.profileId, profileId),
+            inArray(postBookmarkTable.postId, postIds),
+          ),
+        })
+      : Promise.resolve([]),
+    // Load all reactions
+    db.query.postReaction.findMany({
+      where: inArray(postReactionTable.postId, postIds),
+      with: { profile: true },
+    }),
+  ]);
+
+  // Create lookup maps
+  const profileMap = new Map(profiles.map((p) => [p.id, p]));
+  const imagesByPostId = new Map<string, typeof allPostImages>();
+  const bookmarkedPostIds = new Set(allBookmarks.map((b) => b.postId));
+  const reactionsByPostId = new Map<string, typeof allReactions>();
+
+  allPostImages.forEach((pi) => {
+    if (!imagesByPostId.has(pi.postId)) {
+      imagesByPostId.set(pi.postId, []);
+    }
+    imagesByPostId.get(pi.postId)?.push(pi);
+  });
+
+  allReactions.forEach((reaction) => {
+    if (!reactionsByPostId.has(reaction.postId)) {
+      reactionsByPostId.set(reaction.postId, []);
+    }
+    reactionsByPostId.get(reaction.postId)?.push(reaction);
+  });
+
+  // Group replies by original root post ID
+  const repliesByRootPost = new Map<string, typeof replyData>();
+
+  // Initialize empty arrays for all root posts
+  for (const rootId of rootPostIds) {
+    repliesByRootPost.set(rootId, []);
+  }
+
+  // Build reply data using pre-loaded data
+  const replyData = [];
+  for (const row of rows) {
+    const profile = profileMap.get(row.author_id);
+    if (!profile) continue;
+
+    const postImages = imagesByPostId.get(row.id) || [];
+    const replyImages = postImages
+      .filter((pi) => pi.image && !pi.image.deletedAt)
+      .map((pi) => ({
+        id: pi.image.id,
+        url: addImageUrl(pi.image).url,
+        width: pi.image.width,
+        height: pi.image.height,
+        filename: pi.image.filename,
+      }));
+
+    const reactions = reactionsByPostId.get(row.id) || [];
+
+    const reply = {
+      id: row.id,
+      content: row.content,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+      announcement: row.announcement,
+      content_warning: row.content_warning,
+      author: {
+        id: profile.id,
+        name: profile.name,
+        username: profile.username,
+        profile_picture_url: profilePictureMap.get(profile.id) || null,
+      },
+      images: replyImages,
+      in_reply_to_id: row.in_reply_to_id,
+      depth: row.depth,
+      root_post_id: row.root_post_id,
+      is_bookmarked: bookmarkedPostIds.has(row.id),
+      replies: [], // Replies are already flattened and ordered by the CTE
+      reactions: reactions.map((reaction) => ({
+        emoji: reaction.emoji,
+        user: {
+          id: reaction.profile.id,
+          username: reaction.profile.username,
+          name: reaction.profile.name,
+        },
+      })),
+    };
+
+    // Add to the appropriate root post's reply array
+    const rootReplies = repliesByRootPost.get(row.original_root_id);
+    if (rootReplies) {
+      rootReplies.push(reply);
+    }
+  }
+
+  return repliesByRootPost;
+}
+
+/**
+ * Get a single post with its replies
+ */
+export async function getPost(
+  postId: string,
+  communityId: string,
+  profileId?: string,
+) {
+  // Validate post belongs to this community
+  const hasAccess = await validatePostCommunityAccess(postId, communityId);
+  if (!hasAccess) {
+    throw new AppException(404, "게시물을 찾을 수 없습니다");
+  }
+
+  // Find the post in the same community (exclude deleted posts and unpublished scheduled posts)
+  const post = await db.query.post.findFirst({
+    where: and(
+      eq(postTable.id, postId),
+      eq(postTable.communityId, communityId),
+      isNull(postTable.deletedAt),
+      isNotNull(postTable.publishedAt),
+    ),
+    with: {
+      profile: {
+        with: {
+          profilePictures: {
+            with: {
+              image: true,
+            },
+          },
+        },
+      },
+      postImages: {
+        with: {
+          image: true,
+        },
+      },
+      postReactions: {
+        with: {
+          profile: true,
+        },
+      },
+    },
+  });
+
+  if (!post) {
+    throw new AppException(404, "게시물을 찾을 수 없습니다");
+  }
+
+  // Get author's profile picture
+  const authorProfilePicture = post.profile?.profilePictures.find(
+    (pp) => pp.deletedAt === null,
+  )?.image;
+  const profile_picture_url = authorProfilePicture
+    ? addImageUrl(authorProfilePicture).url
+    : null;
+
+  // Get post images
+  const images = post.postImages.map((pi) => ({
+    id: pi.image.id,
+    url: addImageUrl(pi.image).url,
+    width: pi.image.width,
+    height: pi.image.height,
+    filename: pi.image.filename,
+  }));
+
+  // Check if post is bookmarked by the given profile
+  let is_bookmarked = false;
+  if (profileId) {
+    const bookmark = await db.query.postBookmark.findFirst({
+      where: and(
+        eq(postBookmarkTable.profileId, profileId),
+        eq(postBookmarkTable.postId, post.id),
+      ),
+    });
+    is_bookmarked = bookmark !== undefined;
+  }
+
+  // Get threaded replies starting from this specific post
+  const repliesMap = await buildThreadedRepliesForMultiplePosts(
+    [post.id],
+    communityId,
+    10,
+    profileId,
+  );
+  const replies = repliesMap.get(post.id) || [];
+
+  return {
+    id: post.id,
+    content: post.content,
+    createdAt: post.createdAt,
+    updatedAt: post.updatedAt,
+    announcement: post.announcement,
+    content_warning: post.contentWarning,
+    author: {
+      id: post.profile.id,
+      name: post.profile.name,
+      username: post.profile.username,
+      profile_picture_url,
+    },
+    images,
+    in_reply_to_id: post.inReplyToId,
+    depth: post.depth,
+    root_post_id: post.rootPostId,
+    replies,
+    is_bookmarked,
+    reactions:
+      post.postReactions?.map((reaction) => ({
+        emoji: reaction.emoji,
+        user: {
+          id: reaction.profile.id,
+          username: reaction.profile.username,
+          name: reaction.profile.name,
+        },
+      })) || [],
+  };
+}
+
+/**
+ * Create a new post with validations, notifications, and mentions
+ */
+export async function createPost(
+  userId: string,
+  profileId: string,
+  communityId: string,
+  content: string,
+  inReplyToId: string | null,
+  imageIds: string[] | undefined,
+  announcement: boolean | undefined,
+  contentWarning: string | null | undefined,
+  scheduledAt: string | null | undefined,
+  startsAt: string,
+  endsAt: string,
+) {
+  // Validate reply target if provided
+  let parentPost = null;
+  let depth = 0;
+  let rootPostId = null;
+
+  if (inReplyToId) {
+    // Validate parent post belongs to this community
+    const hasAccess = await validatePostCommunityAccess(
+      inReplyToId,
+      communityId,
+    );
+    if (!hasAccess) {
+      throw new AppException(404, "상위 게시물을 찾을 수 없습니다");
+    }
+
+    parentPost = await db.query.post.findFirst({
+      where: and(
+        eq(postTable.id, inReplyToId),
+        eq(postTable.communityId, communityId),
+        isNull(postTable.deletedAt),
+      ),
+      with: {
+        profile: true,
+      },
+    });
+
+    if (!parentPost) {
+      throw new AppException(404, "상위 게시물을 찾을 수 없습니다");
+    }
+
+    depth = parentPost.depth + 1;
+    rootPostId = parentPost.rootPostId || parentPost.id;
+  }
+
+  // Validate that at least content or images are provided
+  if (!content.trim() && (!imageIds || imageIds.length === 0)) {
+    throw new AppException(400, "게시물 내용 또는 이미지를 제공해야 합니다");
+  }
+
+  // Validate images if provided
+  if (imageIds && imageIds.length > 0) {
+    const validImages = await db.query.image.findMany({
+      where: and(
+        inArray(imageTable.id, imageIds),
+        isNull(imageTable.deletedAt),
+      ),
+    });
+
+    if (validImages.length !== imageIds.length) {
+      throw new AppException(400, "일부 이미지가 유효하지 않습니다");
+    }
+  }
+
+  // Check if community has ended or not started
+  const now = new Date();
+  const communityStartsAt = new Date(startsAt);
+  const communityEndsAt = new Date(endsAt);
+
+  if (now > communityEndsAt) {
+    throw new AppException(403, "커뮤가 종료되어 게시할 수 없습니다");
+  }
+
+  // Get user's membership to check role
+  const membership = await db.query.membership.findFirst({
+    where: and(
+      eq(membershipTable.userId, userId),
+      eq(membershipTable.communityId, communityId),
+      isNotNull(membershipTable.activatedAt),
+    ),
+  });
+
+  const userRole = membership?.role;
+
+  // Check if community hasn't started yet (only owners and moderators can post)
+  if (now < communityStartsAt) {
+    if (userRole !== "owner" && userRole !== "moderator") {
+      throw new AppException(403, "커뮤가 아직 시작되지 않았습니다");
+    }
+  }
+
+  // Validate scheduled post
+  if (scheduledAt) {
+    // Only owners and moderators can schedule posts
+    if (userRole !== "owner" && userRole !== "moderator") {
+      throw new AppException(403, "게시물 예약은 관리자만 가능합니다");
+    }
+
+    // Cannot schedule replies
+    if (inReplyToId) {
+      throw new AppException(400, "답글은 예약할 수 없습니다");
+    }
+
+    // Validate scheduled time is in the future
+    const scheduledDate = new Date(scheduledAt);
+    if (scheduledDate <= now) {
+      throw new AppException(400, "예약 시간은 현재 시간 이후여야 합니다");
+    }
+
+    // Validate scheduled time is before community ends
+    if (scheduledDate > communityEndsAt) {
+      throw new AppException(400, "커뮤 종료 시간 이전으로 예약해야 합니다");
+    }
+  }
+
+  // Create the post
+  const newPostResult = await db
+    .insert(postTable)
+    .values({
+      content,
+      authorId: profileId,
+      createdByUserId: userId,
+      communityId: communityId,
+      inReplyToId: inReplyToId || null,
+      depth,
+      rootPostId,
+      announcement: announcement || false,
+      contentWarning: contentWarning || null,
+      scheduledAt: scheduledAt || null,
+      publishedAt: scheduledAt ? null : sql`NOW()`,
+    })
+    .returning();
+
+  const newPost = newPostResult[0];
+  if (!newPost) {
+    throw new Error("Failed to create post");
+  }
+
+  // Associate images with the post
+  if (imageIds && imageIds.length > 0) {
+    const postImageInserts = imageIds.map((imageId) => ({
+      postId: newPost.id,
+      imageId: imageId,
+    }));
+
+    await db.insert(postImageTable).values(postImageInserts);
+  }
+
+  // Keep track of who already received a reply notification
+  let replyNotificationRecipientId = null;
+
+  // Create notification for reply
+  if (parentPost && parentPost.authorId !== profileId) {
+    replyNotificationRecipientId = parentPost.authorId;
+
+    // Get profile for notification message
+    const profile = await db.query.profile.findFirst({
+      where: eq(profileTable.id, profileId),
+    });
+
+    await db.insert(notificationTable).values({
+      recipientId: parentPost.authorId,
+      profileId: profileId,
+      type: "reply",
+      title: "새로운 답글",
+      message: `${profile?.name}님이 답글을 작성했습니다`,
+      postId: newPost.id,
+    });
+  }
+
+  // Create mention notifications
+  const mentions = content.match(/@([a-zA-Z0-9_]+)/g) || [];
+  const uniqueMentions = [...new Set(mentions.map((m) => m.substring(1)))]; // Remove @ and deduplicate
+
+  // Get profile for notification message
+  const profile = await db.query.profile.findFirst({
+    where: eq(profileTable.id, profileId),
+  });
+
+  // Batch load all mentioned profiles
+  const mentionedProfiles =
+    uniqueMentions.length > 0
+      ? await db.query.profile.findMany({
+          where: and(
+            inArray(profileTable.username, uniqueMentions),
+            eq(profileTable.communityId, communityId),
+            isNotNull(profileTable.activatedAt),
+            isNull(profileTable.deletedAt),
+          ),
+        })
+      : [];
+
+  // Filter valid mentions for notifications and mention records
+  const validMentionedProfiles = mentionedProfiles.filter(
+    (mentionedProfile) => mentionedProfile.id !== profileId,
+  );
+
+  // Prepare mention records for the mention table
+  const mentionRecords = validMentionedProfiles.map((mentionedProfile) => ({
+    profileId: mentionedProfile.id,
+    postId: newPost.id,
+  }));
+
+  // Batch insert mention records
+  if (mentionRecords.length > 0) {
+    await db.insert(mentionTable).values(mentionRecords);
+  }
+
+  // Prepare notification records (excluding reply notification recipient)
+  const mentionNotifications = validMentionedProfiles
+    .filter(
+      (mentionedProfile) =>
+        mentionedProfile.id !== replyNotificationRecipientId,
+    )
+    .map((mentionedProfile) => ({
+      recipientId: mentionedProfile.id,
+      profileId: profileId,
+      type: "mention" as const,
+      title: `${profile?.name}님이 회원님을 언급했습니다`,
+      message:
+        content.length > 100 ? `${content.substring(0, 100)}...` : content,
+      postId: newPost.id,
+    }));
+
+  // Batch insert all mention notifications
+  if (mentionNotifications.length > 0) {
+    await db.insert(notificationTable).values(mentionNotifications);
+  }
+
+  // Get the post with author and images for response
+  const createdPost = await db.query.post.findFirst({
+    where: eq(postTable.id, newPost.id),
+    with: {
+      profile: {
+        with: {
+          profilePictures: {
+            with: {
+              image: true,
+            },
+          },
+        },
+      },
+      postImages: {
+        with: {
+          image: true,
+        },
+      },
+    },
+  });
+
+  const authorProfilePicture = createdPost?.profile?.profilePictures.find(
+    (pp) => pp.deletedAt === null,
+  )?.image;
+  const profile_picture_url = authorProfilePicture
+    ? addImageUrl(authorProfilePicture).url
+    : null;
+
+  const images =
+    createdPost?.postImages.map((pi) => ({
+      id: pi.image.id,
+      url: addImageUrl(pi.image).url,
+      width: pi.image.width,
+      height: pi.image.height,
+      filename: pi.image.filename,
+    })) || [];
+
+  return {
+    id: createdPost?.id,
+    content: createdPost?.content,
+    createdAt: createdPost?.createdAt,
+    updatedAt: createdPost?.updatedAt,
+    announcement: createdPost?.announcement,
+    content_warning: createdPost?.contentWarning,
+    in_reply_to_id: createdPost?.inReplyToId,
+    depth: createdPost?.depth,
+    author: {
+      id: createdPost?.profile?.id,
+      name: createdPost?.profile?.name,
+      username: createdPost?.profile?.username,
+      profile_picture_url,
+    },
+    images,
+  };
+}
+
+/**
+ * Delete a post
+ */
+export async function deletePost(
+  userId: string,
+  profileId: string,
+  postId: string,
+  communityId: string,
+) {
+  // Validate post belongs to this community
+  const hasAccess = await validatePostCommunityAccess(postId, communityId);
+  if (!hasAccess) {
+    throw new AppException(404, "게시물을 찾을 수 없습니다");
+  }
+
+  // Find the post (exclude already deleted posts)
+  const post = await db.query.post.findFirst({
+    where: and(
+      eq(postTable.id, postId),
+      eq(postTable.communityId, communityId),
+      isNull(postTable.deletedAt),
+    ),
+    with: {
+      profile: true,
+    },
+  });
+
+  // Check if post exists and author is in the same community
+  if (!post || post.profile?.communityId !== communityId) {
+    throw new AppException(404, "게시물을 찾을 수 없습니다");
+  }
+
+  // Check if user has permission to delete this post
+  const isPostAuthor = post.authorId === profileId;
+
+  // Check if user is community owner or moderator
+  const membership = await db.query.membership.findFirst({
+    where: and(
+      eq(membershipTable.userId, userId),
+      eq(membershipTable.communityId, communityId),
+      isNotNull(membershipTable.activatedAt),
+    ),
+  });
+
+  const isOwner = await membershipService.isUserCommunityOwner(
+    userId,
+    communityId,
+  );
+  const isModerator = membership?.role === "moderator";
+  const canDeleteAnyPost = isOwner || isModerator;
+
+  if (!(isPostAuthor || canDeleteAnyPost)) {
+    throw new AppException(
+      403,
+      "Only the post author, community owner, or moderator can delete posts",
+    );
+  }
+
+  // Soft delete and log moderation in a transaction
+  await db.transaction(async (tx) => {
+    // Soft delete by setting the deleted timestamp
+    await tx
+      .update(postTable)
+      .set({
+        deletedAt: sql`NOW()`,
+      })
+      .where(eq(postTable.id, postId));
+
+    // Log the moderation action if it wasn't the post author who deleted it
+    if (!isPostAuthor) {
+      const description = `@${
+        post.profile?.username
+      }의 게시물을 삭제했습니다: "${post.content.substring(0, 50)}${
+        post.content.length > 50 ? "..." : ""
+      }"`;
+      await tx.insert(moderationLogTable).values({
+        action: "delete_post",
+        description: description,
+        moderatorId: profileId,
+        targetProfileId: post.authorId,
+        targetPostId: post.id,
+      });
+    }
+  });
+}

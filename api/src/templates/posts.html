@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{COMMUNITY_NAME}} - Posts</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      line-height: 1.6;
+      color: #1f2937;
+      background: #f9fafb;
+      padding: 20px;
+    }
+    .container { max-width: 900px; margin: 0 auto; background: white; padding: 40px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    header { margin-bottom: 40px; padding-bottom: 20px; border-bottom: 2px solid #e5e7eb; }
+    h1 { font-size: 2rem; color: #111827; margin-bottom: 10px; }
+    .back-link { display: inline-block; color: #3b82f6; text-decoration: none; margin-bottom: 16px; }
+    .back-link:hover { text-decoration: underline; }
+    .export-info { color: #6b7280; font-size: 0.875rem; }
+    .loading { text-align: center; padding: 40px; color: #6b7280; }
+    .post { margin-bottom: 24px; padding: 16px; border: 1px solid #e5e7eb; border-radius: 8px; background: #ffffff; }
+    .post.reply { background: #f9fafb; margin-left: 20px; margin-top: 12px; }
+    .post-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+    .author-info { display: flex; align-items: center; gap: 12px; }
+    .profile-picture { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; }
+    .profile-picture-placeholder { width: 40px; height: 40px; border-radius: 50%; background: #9ca3af; color: white; display: flex; align-items: center; justify-content: center; font-weight: 600; }
+    .author-text strong { color: #111827; display: block; }
+    .author-text .username { color: #6b7280; font-size: 0.875rem; }
+    .post-meta { display: flex; align-items: center; gap: 8px; font-size: 0.875rem; color: #6b7280; }
+    .badge { padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; }
+    .badge.announcement { background: #dbeafe; color: #1e40af; }
+    .content-warning { background: #fef3c7; color: #92400e; padding: 8px 12px; border-radius: 6px; margin-bottom: 12px; font-size: 0.875rem; }
+    .post-content { color: #374151; white-space: pre-wrap; word-wrap: break-word; margin-bottom: 12px; }
+    .image-gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; margin-bottom: 12px; }
+    .image-gallery img { width: 100%; height: auto; border-radius: 6px; border: 1px solid #e5e7eb; }
+    .reactions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+    .reaction { background: #f3f4f6; padding: 4px 8px; border-radius: 12px; font-size: 0.875rem; }
+    footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid #e5e7eb; text-align: center; color: #6b7280; font-size: 0.875rem; }
+    .error { background: #fee2e2; color: #991b1b; padding: 16px; border-radius: 8px; margin: 20px 0; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <a href="index.html" class="back-link">← 뒤로 가기</a>
+    <header>
+      <h1 id="title">{{COMMUNITY_NAME}} - 게시물</h1>
+      <div class="export-info">
+        <p id="export-date">Export Date: {{EXPORT_DATE}}</p>
+        <p id="total-posts">Loading posts...</p>
+      </div>
+    </header>
+    <main id="posts-container">
+      <div class="loading">📦 게시물을 불러오는 중...</div>
+    </main>
+    <footer>
+      <p id="footer-text">이 문서는 {{COMMUNITY_NAME}} 커뮤의 게시물을 내보낸 것입니다.</p>
+    </footer>
+  </div>
+
+  <script>
+    function loadPosts() {
+      const container = document.getElementById('posts-container');
+      const totalPostsEl = document.getElementById('total-posts');
+
+      // Read from embedded data
+      if (!window.POSTS_DATA || !window.POSTS_DATA.posts) {
+        container.innerHTML = '<p class="error">게시물을 찾을 수 없습니다.</p>';
+        return;
+      }
+
+      const allPosts = window.POSTS_DATA.posts;
+
+      if (allPosts.length === 0) {
+        container.innerHTML = '<p class="error">게시물을 찾을 수 없습니다.</p>';
+        return;
+      }
+
+      totalPostsEl.textContent = `Total Posts: ${allPosts.length}`;
+      container.innerHTML = allPosts.map(post => renderPost(post)).join('');
+    }
+
+    function renderPost(post, isReply = false) {
+      const profilePic = post.author.profilePictureUrl
+        ? `<img src="images/${post.author.profilePictureUrl.split('/').pop()}" alt="${post.author.name}" class="profile-picture">`
+        : `<div class="profile-picture-placeholder">${post.author.name[0]}</div>`;
+
+      const contentWarning = post.contentWarning
+        ? `<div class="content-warning">⚠️ ${post.contentWarning}</div>`
+        : '';
+
+      const images = post.images && post.images.length > 0
+        ? `<div class="image-gallery">${post.images.filter(img => img.url).map(img => `<img src="images/${img.url.split('/').pop()}" alt="${img.filename || 'Image'}">`).join('')}</div>`
+        : '';
+
+      const reactions = post.reactions && post.reactions.length > 0
+        ? `<div class="reactions">${post.reactions.map(r => `<span class="reaction">${r.emoji} ${r.user.name}</span>`).join('')}</div>`
+        : '';
+
+      const badge = post.announcement ? '<span class="badge announcement">공지</span>' : '';
+
+      const replies = post.replies && post.replies.length > 0
+        ? `<div class="replies">${post.replies.map(r => renderPost(r, true)).join('')}</div>`
+        : '';
+
+      const date = new Date(post.createdAt).toLocaleString('ko-KR');
+
+      return `
+        <div class="post ${isReply ? 'reply' : ''}">
+          <div class="post-header">
+            <div class="author-info">
+              ${profilePic}
+              <div class="author-text">
+                <strong>${post.author.name}</strong>
+                <span class="username">@${post.author.username}</span>
+              </div>
+            </div>
+            <div class="post-meta">
+              ${badge}
+              <span class="timestamp">${date}</span>
+            </div>
+          </div>
+          ${contentWarning}
+          <div class="post-content">${post.content}</div>
+          ${images}
+          ${reactions}
+          ${replies}
+        </div>
+      `;
+    }
+
+    // Load posts when page loads
+    loadPosts();
+  </script>
+</body>
+</html>

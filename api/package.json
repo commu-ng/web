@@ -1,0 +1,58 @@
+{
+  "type": "module",
+  "name": "@commu-ng/api",
+  "version": "1.0.0",
+  "description": "",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "import": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "dev": "tsx watch src/index.ts",
+    "typecheck": "tsc --noEmit",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:studio": "drizzle-kit studio"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.15.0",
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.896.0",
+    "@aws-sdk/lib-storage": "^3.903.0",
+    "@hono/node-server": "^1.19.4",
+    "@hono/zod-validator": "^0.7.3",
+    "@logtape/logtape": "^1.1.1",
+    "@logtape/sentry": "^1.1.1",
+    "@sentry/node": "^10.15.0",
+    "@upyo/core": "^0.3.0",
+    "@upyo/mailgun": "^0.3.0",
+    "archiver": "^7.0.1",
+    "bcrypt": "^6.0.0",
+    "dotenv": "^17.2.2",
+    "drizzle-orm": "^0.44.5",
+    "hono": "^4.9.8",
+    "pg": "^8.16.3",
+    "sanitize-html": "^2.17.0",
+    "sharp": "^0.34.4",
+    "zod": "^4.1.11"
+  },
+  "devDependencies": {
+    "@types/archiver": "^6.0.3",
+    "@types/bcrypt": "^6.0.0",
+    "@types/node": "^24.5.2",
+    "@types/pg": "^8.15.5",
+    "@types/sanitize-html": "^2.16.0",
+    "drizzle-kit": "^0.31.5",
+    "tsx": "^4.20.5",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4"
+  }
+}

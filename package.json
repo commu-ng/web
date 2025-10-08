@@ -1,0 +1,21 @@
+{
+  "name": "commu-ng",
+  "private": true,
+  "scripts": {
+    "lint": "biome lint",
+    "format": "biome format",
+    "test": "pnpm --recursive test",
+    "dev": "pnpm --parallel dev",
+    "build": "pnpm --recursive build",
+    "typecheck": "pnpm --recursive typecheck"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.2.5",
+    "typescript": "^5.9.3"
+  },
+  "pnpm": {
+    "overrides": {
+      "typescript": "^5.9.3"
+    }
+  }
+}
