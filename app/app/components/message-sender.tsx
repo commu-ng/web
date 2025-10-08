@@ -89,6 +89,7 @@ export function MessageSender({
   const [isAnnouncement, setIsAnnouncement] = useState(false);
 
   // Content warning state
+  const [hasContentWarning, setHasContentWarning] = useState(false);
   const [contentWarning, setContentWarning] = useState("");
 
   // Scheduling state
@@ -253,6 +254,7 @@ export function MessageSender({
       setIsAnnouncement(false);
       setIsScheduled(false);
       setScheduledAt(undefined);
+      setHasContentWarning(false);
       setContentWarning("");
       setIsPreviewMode(false);
       if (fileInputRef.current) {
@@ -452,14 +454,19 @@ export function MessageSender({
           )}
           <Button
             type="button"
-            variant={contentWarning ? "default" : "ghost"}
+            variant={hasContentWarning ? "default" : "ghost"}
             size="sm"
-            onClick={() =>
-              setContentWarning(contentWarning ? "" : "민감한 내용")
-            }
+            onClick={() => {
+              setHasContentWarning(!hasContentWarning);
+              if (!hasContentWarning) {
+                setContentWarning("민감한 내용");
+              } else {
+                setContentWarning("");
+              }
+            }}
             disabled={isDisabled}
             className="h-8 w-8 p-0"
-            title={contentWarning ? "컨텐츠 경고 해제" : "컨텐츠 경고 추가"}
+            title={hasContentWarning ? "컨텐츠 경고 해제" : "컨텐츠 경고 추가"}
           >
             <AlertTriangle className="h-4 w-4" />
           </Button>
@@ -530,7 +537,7 @@ export function MessageSender({
         {!isPreviewMode ? (
           <div className="relative">
             {/* Content Warning Input */}
-            {contentWarning && (
+            {hasContentWarning && (
               <div className="mb-3 pb-3 p-4 bg-muted border-y border-border">
                 <div className="flex items-center gap-2 mb-3">
                   <AlertTriangle className="h-4 w-4 text-muted-foreground" />
