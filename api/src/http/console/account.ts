@@ -2,6 +2,7 @@ import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
 import { setCookie } from "hono/cookie";
 import { z } from "zod";
+import { logger } from "../../config/logger";
 import { authMiddleware } from "../../middleware/auth";
 import {
   accountDeletionConfirmSchema,
