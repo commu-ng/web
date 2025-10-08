@@ -339,7 +339,7 @@ export default function CommunityDetails() {
           <div className="flex gap-2">
             {currentUser && userRole === "owner" && (
               <Link to={`/communities/${slug}/settings`}>
-                <Button variant="outline">
+                <Button variant="outline" size="sm">
                   <Settings className="h-4 w-4" />
                   설정
                 </Button>
@@ -348,7 +348,7 @@ export default function CommunityDetails() {
             {currentUser &&
               (userRole === "owner" || userRole === "moderator") && (
                 <Link to={`/communities/${slug}/members`}>
-                  <Button variant="outline">
+                  <Button variant="outline" size="sm">
                     <Users className="h-4 w-4" />
                     멤버
                   </Button>
@@ -359,6 +359,7 @@ export default function CommunityDetails() {
               community?.membership_status === "member" && (
                 <Button
                   variant="outline"
+                  size="sm"
                   className="text-red-600 hover:text-red-700"
                   onClick={() => setShowLeaveDialog(true)}
                 >
