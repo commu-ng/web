@@ -7,8 +7,6 @@ import { LoadingState } from "~/components/shared/LoadingState";
 import { ProfileCardSkeleton } from "~/components/skeletons/ProfileCardSkeleton";
 import { client } from "~/lib/api-client";
 
-import type { Profile } from "~/types/profile";
-
 export function meta() {
   return [
     { title: "멤버 목록 - 커뮤" },
@@ -93,23 +91,21 @@ export default function Profiles() {
     return (
       <div>
         <main className="max-w-4xl mx-auto px-4 py-8">
-          <div className="max-w-2xl mx-auto">
-            <div className="mb-6">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="이름이나 사용자명으로 검색..."
-                  disabled
-                  className="w-full pl-10 pr-4 py-3 bg-card border border-border rounded-xl opacity-50"
-                />
-              </div>
+          <div className="mb-6">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+              <input
+                type="text"
+                placeholder="이름이나 사용자명으로 검색..."
+                disabled
+                className="w-full pl-10 pr-4 py-3 bg-card border border-border rounded-xl opacity-50"
+              />
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {Array.from({ length: 6 }, () => (
-                <ProfileCardSkeleton key={crypto.randomUUID()} />
-              ))}
-            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {Array.from({ length: 6 }, () => (
+              <ProfileCardSkeleton key={crypto.randomUUID()} />
+            ))}
           </div>
         </main>
       </div>
