@@ -88,7 +88,7 @@ export default function ProfileProfile() {
         param: { username: actualUsername },
         query: {
           limit: POSTS_PER_PAGE.toString(),
-          offset: pageParam.toString(),
+          cursor: pageParam.toString(),
         },
       });
 
