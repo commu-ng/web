@@ -97,6 +97,7 @@ export const communityCreateRequestSchema = z.object({
   profile_username: z.string().min(1, "Profile username cannot be empty"),
   profile_name: z.string().min(1, "Profile name cannot be empty"),
   description: z.string().nullable().optional(),
+  mute_new_members: z.boolean().optional(),
 });
 
 export const communityUpdateRequestSchema = z.object({
@@ -120,6 +121,7 @@ export const communityUpdateRequestSchema = z.object({
   profile_name: z.string().optional(),
   description: z.string().nullable().optional(),
   description_image_ids: z.array(z.uuid()).optional(),
+  mute_new_members: z.boolean().optional(),
 });
 
 export const imageCreateRequestSchema = z.object({

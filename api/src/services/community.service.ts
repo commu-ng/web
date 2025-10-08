@@ -108,6 +108,7 @@ export async function createCommunity(
     profileUsername: string;
     profileName: string;
     description?: string | null;
+    muteNewMembers?: boolean;
   },
 ) {
   // Validate image if provided
@@ -140,6 +141,7 @@ export async function createCommunity(
           recruitingEndsAt: data.recruitingEndsAt,
           minimumBirthYear: data.minimumBirthYear,
           description: sanitizedDescription,
+          muteNewMembers: data.muteNewMembers ?? false,
         })
         .returning();
 
@@ -228,6 +230,7 @@ export async function updateCommunity(
     hashtags?: string[];
     description?: string | null;
     descriptionImageIds?: string[];
+    muteNewMembers?: boolean;
   },
 ) {
   // Get existing community
@@ -262,6 +265,7 @@ export async function updateCommunity(
           recruitingEndsAt: data.recruitingEndsAt,
           minimumBirthYear: data.minimumBirthYear,
           description: sanitizedDescription,
+          muteNewMembers: data.muteNewMembers,
         })
         .where(eq(communityTable.id, communityId))
         .returning();

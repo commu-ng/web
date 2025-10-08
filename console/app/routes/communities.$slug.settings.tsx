@@ -67,6 +67,7 @@ interface Community {
   banner_image_height?: number | null;
   hashtags?: { id: string; tag: string }[];
   description?: string | null;
+  mute_new_members?: boolean;
 }
 
 // Fetch function
@@ -89,6 +90,7 @@ export default function CommunityManagement() {
     slug: "",
     recruiting: false,
     minimum_birth_year: "",
+    mute_new_members: false,
   });
   const [hashtags, setHashtags] = useState<string[]>([]);
   const [startDate, setStartDate] = useState<Date>();
@@ -137,6 +139,7 @@ export default function CommunityManagement() {
         minimum_birth_year: community.minimum_birth_year
           ? String(community.minimum_birth_year)
           : "",
+        mute_new_members: community.mute_new_members ?? false,
       });
 
       if (community.banner_image_url) {
@@ -316,6 +319,7 @@ export default function CommunityManagement() {
         recruiting_ends_at: recruitingEndDate?.toISOString() || null,
         description: description || null,
         description_image_ids: descriptionImageIds,
+        mute_new_members: formData.mute_new_members,
       };
 
       if (!slug) {

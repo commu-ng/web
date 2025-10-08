@@ -656,6 +656,9 @@ export async function approveMembershipApplication(
           .set({
             name: application.profileName,
             activatedAt: sql`NOW()`,
+            // Auto-mute if community setting is enabled (on reactivation)
+            mutedAt: community.muteNewMembers ? sql`NOW()` : undefined,
+            mutedById: community.muteNewMembers ? reviewerId : undefined,
           })
           .where(eq(profileTable.id, existingProfile.id))
           .returning();
@@ -664,6 +667,16 @@ export async function approveMembershipApplication(
           throw new Error("Failed to update profile");
         }
         profile = updatedProfile;
+
+        // Log auto-mute action if enabled
+        if (community.muteNewMembers) {
+          await tx.insert(moderationLogTable).values({
+            action: "mute_profile",
+            description: "재가입 시 자동 음소거 (커뮤 설정)",
+            moderatorId: reviewerId,
+            targetProfileId: profile.id,
+          });
+        }
       } else {
         // Username already taken (either by someone else or by user's old profile)
         // Usernames are permanent and cannot be reused even by the same user
@@ -682,6 +695,9 @@ export async function approveMembershipApplication(
           communityId: community.id,
           isPrimary: false,
           activatedAt: sql`NOW()`,
+          // Auto-mute if community setting is enabled
+          mutedAt: community.muteNewMembers ? sql`NOW()` : null,
+          mutedById: community.muteNewMembers ? reviewerId : null,
         })
         .returning();
       const createdProfile = newProfileResult[0];
@@ -697,6 +713,16 @@ export async function approveMembershipApplication(
         role: "owner",
         createdBy: reviewerId,
       });
+
+      // Log auto-mute action if enabled
+      if (community.muteNewMembers) {
+        await tx.insert(moderationLogTable).values({
+          action: "mute_profile",
+          description: "신규 가입 시 자동 음소거 (커뮤 설정)",
+          moderatorId: reviewerId,
+          targetProfileId: profile.id,
+        });
+      }
     }
 
     // Set this profile as primary and unset any other primary profiles

@@ -16,6 +16,7 @@ export interface CommunityFormData {
   minimum_birth_year: string;
   profile_username: string;
   profile_name: string;
+  mute_new_members: boolean;
 }
 
 interface CommunityFormFieldsProps {
@@ -71,6 +72,7 @@ export function CommunityFormFields({
   const profileUsernameId = useId();
   const profileNameId = useId();
   const recruitingId = useId();
+  const muteNewMembersId = useId();
 
   return (
     <>
@@ -337,6 +339,37 @@ export function CommunityFormFields({
           />
         </>
       )}
+
+      <Separator className="my-6" />
+      <h3 className="text-sm font-medium text-foreground mb-4">멤버 관리</h3>
+
+      <Field orientation="horizontal">
+        <Checkbox
+          id={muteNewMembersId}
+          name="mute_new_members"
+          checked={formData.mute_new_members}
+          onCheckedChange={(checked) => {
+            const event = {
+              target: {
+                name: "mute_new_members",
+                type: "checkbox",
+                checked: checked === true,
+                value: "",
+              },
+            };
+            onInputChange(event as React.ChangeEvent<HTMLInputElement>);
+          }}
+        />
+        <div className="space-y-1">
+          <FieldLabel htmlFor={muteNewMembersId}>
+            신규 멤버 자동 음소거
+          </FieldLabel>
+          <FieldDescription>
+            새로운 멤버가 자동으로 음소거되며 공개 글을 작성할 수 없습니다. 멤버
+            관리 페이지에서 개별적으로 음소거를 해제할 수 있습니다.
+          </FieldDescription>
+        </div>
+      </Field>
     </>
   );
 }

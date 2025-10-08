@@ -28,6 +28,7 @@ export interface Community {
   application_id?: string | null;
   application_status?: string | null;
   is_member?: boolean;
+  mute_new_members?: boolean;
 }
 
 export interface CommunityStats {

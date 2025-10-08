@@ -214,6 +214,7 @@ export const community = pgTable(
       mode: "string",
     }),
     description: text(),
+    muteNewMembers: boolean("mute_new_members").notNull().default(false),
   },
   (table) => [
     unique("community_slug_key").on(table.slug),

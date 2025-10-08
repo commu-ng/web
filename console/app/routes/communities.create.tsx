@@ -34,6 +34,7 @@ export default function CreateCommunity() {
     minimum_birth_year: "",
     profile_username: "",
     profile_name: "",
+    mute_new_members: false,
   });
   const [hashtags, setHashtags] = useState<string[]>([]);
   const [startDate, setStartDate] = useState<Date>();
@@ -180,6 +181,7 @@ export default function CreateCommunity() {
         recruiting_ends_at: recruitingEndDate?.toISOString() || null,
         profile_username: formData.profile_username,
         profile_name: formData.profile_name,
+        mute_new_members: formData.mute_new_members,
       };
 
       await api.console.communities.$post({
