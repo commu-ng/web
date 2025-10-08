@@ -1431,6 +1431,19 @@ export async function createPost(
     }
   }
 
+  // Validate announcement post
+  if (announcement) {
+    // Only owners can create announcements
+    if (userRole !== "owner") {
+      throw new AppException(403, "공지사항은 소유자만 작성할 수 있습니다");
+    }
+
+    // Cannot make replies announcements
+    if (inReplyToId) {
+      throw new AppException(400, "답글은 공지사항으로 작성할 수 없습니다");
+    }
+  }
+
   // Create the post
   const newPostResult = await db
     .insert(postTable)
