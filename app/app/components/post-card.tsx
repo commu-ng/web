@@ -1,3 +1,4 @@
+import { ChevronDown, ChevronUp } from "lucide-react";
 import { memo, useCallback, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useAuth } from "~/hooks/useAuth";
@@ -31,6 +32,41 @@ export const PostCard = memo(function PostCard({
     url: string;
     filename: string;
   } | null>(null);
+
+  // Check if current user is part of the conversation thread
+  const isUserPartOfThread = useCallback(() => {
+    if (!currentProfileId || !currentProfile) return false;
+
+    const currentUsername = currentProfile.username;
+
+    // User is part of thread if they authored the root post
+    if (post.author.id === currentProfileId) return true;
+
+    // Check if user is mentioned in root post
+    if (post.content.includes(`@${currentUsername}`)) return true;
+
+    // User is part of thread if they authored any reply or are mentioned in any reply
+    if (post.threaded_replies && post.threaded_replies.length > 0) {
+      return post.threaded_replies.some(
+        (reply) =>
+          reply.author.id === currentProfileId ||
+          reply.content.includes(`@${currentUsername}`),
+      );
+    }
+
+    return false;
+  }, [
+    currentProfileId,
+    currentProfile,
+    post.author.id,
+    post.content,
+    post.threaded_replies,
+  ]);
+
+  // Collapse thread by default if user is not part of it
+  const [isThreadCollapsed, setIsThreadCollapsed] = useState(
+    !isUserPartOfThread(),
+  );
 
   // Use the markdown hook for mention validation and rendering
   // For read-only posts, disable username validation to avoid API calls
@@ -298,25 +334,36 @@ export const PostCard = memo(function PostCard({
           post.threaded_replies.length > 0 &&
           (post.depth === 0 || post.depth === undefined) && (
             <div className="mt-3 pt-3 border-t border-border">
-              <div className="flex items-center gap-2 mb-2">
+              <button
+                type="button"
+                onClick={() => setIsThreadCollapsed(!isThreadCollapsed)}
+                className="flex items-center gap-2 mb-2 hover:opacity-70 transition-opacity"
+              >
                 <span className="text-xs text-muted-foreground font-medium">
                   답글 {post.threaded_replies.length}개
                 </span>
-              </div>
-              <div className="space-y-1">
-                {post.threaded_replies.map((reply) => (
-                  <PostCard
-                    key={reply.id}
-                    post={reply}
-                    currentProfileId={currentProfileId}
-                    onDelete={onDelete}
-                    onRefresh={onRefresh}
-                    isCommunityOwner={isCommunityOwner}
-                    isModerator={isModerator}
-                    isProfileView={isProfileView}
-                  />
-                ))}
-              </div>
+                {isThreadCollapsed ? (
+                  <ChevronDown className="w-3 h-3 text-muted-foreground" />
+                ) : (
+                  <ChevronUp className="w-3 h-3 text-muted-foreground" />
+                )}
+              </button>
+              {!isThreadCollapsed && (
+                <div className="space-y-1">
+                  {post.threaded_replies.map((reply) => (
+                    <PostCard
+                      key={reply.id}
+                      post={reply}
+                      currentProfileId={currentProfileId}
+                      onDelete={onDelete}
+                      onRefresh={onRefresh}
+                      isCommunityOwner={isCommunityOwner}
+                      isModerator={isModerator}
+                      isProfileView={isProfileView}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
           )}
       </div>
