@@ -156,8 +156,13 @@ export function CommunityCard({ community }: CommunityCardProps) {
             {(community.role === "owner" || community.role === "moderator") &&
               community.pending_application_count !== undefined &&
               community.pending_application_count > 0 && (
-                <Badge className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200 rounded-full">
-                  신청 {community.pending_application_count}
+                <Badge
+                  asChild
+                  className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200 rounded-full hover:bg-yellow-200 dark:hover:bg-yellow-800 cursor-pointer"
+                >
+                  <Link to={`/communities/${community.slug}/applications`}>
+                    신청 {community.pending_application_count}
+                  </Link>
                 </Badge>
               )}
           </div>
