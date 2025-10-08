@@ -285,4 +285,147 @@ describe("Posts Routes", () => {
       expect(res2.status).toBe(200);
     });
   });
+
+  describe("POST /app/posts - Announcements", () => {
+    it("should allow owners to create announcements", async () => {
+      const app = createTestApp();
+      const { user, community, profile } = await createCommunityWithOwner();
+
+      const res = await makeAuthenticatedRequest(app, "/app/posts", user, {
+        method: "POST",
+        communityId: community.id,
+        headers: {
+          Origin: `https://${community.slug}.localhost`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          content: "This is an announcement",
+          profile_id: profile.id,
+          announcement: true,
+        }),
+      });
+
+      expect(res.status).toBe(201);
+      const data = await res.json();
+      expect(data.announcement).toBe(true);
+    });
+
+    it("should not allow non-owners to create announcements", async () => {
+      const app = createTestApp();
+      const { community } = await createCommunityWithOwner();
+
+      // Create a regular member (non-owner)
+      const memberUser = await createTestUser();
+      await createTestMembership(memberUser.id, community.id, "member");
+      const memberProfile = await createTestProfile(
+        memberUser.id,
+        community.id,
+        {
+          username: "member",
+        },
+      );
+
+      const res = await makeAuthenticatedRequest(
+        app,
+        "/app/posts",
+        memberUser,
+        {
+          method: "POST",
+          communityId: community.id,
+          headers: {
+            Origin: `https://${community.slug}.localhost`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            content: "Trying to create an announcement",
+            profile_id: memberProfile.id,
+            announcement: true,
+          }),
+        },
+      );
+
+      expect(res.status).toBe(403);
+      const data = await res.json();
+      expect(data.error).toContain("소유자만");
+    });
+
+    it("should not allow moderators to create announcements", async () => {
+      const app = createTestApp();
+      const { community } = await createCommunityWithOwner();
+
+      // Create a moderator (not owner)
+      const moderatorUser = await createTestUser();
+      await createTestMembership(moderatorUser.id, community.id, "moderator");
+      const moderatorProfile = await createTestProfile(
+        moderatorUser.id,
+        community.id,
+        {
+          username: "moderator",
+        },
+      );
+
+      const res = await makeAuthenticatedRequest(
+        app,
+        "/app/posts",
+        moderatorUser,
+        {
+          method: "POST",
+          communityId: community.id,
+          headers: {
+            Origin: `https://${community.slug}.localhost`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            content: "Trying to create an announcement",
+            profile_id: moderatorProfile.id,
+            announcement: true,
+          }),
+        },
+      );
+
+      expect(res.status).toBe(403);
+      const data = await res.json();
+      expect(data.error).toContain("소유자만");
+    });
+
+    it("should not allow announcements to be replies", async () => {
+      const app = createTestApp();
+      const { user, community, profile } = await createCommunityWithOwner();
+
+      // Create a regular post first
+      const parentPost = await postService.createPost(
+        user.id,
+        profile.id,
+        community.id,
+        "Parent post",
+        null,
+        undefined,
+        false,
+        null,
+        null,
+        community.startsAt,
+        community.endsAt,
+      );
+
+      // Try to create a reply as an announcement
+      const res = await makeAuthenticatedRequest(app, "/app/posts", user, {
+        method: "POST",
+        communityId: community.id,
+        headers: {
+          Origin: `https://${community.slug}.localhost`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          content: "Reply as announcement",
+          profile_id: profile.id,
+          in_reply_to_id: parentPost.id,
+          announcement: true,
+        }),
+      });
+
+      expect(res.status).toBe(400);
+      const data = await res.json();
+      expect(data.error).toContain("답글");
+    });
+  });
 });
