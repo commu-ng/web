@@ -313,8 +313,8 @@ export default function Notifications() {
       <main className="max-w-4xl mx-auto px-4 py-4">
         <div className="max-w-2xl mx-auto">
           {isError && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
-              <div className="flex items-center gap-2 text-red-700">
+            <div className="bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg p-3 mb-4">
+              <div className="flex items-center gap-2 text-red-700 dark:text-red-300">
                 <Bell className="h-4 w-4" />
                 <span className="text-sm font-medium">
                   알림을 불러오는 중 오류가 발생했습니다
@@ -360,7 +360,7 @@ export default function Notifications() {
                   <Card
                     className={`transition-all hover:shadow-lg ${
                       notification.readAt === null
-                        ? "bg-blue-50 border-blue-300"
+                        ? "bg-blue-50 dark:bg-blue-950 border-blue-300 dark:border-blue-700"
                         : ""
                     }`}
                   >
@@ -379,8 +379,8 @@ export default function Notifications() {
                                 <div
                                   className={`w-2 h-2 rounded-full flex-shrink-0 ${
                                     notification.readAt !== null
-                                      ? "bg-gray-300"
-                                      : "bg-blue-500"
+                                      ? "bg-gray-300 dark:bg-gray-600"
+                                      : "bg-blue-500 dark:bg-blue-400"
                                   }`}
                                 />
                               </div>
@@ -451,7 +451,7 @@ export default function Notifications() {
                           </div>
                         )}
                         {notification.directMessage && (
-                          <div className="bg-purple-50 border border-purple-200 rounded-md p-2 text-sm text-foreground">
+                          <div className="bg-purple-50 dark:bg-purple-950 border border-purple-200 dark:border-purple-800 rounded-md p-2 text-sm text-foreground">
                             <div
                               className="prose prose-sm dark:prose-invert max-w-none line-clamp-3"
                               // biome-ignore lint/security/noDangerouslySetInnerHtml: sanitized markdown
