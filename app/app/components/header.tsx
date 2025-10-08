@@ -5,15 +5,25 @@ import {
   Hash,
   Home,
   Megaphone,
+  Menu,
   MessageCircle,
   Search,
   Settings,
   User,
   UserCheck,
 } from "lucide-react";
+import { useState } from "react";
 import { Link, useLocation } from "react-router";
 import { ProfileSwitcher } from "~/components/profile-switcher";
 import { ThemeToggle } from "~/components/ThemeToggle";
+import { Button } from "~/components/ui/button";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "~/components/ui/sheet";
 import { useAuth } from "~/hooks/useAuth";
 
 interface HeaderProps {
@@ -31,18 +41,95 @@ export function Header({
 }: HeaderProps) {
   const location = useLocation();
   const { currentProfile } = useAuth();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const getNavLinkClasses = (path: string) => {
+  const getNavLinkClasses = (path: string, isMobile = false) => {
     const isActive =
       location.pathname === path ||
       (path === "/" && location.pathname === "/") ||
       (path !== "/" && location.pathname.startsWith(path));
 
+    const baseClasses = isMobile
+      ? "flex items-center gap-3 px-4 py-3 text-base rounded-lg transition-colors w-full"
+      : "inline-flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg transition-colors";
+
     if (isActive) {
-      return "inline-flex items-center gap-2 px-3 py-1.5 text-sm text-primary-foreground bg-primary rounded-lg transition-colors hover:bg-primary/90";
+      return `${baseClasses} text-primary-foreground bg-primary hover:bg-primary/90`;
     }
 
-    return "inline-flex items-center gap-2 px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg transition-colors";
+    return `${baseClasses} text-muted-foreground hover:text-foreground hover:bg-accent`;
+  };
+
+  const navigationItems = [
+    { to: "/", icon: Home, label: "홈", title: "홈" },
+    ...(currentProfile
+      ? [
+          {
+            to: `/@${currentProfile.username}`,
+            icon: User,
+            label: "프로필",
+            title: "내 프로필",
+          },
+        ]
+      : []),
+    {
+      to: "/notifications",
+      icon: Bell,
+      label: "알림",
+      title: "알림",
+      badge: unreadCount,
+    },
+    {
+      to: "/messages",
+      icon: MessageCircle,
+      label: "메시지",
+      title: "메시지",
+      badge: unreadMessageCount,
+    },
+    {
+      to: "/announcements",
+      icon: Megaphone,
+      label: "공지사항",
+      title: "공지사항",
+    },
+    { to: "/bookmarks", icon: Bookmark, label: "북마크", title: "북마크" },
+    { to: "/search", icon: Search, label: "검색", title: "검색" },
+    { to: "/profiles", icon: UserCheck, label: "멤버", title: "멤버 목록" },
+    { to: "/settings", icon: Settings, label: "설정", title: "설정" },
+  ];
+
+  const renderNavItem = (
+    item: {
+      to: string;
+      icon: React.ElementType;
+      label: string;
+      title: string;
+      badge?: number;
+    },
+    isMobile = false,
+  ) => {
+    const Icon = item.icon;
+    return (
+      <Link
+        key={item.to}
+        to={item.to}
+        className={getNavLinkClasses(item.to, isMobile)}
+        title={item.title}
+        onClick={() => isMobile && setMobileMenuOpen(false)}
+      >
+        <div className="relative">
+          <Icon className="h-4 w-4" />
+          {item.badge !== undefined && item.badge > 0 && (
+            <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full flex items-center justify-center">
+              <span className="text-[8px] text-white font-bold">
+                {item.badge > 9 ? "9+" : item.badge}
+              </span>
+            </div>
+          )}
+        </div>
+        <span className={isMobile ? "" : "hidden sm:inline"}>{item.label}</span>
+      </Link>
+    );
   };
   return (
     <header className="bg-card border-b border-border">
@@ -80,96 +167,48 @@ export function Header({
         </div>
 
         {/* Second Row - Navigation */}
-        <div className="flex items-center justify-center h-12">
-          <nav className="flex items-center gap-3">
-            <Link to="/" className={getNavLinkClasses("/")} title="홈">
-              <Home className="h-4 w-4" />
-              <span className="hidden sm:inline">홈</span>
-            </Link>
-            {currentProfile && (
-              <Link
-                to={`/@${currentProfile.username}`}
-                className={getNavLinkClasses(`/@${currentProfile.username}`)}
-                title="내 프로필"
-              >
-                <User className="h-4 w-4" />
-                <span className="hidden sm:inline">프로필</span>
-              </Link>
-            )}
-            <Link
-              to="/notifications"
-              className={getNavLinkClasses("/notifications")}
-              title="알림"
-            >
-              <div className="relative">
-                <Bell className="h-4 w-4" />
-                {unreadCount > 0 && (
-                  <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full flex items-center justify-center">
-                    <span className="text-[8px] text-white font-bold">
-                      {unreadCount > 9 ? "9+" : unreadCount}
-                    </span>
-                  </div>
-                )}
-              </div>
-              <span className="hidden sm:inline">알림</span>
-            </Link>
-            <Link
-              to="/messages"
-              className={getNavLinkClasses("/messages")}
-              title="메시지"
-            >
-              <div className="relative">
-                <MessageCircle className="h-4 w-4" />
-                {unreadMessageCount > 0 && (
-                  <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full flex items-center justify-center">
-                    <span className="text-[8px] text-white font-bold">
-                      {unreadMessageCount > 9 ? "9+" : unreadMessageCount}
-                    </span>
-                  </div>
-                )}
-              </div>
-              <span className="hidden sm:inline">메시지</span>
-            </Link>
-            <Link
-              to="/announcements"
-              className={getNavLinkClasses("/announcements")}
-              title="공지사항"
-            >
-              <Megaphone className="h-4 w-4" />
-              <span className="hidden sm:inline">공지사항</span>
-            </Link>
-            <Link
-              to="/bookmarks"
-              className={getNavLinkClasses("/bookmarks")}
-              title="북마크"
-            >
-              <Bookmark className="h-4 w-4" />
-              <span className="hidden sm:inline">북마크</span>
-            </Link>
-            <Link
-              to="/search"
-              className={getNavLinkClasses("/search")}
-              title="검색"
-            >
-              <Search className="h-4 w-4" />
-              <span className="hidden sm:inline">검색</span>
-            </Link>
-            <Link
-              to="/profiles"
-              className={getNavLinkClasses("/profiles")}
-              title="멤버 목록"
-            >
-              <UserCheck className="h-4 w-4" />
-              <span className="hidden sm:inline">멤버</span>
-            </Link>
-            <Link
-              to="/settings"
-              className={getNavLinkClasses("/settings")}
-              title="설정"
-            >
-              <Settings className="h-4 w-4" />
-              <span className="hidden sm:inline">설정</span>
-            </Link>
+        <div className="flex items-center justify-between md:justify-center h-12">
+          {/* Mobile Navigation */}
+          <div className="flex md:hidden items-center gap-2">
+            {/* Mobile Menu Button */}
+            <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+              <SheetTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="md:hidden"
+                  aria-label="메뉴 열기"
+                >
+                  <Menu className="h-5 w-5" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="w-[280px]">
+                <SheetHeader>
+                  <SheetTitle>메뉴</SheetTitle>
+                </SheetHeader>
+                <nav className="flex flex-col gap-2 mt-6">
+                  {navigationItems
+                    .filter(
+                      (item) =>
+                        item.to !== "/notifications" && item.to !== "/messages",
+                    )
+                    .map((item) => renderNavItem(item, true))}
+                </nav>
+              </SheetContent>
+            </Sheet>
+
+            {/* Mobile: Show Notifications and Messages outside drawer */}
+            {navigationItems
+              .filter(
+                (item) =>
+                  item.to === "/notifications" || item.to === "/messages",
+              )
+              .map((item) => renderNavItem(item, false))}
+          </div>
+
+          {/* Desktop Navigation */}
+          <nav className="hidden md:flex items-center gap-3">
+            {navigationItems.map((item) => renderNavItem(item, false))}
           </nav>
         </div>
       </div>
