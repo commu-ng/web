@@ -27,6 +27,9 @@ ENV VITE_DOMAIN=$VITE_DOMAIN
 ARG VITE_API_BASE_URL=https://api.commu.ng
 ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
 
+ARG VITE_SENTRY_DSN
+ENV VITE_SENTRY_DSN=$VITE_SENTRY_DSN
+
 # Copy console config files
 COPY console/components.json \
      console/react-router.config.ts \
@@ -56,6 +59,9 @@ ENV VITE_CONSOLE_URL=$VITE_CONSOLE_URL
 
 ARG VITE_API_BASE_URL=https://api.commu.ng
 ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
+
+ARG VITE_SENTRY_DSN
+ENV VITE_SENTRY_DSN=$VITE_SENTRY_DSN
 
 # Copy app config files
 COPY app/components.json \
