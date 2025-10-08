@@ -170,7 +170,7 @@ export default function CreateCommunity() {
         slug: formData.slug,
         starts_at: startDate.toISOString(),
         ends_at: endDate.toISOString(),
-        recruiting: formData.recruiting,
+        is_recruiting: formData.recruiting,
         minimum_birth_year: formData.minimum_birth_year
           ? parseInt(formData.minimum_birth_year, 10)
           : null,
