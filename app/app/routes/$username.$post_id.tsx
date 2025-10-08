@@ -1,6 +1,6 @@
-import { ArrowLeft, MessageCircle } from "lucide-react";
+import { ArrowLeft, CornerDownRight, MessageCircle } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router";
+import { Link, useNavigate, useParams } from "react-router";
 import { PostCard } from "~/components/post-card";
 import { Spinner } from "~/components/ui/spinner";
 import { useAuth } from "~/hooks/useAuth";
@@ -13,6 +13,7 @@ export default function PostDetail() {
   const { user, currentProfile } = useAuth();
 
   const [post, setPost] = useState<Post | null>(null);
+  const [parentPost, setParentPost] = useState<Post | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -117,6 +118,35 @@ export default function PostDetail() {
     fetchPost();
   }, [fetchPost]);
 
+  // Fetch parent post if this is a reply
+  const fetchParentPost = useCallback(
+    async (parentPostId: string) => {
+      try {
+        const response = await client.app.posts[":post_id"].$get({
+          param: { post_id: parentPostId },
+          query: { profile_id: currentProfile?.id },
+        });
+
+        if (response.ok) {
+          const postData = await response.json();
+          setParentPost(postData);
+        }
+      } catch (error) {
+        console.error("Failed to fetch parent post:", error);
+      }
+    },
+    [currentProfile?.id],
+  );
+
+  // Fetch parent post when post has in_reply_to_id
+  useEffect(() => {
+    if (post?.in_reply_to_id) {
+      fetchParentPost(post.in_reply_to_id);
+    } else {
+      setParentPost(null);
+    }
+  }, [post?.in_reply_to_id, fetchParentPost]);
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -178,6 +208,34 @@ export default function PostDetail() {
       {/* Main Content */}
       <main className="max-w-4xl mx-auto px-4 py-8">
         <div className="max-w-2xl mx-auto">
+          {/* Parent post link - show if this is a reply */}
+          {parentPost && (
+            <div className="mb-4">
+              <Link
+                to={`/@${parentPost.author.username}/${parentPost.id}`}
+                className="flex items-center gap-2 p-4 bg-card border border-border rounded-lg hover:bg-accent transition-colors group"
+              >
+                <CornerDownRight className="h-4 w-4 text-muted-foreground" />
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm text-muted-foreground mb-1">
+                    답글 대상
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold text-foreground group-hover:text-primary transition-colors">
+                      {parentPost.author.name}
+                    </span>
+                    <span className="text-muted-foreground">
+                      @{parentPost.author.username}
+                    </span>
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+                    {parentPost.content}
+                  </p>
+                </div>
+              </Link>
+            </div>
+          )}
+
           <PostCard
             post={{
               ...post,
@@ -232,7 +290,7 @@ export default function PostDetail() {
                               <button
                                 key={user.id}
                                 type="button"
-                                className="inline-flex items-center px-2 py-1 bg-blue-50 text-blue-700 text-sm rounded-full hover:bg-blue-100 transition-colors cursor-pointer"
+                                className="inline-flex items-center px-2 py-1 bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 text-sm rounded-full hover:bg-blue-100 dark:hover:bg-blue-900 transition-colors cursor-pointer"
                                 onClick={() => navigate(`/@${user.username}`)}
                               >
                                 {user.name} (@{user.username})
