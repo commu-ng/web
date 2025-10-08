@@ -9,6 +9,13 @@ export interface ImageUpload {
   uploadedId?: string;
 }
 
+interface UseImageUploadOptions {
+  /**
+   * Maximum number of images allowed (default: no limit)
+   */
+  maxImages?: number;
+}
+
 interface UseImageUploadReturn {
   /**
    * Image objects with file, preview, and uploaded ID
@@ -52,7 +59,10 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 /**
  * Custom hook for handling image uploads
  */
-export function useImageUpload(): UseImageUploadReturn {
+export function useImageUpload(
+  options: UseImageUploadOptions = {},
+): UseImageUploadReturn {
+  const { maxImages } = options;
   const [images, setImages] = useState<ImageUpload[]>([]);
   const [isUploadingImages, setIsUploadingImages] = useState(false);
 
@@ -89,6 +99,12 @@ export function useImageUpload(): UseImageUploadReturn {
     const files = Array.from(filesInput);
     if (files.length === 0) return;
 
+    // Check max images limit
+    if (maxImages !== undefined && images.length >= maxImages) {
+      toast.error(`최대 ${maxImages}개의 이미지만 업로드할 수 있습니다`);
+      return;
+    }
+
     const validFiles: File[] = [];
     for (const file of files) {
       if (!ALLOWED_TYPES.includes(file.type)) {
@@ -99,6 +115,15 @@ export function useImageUpload(): UseImageUploadReturn {
       if (file.size > MAX_FILE_SIZE) {
         toast.error("이미지 크기는 10MB 이하여야 합니다");
         continue;
+      }
+
+      // Check if adding this file would exceed the limit
+      if (
+        maxImages !== undefined &&
+        images.length + validFiles.length >= maxImages
+      ) {
+        toast.error(`최대 ${maxImages}개의 이미지만 업로드할 수 있습니다`);
+        break;
       }
 
       validFiles.push(file);

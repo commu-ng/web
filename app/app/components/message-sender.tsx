@@ -53,7 +53,7 @@ export function MessageSender({
     handleImageSelect: handleImageSelectFromHook,
     removeImage: removeImageFromHook,
     clearImages,
-  } = useImageUpload();
+  } = useImageUpload({ maxImages: 4 });
 
   // Mention autocomplete state
   const [showMentionDropdown, setShowMentionDropdown] = useState(false);
