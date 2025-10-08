@@ -32,6 +32,8 @@ interface MessageSenderProps {
 
 import type { Profile } from "~/types/profile";
 
+const MAX_MESSAGE_LENGTH = 500;
+
 export function MessageSender({
   onPostSuccess,
   replyToId,
@@ -356,9 +358,11 @@ export function MessageSender({
   const isDisabled = isUploadingImages || isPosting;
   const canPreview = message.trim().length > 0;
   const uploadedImagesCount = images.filter((img) => img.uploadedId).length;
+  const isOverLimit = message.length > MAX_MESSAGE_LENGTH;
   const canPost =
     (message.trim().length > 0 || uploadedImagesCount > 0) &&
     !isDisabled &&
+    !isOverLimit &&
     currentProfile &&
     (!isScheduled || scheduledAt !== undefined);
 
@@ -677,8 +681,15 @@ export function MessageSender({
           <p className="text-xs text-muted-foreground">
             <MarkdownHelpModal /> 문법을 사용할 수 있습니다.
           </p>
-          <div className="text-xs text-muted-foreground">
-            {message.length > 0 && `${message.length}자`}
+          <div
+            className={`text-xs ${
+              isOverLimit
+                ? "text-red-600 dark:text-red-400 font-semibold"
+                : "text-muted-foreground"
+            }`}
+          >
+            {message.length > 0 &&
+              `${message.length} / ${MAX_MESSAGE_LENGTH}자`}
           </div>
         </div>
       </div>
