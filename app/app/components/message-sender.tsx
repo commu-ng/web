@@ -21,6 +21,7 @@ import { useImageUpload } from "~/hooks/useImageUpload";
 import { useMarkdownWithMentions } from "~/hooks/useMarkdownWithMentions";
 import { client, getErrorMessage } from "~/lib/api-client";
 import { ProfileAvatar } from "./profile-avatar";
+import { MarkdownHelpModal } from "./markdown-help-modal";
 
 interface MessageSenderProps {
   onPostSuccess?: () => void;
@@ -674,15 +675,7 @@ export function MessageSender({
       >
         <div className="flex items-center justify-between">
           <p className="text-xs text-muted-foreground">
-            <a
-              className="text-primary hover:text-primary/90 underline"
-              href="https://ko.wikipedia.org/wiki/%EB%A7%88%ED%81%AC%EB%8B%A4%EC%9A%B4"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              마크다운
-            </a>{" "}
-            문법을 사용할 수 있습니다.
+            <MarkdownHelpModal /> 문법을 사용할 수 있습니다.
           </p>
           <div className="text-xs text-muted-foreground">
             {message.length > 0 && `${message.length}자`}
