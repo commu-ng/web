@@ -100,7 +100,6 @@ export function MessageSender({
   const [scheduledAt, setScheduledAt] = useState<Date | undefined>(undefined);
 
   // Use existing hooks instead of duplicate API calls
-  const { user } = useAuth();
   const { currentInstance, isOwner, isModerator } = useCurrentInstance();
 
   const now = new Date();
@@ -114,13 +113,10 @@ export function MessageSender({
     ? new Date(currentInstance.ends_at)
     : undefined;
 
-  // Check if user is community owner (has any owned communities)
-  const isCommunityOwner =
-    user?.instances?.some((instance) => instance.role === "owner") ?? false;
   const isOwnerOrModerator = isOwner || isModerator;
 
   // Announcements cannot be replies
-  const canBeAnnouncement = isCommunityOwner && !replyToId;
+  const canBeAnnouncement = isOwner && !replyToId;
 
   // Scheduling is only available to owners/moderators and cannot be used for replies
   const canSchedule = isOwnerOrModerator && !replyToId;
