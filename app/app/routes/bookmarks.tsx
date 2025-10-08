@@ -23,12 +23,6 @@ export function meta() {
   ];
 }
 
-import type { Post } from "~/types/post";
-
-interface BookmarkedPostWithTimestamp extends Post {
-  bookmarked_at: string;
-}
-
 export default function Bookmarks() {
   const { user, currentProfile, isLoading: authLoading } = useAuth();
   const BOOKMARKS_PER_PAGE = 20;

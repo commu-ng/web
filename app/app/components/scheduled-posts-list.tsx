@@ -4,7 +4,6 @@ import { forwardRef, useCallback, useEffect, useImperativeHandle } from "react";
 import { useAuth } from "~/hooks/useAuth";
 import { useCurrentInstance } from "~/hooks/useCurrentInstance";
 import { client } from "~/lib/api-client";
-import type { Post } from "~/types/post";
 import { PostCard } from "./post-card";
 import { LoadingState } from "./shared/LoadingState";
 
