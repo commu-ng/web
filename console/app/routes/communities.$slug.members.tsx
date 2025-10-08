@@ -71,7 +71,7 @@ export default function CommunityMembers() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 p-4">
+      <div className="min-h-screen bg-background p-4">
         <div className="max-w-4xl mx-auto space-y-6">
           <Skeleton className="h-9 w-32" />
           <Card>
@@ -104,11 +104,11 @@ export default function CommunityMembers() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 p-4">
+      <div className="min-h-screen bg-background p-4">
         <div className="max-w-4xl mx-auto">
           <Card>
             <CardContent className="p-6 text-center">
-              <div className="text-red-600 mb-4">{error}</div>
+              <div className="text-destructive mb-4">{error}</div>
               <Link to="/communities/mine">
                 <Button variant="outline">내 커뮤로 돌아가기</Button>
               </Link>
@@ -121,7 +121,7 @@ export default function CommunityMembers() {
 
   if (!hasAccess) {
     return (
-      <div className="min-h-screen bg-gray-50 p-4">
+      <div className="min-h-screen bg-background p-4">
         <div className="max-w-4xl mx-auto">
           <Card>
             <CardHeader>
@@ -148,7 +148,7 @@ export default function CommunityMembers() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4">
+    <div className="min-h-screen bg-background p-4">
       <div className="max-w-4xl mx-auto">
         <div className="mb-6">
           <Link to={`/communities/${slug}`}>

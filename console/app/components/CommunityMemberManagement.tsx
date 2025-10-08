@@ -214,21 +214,21 @@ export function CommunityMemberManagement({
           </div>
           <div className="text-center">
             <div className="flex items-center justify-center gap-1">
-              <Crown className="w-4 h-4 text-red-600" />
+              <Crown className="w-4 h-4 text-red-600 dark:text-red-400" />
               <span className="text-2xl font-bold">{roleStats.owner}</span>
             </div>
             <div className="text-sm text-muted-foreground">소유자</div>
           </div>
           <div className="text-center">
             <div className="flex items-center justify-center gap-1">
-              <Shield className="w-4 h-4 text-blue-600" />
+              <Shield className="w-4 h-4 text-blue-600 dark:text-blue-400" />
               <span className="text-2xl font-bold">{roleStats.moderator}</span>
             </div>
             <div className="text-sm text-muted-foreground">모더레이터</div>
           </div>
           <div className="text-center">
             <div className="flex items-center justify-center gap-1">
-              <UserIcon className="w-4 h-4 text-gray-600" />
+              <UserIcon className="w-4 h-4 text-gray-600 dark:text-gray-400" />
               <span className="text-2xl font-bold">{roleStats.member}</span>
             </div>
             <div className="text-sm text-muted-foreground">멤버</div>
