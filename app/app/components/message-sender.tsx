@@ -178,8 +178,10 @@ export function MessageSender({
 
     // If we're composing CJK characters, exclude the composition data from the search
     const compositionData = compositionDataRef.current;
+    let adjustedCursorPosition = cursorPosition;
     if (compositionData && beforeCursor.endsWith(compositionData)) {
       beforeCursor = beforeCursor.slice(0, -compositionData.length);
+      adjustedCursorPosition = cursorPosition - compositionData.length;
     }
 
     // Match @ followed by any non-whitespace characters (supports CJK/Unicode)
@@ -189,7 +191,7 @@ export function MessageSender({
       const start = beforeCursor.length - mentionMatch[0].length;
       const query = mentionMatch[1] ?? "";
 
-      setMentionPosition({ start, end: cursorPosition });
+      setMentionPosition({ start, end: adjustedCursorPosition });
       setMentionQuery(query);
       setShowMentionDropdown(true);
     } else {
