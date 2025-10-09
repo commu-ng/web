@@ -106,16 +106,26 @@ export const consoleAccountRouter = new Hono()
   )
   .post("/login", zValidator("json", userLoginSchema), async (c) => {
     const { loginName, password } = c.req.valid("json");
-    const { session, user } = await authService.loginUser(loginName, password);
+    try {
+      const { session, user } = await authService.loginUser(
+        loginName,
+        password,
+      );
 
-    // Set session cookie
-    setCookie(c, "session_token", session.token, {
-      maxAge: 30 * 24 * 60 * 60, // 30 days in seconds
-      httpOnly: true,
-      sameSite: "Lax",
-    });
+      // Set session cookie
+      setCookie(c, "session_token", session.token, {
+        maxAge: 30 * 24 * 60 * 60, // 30 days in seconds
+        httpOnly: true,
+        sameSite: "Lax",
+      });
 
-    return c.json(user);
+      return c.json(user);
+    } catch (error: unknown) {
+      if (error instanceof AppException) {
+        return c.json({ error: error.message }, error.statusCode);
+      }
+      throw error;
+    }
   })
   .post("/signup", zValidator("json", userSignupSchema), async (c) => {
     const { loginName, password } = c.req.valid("json");
