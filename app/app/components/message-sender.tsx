@@ -182,7 +182,8 @@ export function MessageSender({
       beforeCursor = beforeCursor.slice(0, -compositionData.length);
     }
 
-    const mentionMatch = beforeCursor.match(/@(\w*)$/);
+    // Match @ followed by any non-whitespace characters (supports CJK/Unicode)
+    const mentionMatch = beforeCursor.match(/@([^\s@]*)$/);
 
     if (mentionMatch) {
       const start = beforeCursor.length - mentionMatch[0].length;
