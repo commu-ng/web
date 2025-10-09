@@ -298,7 +298,9 @@ export default function CommunityApply({ params }: Route.ComponentProps) {
         <div className="flex items-center justify-center min-h-64">
           <div className="flex items-center gap-3">
             <Spinner className="h-6 w-6" />
-            <span className="text-gray-600">커뮤 정보를 불러오는 중...</span>
+            <span className="text-gray-600 dark:text-gray-400">
+              커뮤 정보를 불러오는 중...
+            </span>
           </div>
         </div>
       </div>
@@ -420,7 +422,9 @@ export default function CommunityApply({ params }: Route.ComponentProps) {
           <CardContent className="p-6 text-center">
             <div className="flex items-center justify-center gap-3">
               <Spinner className="h-6 w-6" />
-              <span className="text-gray-600">인증 확인 중...</span>
+              <span className="text-gray-600 dark:text-gray-400">
+                인증 확인 중...
+              </span>
             </div>
           </CardContent>
         </Card>
@@ -432,10 +436,10 @@ export default function CommunityApply({ params }: Route.ComponentProps) {
       return (
         <Card className="w-full max-w-md mx-auto">
           <CardHeader className="text-center">
-            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <CheckCircle className="h-8 w-8 text-green-600" />
+            <div className="w-16 h-16 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center mx-auto mb-4">
+              <CheckCircle className="h-8 w-8 text-green-600 dark:text-green-400" />
             </div>
-            <CardTitle className="text-green-600">
+            <CardTitle className="text-green-600 dark:text-green-400">
               이미 가입된 커뮤입니다
             </CardTitle>
             <CardDescription>
@@ -476,17 +480,17 @@ export default function CommunityApply({ params }: Route.ComponentProps) {
                   <Link
                     key={app.id}
                     to={`/communities/${slug}/applications/${app.id}`}
-                    className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 transition-colors"
+                    className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                   >
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
                         <Badge
                           className={
                             app.status === "approved"
-                              ? "bg-green-100 text-green-800"
+                              ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
                               : app.status === "pending"
-                                ? "bg-yellow-100 text-yellow-800"
-                                : "bg-red-100 text-red-800"
+                                ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
+                                : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
                           }
                         >
                           {app.status === "approved"
@@ -495,15 +499,15 @@ export default function CommunityApply({ params }: Route.ComponentProps) {
                               ? "대기중"
                               : "거절됨"}
                         </Badge>
-                        <span className="text-sm text-gray-600">
+                        <span className="text-sm text-gray-600 dark:text-gray-400">
                           {new Date(app.created_at).toLocaleDateString()}
                         </span>
                       </div>
-                      <p className="text-sm text-gray-700 mt-1">
+                      <p className="text-sm text-gray-700 dark:text-gray-300 mt-1">
                         {app.profile_name} (@{app.profile_username})
                       </p>
                       {app.rejection_reason && (
-                        <p className="text-xs text-red-600 mt-1">
+                        <p className="text-xs text-red-600 dark:text-red-400 mt-1">
                           거절 사유: {app.rejection_reason}
                         </p>
                       )}
@@ -553,8 +557,8 @@ export default function CommunityApply({ params }: Route.ComponentProps) {
       return (
         <Card className="w-full max-w-md mx-auto">
           <CardHeader className="text-center">
-            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <LogIn className="h-8 w-8 text-blue-600" />
+            <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center mx-auto mb-4">
+              <LogIn className="h-8 w-8 text-blue-600 dark:text-blue-400" />
             </div>
             <CardTitle>로그인이 필요합니다</CardTitle>
             <CardDescription>
@@ -622,10 +626,12 @@ export default function CommunityApply({ params }: Route.ComponentProps) {
 
           {/* Community Info */}
           <div className="space-y-2">
-            <h1 className="text-3xl font-bold text-gray-900">
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
               {community.name}
             </h1>
-            <p className="text-gray-600">@{community.slug}</p>
+            <p className="text-gray-600 dark:text-gray-400">
+              @{community.slug}
+            </p>
 
             {/* Hashtags */}
             {community.hashtags && community.hashtags.length > 0 && (
