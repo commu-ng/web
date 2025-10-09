@@ -18,7 +18,7 @@ export function getReadOnlyMarkdownInstance(): MarkdownIt {
     return readOnlyMarkdownInstance;
   }
 
-  readOnlyMarkdownInstance = new MarkdownIt().use(mention, {
+  readOnlyMarkdownInstance = new MarkdownIt({ linkify: true }).use(mention, {
     localDomain: (_bareHandle: string) => {
       // Return the current app domain for bare handles like @miro
       if (typeof window !== "undefined") {
