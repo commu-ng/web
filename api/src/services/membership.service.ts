@@ -638,6 +638,30 @@ export async function approveMembershipApplication(
       ),
     });
 
+    // Get reviewer's profile ID if auto-mute is enabled
+    let reviewerProfileId: string | null = null;
+    if (community.muteNewMembers) {
+      const reviewerProfileOwnerships = await tx
+        .select({ profileId: profileOwnershipTable.profileId })
+        .from(profileOwnershipTable)
+        .innerJoin(
+          profileTable,
+          eq(profileOwnershipTable.profileId, profileTable.id),
+        )
+        .where(
+          and(
+            eq(profileOwnershipTable.userId, reviewerId),
+            eq(profileTable.communityId, community.id),
+            isNotNull(profileTable.activatedAt),
+            isNull(profileTable.deletedAt),
+            eq(profileTable.isPrimary, true),
+          ),
+        )
+        .limit(1);
+
+      reviewerProfileId = reviewerProfileOwnerships[0]?.profileId ?? null;
+    }
+
     let profile: typeof profileTable.$inferSelect;
     if (existingProfile) {
       // Profile with this username exists - check if it's for this application
@@ -659,7 +683,7 @@ export async function approveMembershipApplication(
             activatedAt: sql`NOW()`,
             // Auto-mute if community setting is enabled (on reactivation)
             mutedAt: community.muteNewMembers ? sql`NOW()` : undefined,
-            mutedById: community.muteNewMembers ? reviewerId : undefined,
+            mutedById: community.muteNewMembers ? reviewerProfileId : undefined,
           })
           .where(eq(profileTable.id, existingProfile.id))
           .returning();
@@ -670,11 +694,11 @@ export async function approveMembershipApplication(
         profile = updatedProfile;
 
         // Log auto-mute action if enabled
-        if (community.muteNewMembers) {
+        if (community.muteNewMembers && reviewerProfileId) {
           await tx.insert(moderationLogTable).values({
             action: "mute_profile",
             description: "재가입 시 자동 음소거 (커뮤 설정)",
-            moderatorId: reviewerId,
+            moderatorId: reviewerProfileId,
             targetProfileId: profile.id,
           });
         }
@@ -698,7 +722,7 @@ export async function approveMembershipApplication(
           activatedAt: sql`NOW()`,
           // Auto-mute if community setting is enabled
           mutedAt: community.muteNewMembers ? sql`NOW()` : null,
-          mutedById: community.muteNewMembers ? reviewerId : null,
+          mutedById: community.muteNewMembers ? reviewerProfileId : null,
         })
         .returning();
       const createdProfile = newProfileResult[0];
@@ -716,11 +740,11 @@ export async function approveMembershipApplication(
       });
 
       // Log auto-mute action if enabled
-      if (community.muteNewMembers) {
+      if (community.muteNewMembers && reviewerProfileId) {
         await tx.insert(moderationLogTable).values({
           action: "mute_profile",
           description: "신규 가입 시 자동 음소거 (커뮤 설정)",
-          moderatorId: reviewerId,
+          moderatorId: reviewerProfileId,
           targetProfileId: profile.id,
         });
       }
