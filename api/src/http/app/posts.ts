@@ -11,7 +11,6 @@ import { membershipMiddleware } from "../../middleware/membership";
 import {
   conversationsQuerySchema,
   optionalProfileIdQuerySchema,
-  paginationQuerySchema,
   postCreateRequestSchema,
   postIdParamSchema,
   postQuerySchema,
