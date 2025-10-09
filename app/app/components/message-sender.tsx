@@ -204,13 +204,21 @@ export function MessageSender({
   // Handle mention selection
   const selectMention = (profile: Profile) => {
     const beforeMention = message.slice(0, mentionPosition.start);
-    const afterMention = message.slice(mentionPosition.end);
+
+    // Skip composition data if present when slicing afterMention
+    const compositionData = compositionDataRef.current;
+    const skipLength = compositionData ? compositionData.length : 0;
+    const afterMention = message.slice(mentionPosition.end + skipLength);
+
     const newMessage = `${beforeMention}@${profile.username} ${afterMention}`;
 
     setMessage(newMessage);
     setShowMentionDropdown(false);
     setMentionProfiles([]);
     setMentionQuery("");
+
+    // Clear composition data
+    compositionDataRef.current = "";
 
     setTimeout(() => {
       textareaRef.current?.focus();
