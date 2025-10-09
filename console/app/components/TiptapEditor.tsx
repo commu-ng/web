@@ -14,7 +14,7 @@ import {
   Redo,
   Undo,
 } from "lucide-react";
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { Button } from "~/components/ui/button";
 
 interface TiptapEditorProps {
@@ -90,6 +90,13 @@ export function TiptapEditor({
     },
     editable: !disabled,
   });
+
+  // Update editor content when content prop changes
+  useEffect(() => {
+    if (editor && content !== editor.getHTML()) {
+      editor.commands.setContent(content);
+    }
+  }, [editor, content]);
 
   const handleImageButtonClick = () => {
     fileInputRef.current?.click();
