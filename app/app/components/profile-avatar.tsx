@@ -1,7 +1,7 @@
 import { User } from "lucide-react";
+import { useProfileOnlineStatus } from "~/hooks/useOnlineStatus";
 import { getGradientForUser } from "~/lib/gradient-utils";
 import { cn } from "~/lib/utils";
-import { useProfileOnlineStatus } from "~/hooks/useOnlineStatus";
 
 interface ProfileAvatarProps {
   profilePictureUrl?: string | null;
@@ -49,9 +49,10 @@ export function ProfileAvatar({
   const iconSizeClass = iconSizeClasses[size];
   const onlineIndicatorSizeClass = onlineIndicatorSizeClasses[size];
 
-  const isOnline = useProfileOnlineStatus(
-    showOnlineStatus ? profileId : undefined,
-  );
+  // const isOnline = useProfileOnlineStatus(
+  //   showOnlineStatus ? profileId : undefined,
+  // );
+  const isOnline = false;
 
   return (
     <div className="relative inline-block">
