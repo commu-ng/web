@@ -166,7 +166,7 @@ export async function validateProfilesViaUsername(
 export function createMarkdownInstance(
   validProfiles: Map<string, boolean>,
 ): MarkdownIt {
-  return new MarkdownIt().use(mention, {
+  return new MarkdownIt({ linkify: true }).use(mention, {
     localDomain: (_bareHandle: string) => {
       // Return the current app domain for bare handles like @miro
       if (typeof window !== "undefined") {
