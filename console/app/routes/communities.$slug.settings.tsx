@@ -337,6 +337,8 @@ export default function CommunityManagement() {
 
       // Invalidate the communities query cache to refresh the list
       queryClient.invalidateQueries({ queryKey: ["communities", "mine"] });
+      // Invalidate the specific community query to refresh the detail page
+      queryClient.invalidateQueries({ queryKey: ["community", slug] });
 
       setSuccess("커뮤가 성공적으로 수정되었습니다");
     } catch (err) {
