@@ -8,6 +8,7 @@ import { useMarkdownWithMentions } from "~/hooks/useMarkdownWithMentions";
 import { client } from "~/lib/api-client";
 import type { PostCardProps } from "~/types/post";
 import { MessageSender } from "./message-sender";
+import { PostEditor } from "./PostEditor";
 import { ImageModal } from "./post/ImageModal";
 import { PostCardActions } from "./post/PostCardActions";
 import { PostCardContent } from "./post/PostCardContent";
@@ -27,6 +28,7 @@ export const PostCard = memo(function PostCard({
 }: PostCardProps) {
   const { currentProfile } = useAuth();
   const [showReplyForm, setShowReplyForm] = useState(false);
+  const [showEditForm, setShowEditForm] = useState(false);
   const [showContentWarningContent, setShowContentWarningContent] =
     useState(false);
   const [selectedImage, setSelectedImage] = useState<{
@@ -151,6 +153,11 @@ export const PostCard = memo(function PostCard({
       toast.error("게시물 삭제에 실패했습니다");
     }
   }, [currentProfileId, post.id, onDelete]);
+
+  const handleEditSuccess = useCallback(() => {
+    setShowEditForm(false);
+    (onRefresh || onDelete)?.();
+  }, [onRefresh, onDelete]);
 
   const addReaction = useCallback(
     async (emoji: string) => {
@@ -282,75 +289,91 @@ export const PostCard = memo(function PostCard({
           currentProfileId={currentProfileId}
           isModerator={isModerator}
           onDelete={deletePost}
+          onEdit={() => setShowEditForm(true)}
         />
 
-        {/* Content */}
-        <PostCardContent
-          content={post.content}
-          contentWarning={post.content_warning}
-          md={md}
-          isReply={isReply}
-          showContentWarningContent={showContentWarningContent}
-          onToggleContentWarning={setShowContentWarningContent}
-        />
+        {/* Edit Form */}
+        {showEditForm ? (
+          <div className="mt-4">
+            <PostEditor
+              post={post}
+              onSaveSuccess={handleEditSuccess}
+              onCancel={() => setShowEditForm(false)}
+            />
+          </div>
+        ) : (
+          <>
+            {/* Content */}
+            <PostCardContent
+              content={post.content}
+              contentWarning={post.content_warning}
+              md={md}
+              isReply={isReply}
+              showContentWarningContent={showContentWarningContent}
+              onToggleContentWarning={setShowContentWarningContent}
+            />
 
-        {/* Images */}
-        {post.images && post.images.length > 0 && (
-          <PostCardImages
-            images={post.images}
-            isReply={isReply}
-            onImageClick={setSelectedImage}
-            hidden={!!post.content_warning && !showContentWarningContent}
-          />
+            {/* Images */}
+            {post.images && post.images.length > 0 && (
+              <PostCardImages
+                images={post.images}
+                isReply={isReply}
+                onImageClick={setSelectedImage}
+                hidden={!!post.content_warning && !showContentWarningContent}
+              />
+            )}
+          </>
         )}
 
         {/* Reply actions and reactions */}
-        <div
-          className={`${
-            isReply ? "mt-2 pt-2" : "mt-4 pt-3"
-          } border-t border-border`}
-        >
-          {/* Action buttons row */}
+        {!showEditForm && (
           <div
-            className={`flex items-center flex-wrap ${
-              isReply ? "gap-2" : "gap-4"
-            }`}
+            className={`${
+              isReply ? "mt-2 pt-2" : "mt-4 pt-3"
+            } border-t border-border`}
           >
-            <PostCardActions
-              postId={post.id}
-              replyCount={post.replies?.length || 0}
-              isBookmarked={post.is_bookmarked || false}
-              isPinned={!!post.pinned_at}
-              isOwnPost={post.author.id === currentProfileId}
-              isProfileView={isProfileView}
-              currentProfileId={currentProfileId}
-              isReply={isReply}
-              onToggleReply={() => setShowReplyForm(!showReplyForm)}
-              showReplyForm={showReplyForm}
-              onBookmarkChange={() => {}} // Handled internally by PostCardActions
-              onPinChange={() => {
-                // Trigger refresh to update the pinned status
-                (onRefresh || onDelete)?.();
-              }}
-              onOpenDMModal={() => setShowDMModal(true)}
-            />
-
-            {/* Reaction button and reactions display */}
-            {currentProfile && (
-              <PostCardReactions
-                reactions={post.reactions || []}
-                currentProfileId={currentProfile.id}
-                canInteract={canInteract}
-                onAddReaction={addReaction}
-                onRemoveReaction={removeReaction}
+            {/* Action buttons row */}
+            <div
+              className={`flex items-center flex-wrap ${
+                isReply ? "gap-2" : "gap-4"
+              }`}
+            >
+              <PostCardActions
+                postId={post.id}
+                replyCount={post.replies?.length || 0}
+                isBookmarked={post.is_bookmarked || false}
+                isPinned={!!post.pinned_at}
+                isOwnPost={post.author.id === currentProfileId}
+                isProfileView={isProfileView}
+                currentProfileId={currentProfileId}
                 isReply={isReply}
+                onToggleReply={() => setShowReplyForm(!showReplyForm)}
+                showReplyForm={showReplyForm}
+                onBookmarkChange={() => {}} // Handled internally by PostCardActions
+                onPinChange={() => {
+                  // Trigger refresh to update the pinned status
+                  (onRefresh || onDelete)?.();
+                }}
+                onOpenDMModal={() => setShowDMModal(true)}
               />
-            )}
+
+              {/* Reaction button and reactions display */}
+              {currentProfile && (
+                <PostCardReactions
+                  reactions={post.reactions || []}
+                  currentProfileId={currentProfile.id}
+                  canInteract={canInteract}
+                  onAddReaction={addReaction}
+                  onRemoveReaction={removeReaction}
+                  isReply={isReply}
+                />
+              )}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Inline reply form */}
-        {showReplyForm && (
+        {showReplyForm && !showEditForm && (
           <div
             className={`${
               isReply ? "mt-2 pl-2" : "mt-4 pl-4"
@@ -371,7 +394,8 @@ export const PostCard = memo(function PostCard({
         )}
 
         {/* Nested replies - only show for root posts (depth 0 or undefined) to avoid infinite nesting */}
-        {post.threaded_replies &&
+        {!showEditForm &&
+          post.threaded_replies &&
           post.threaded_replies.length > 0 &&
           (post.depth === 0 || post.depth === undefined) &&
           (() => {

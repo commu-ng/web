@@ -17,6 +17,7 @@ import {
   postReactionCreateSchema,
   postReactionDeleteSchema,
   postSearchQuerySchema,
+  postUpdateRequestSchema,
   profileIdQuerySchema,
   scheduledPostsQuerySchema,
 } from "../../schemas";
@@ -395,6 +396,56 @@ export const postsRouter = new Hono<{ Variables: AuthVariables }>()
         await postService.deletePost(user.id, profile.id, postId, community.id);
 
         return c.json({ message: "게시물이 성공적으로 삭제되었습니다" });
+      } catch (error: unknown) {
+        if (error instanceof AppException) {
+          return c.json({ error: error.message }, error.statusCode);
+        }
+        throw error;
+      }
+    },
+  )
+  .patch(
+    "/posts/:post_id",
+    appAuthMiddleware,
+    communityMiddleware,
+    membershipMiddleware,
+    zValidator("param", postIdParamSchema),
+    zValidator("query", profileIdQuerySchema),
+    zValidator("json", postUpdateRequestSchema),
+    async (c) => {
+      const { post_id: postId } = c.req.valid("param");
+      const { profile_id: profileId } = c.req.valid("query");
+      const { content, image_ids, content_warning } = c.req.valid("json");
+      const user = c.get("user");
+      const community = c.get("community");
+
+      // Get and validate the profile belongs to the user
+      const profile = await profileService.validateAndGetProfile(
+        user.id,
+        profileId,
+        community.id,
+        true,
+      );
+
+      if (!profile) {
+        return c.json(
+          { message: "프로필을 찾을 수 없거나 귀하의 소유가 아닙니다" },
+          404,
+        );
+      }
+
+      try {
+        const result = await postService.updatePost(
+          user.id,
+          profile.id,
+          postId,
+          community.id,
+          content,
+          image_ids,
+          content_warning,
+        );
+
+        return c.json(result);
       } catch (error: unknown) {
         if (error instanceof AppException) {
           return c.json({ error: error.message }, error.statusCode);

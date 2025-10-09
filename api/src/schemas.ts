@@ -232,6 +232,12 @@ export const postCreateRequestSchema = z.object({
   scheduled_at: z.iso.datetime().nullable().optional(),
 });
 
+export const postUpdateRequestSchema = z.object({
+  content: z.string(),
+  image_ids: z.array(z.uuid()).optional(),
+  content_warning: z.string().nullable().optional(),
+});
+
 // Query parameter schemas
 export const profileIdQuerySchema = z.object({
   profile_id: z.uuid(),

@@ -1,4 +1,4 @@
-import { Megaphone, Pin, Shield, Trash2 } from "lucide-react";
+import { Edit, Megaphone, Pin, Shield, Trash2 } from "lucide-react";
 import { Link } from "react-router";
 import { ProfileAvatar } from "~/components/profile-avatar";
 import {
@@ -30,6 +30,7 @@ interface PostCardHeaderProps {
   currentProfileId?: string;
   isModerator?: boolean;
   onDelete: () => void;
+  onEdit?: () => void;
   size?: "sm" | "md";
 }
 
@@ -43,11 +44,13 @@ export function PostCardHeader({
   currentProfileId,
   isModerator = false,
   onDelete,
+  onEdit,
   size: _size = "md",
 }: PostCardHeaderProps) {
   const canDelete =
     (currentProfileId && author.id === currentProfileId) || isModerator;
   const isOwnPost = currentProfileId && author.id === currentProfileId;
+  const canEdit = isOwnPost && !isAnnouncement && onEdit;
 
   return (
     <div
@@ -111,40 +114,52 @@ export function PostCardHeader({
           </Link>
         </div>
       </div>
-      {canDelete && (
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <button
-              type="button"
-              className="text-muted-foreground hover:text-red-500 p-2 rounded-lg hover:bg-background transition-colors"
-              title={isOwnPost ? "게시물 삭제" : "모더레이션 삭제"}
-            >
-              {isOwnPost ? (
-                <Trash2 className="h-4 w-4" />
-              ) : (
-                <Shield className="h-4 w-4" />
-              )}
-            </button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>게시물 삭제</AlertDialogTitle>
-              <AlertDialogDescription>
-                이 게시물을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>취소</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={onDelete}
-                className="bg-red-600 hover:bg-red-700"
+      <div className="flex items-center gap-1">
+        {canEdit && (
+          <button
+            type="button"
+            onClick={onEdit}
+            className="text-muted-foreground hover:text-blue-500 p-2 rounded-lg hover:bg-background transition-colors"
+            title="게시물 수정"
+          >
+            <Edit className="h-4 w-4" />
+          </button>
+        )}
+        {canDelete && (
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <button
+                type="button"
+                className="text-muted-foreground hover:text-red-500 p-2 rounded-lg hover:bg-background transition-colors"
+                title={isOwnPost ? "게시물 삭제" : "모더레이션 삭제"}
               >
-                삭제
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-      )}
+                {isOwnPost ? (
+                  <Trash2 className="h-4 w-4" />
+                ) : (
+                  <Shield className="h-4 w-4" />
+                )}
+              </button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>게시물 삭제</AlertDialogTitle>
+                <AlertDialogDescription>
+                  이 게시물을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>취소</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={onDelete}
+                  className="bg-red-600 hover:bg-red-700"
+                >
+                  삭제
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        )}
+      </div>
     </div>
   );
 }

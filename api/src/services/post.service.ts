@@ -1967,6 +1967,172 @@ export async function unpinPost(
 }
 
 /**
+ * Update a post
+ */
+export async function updatePost(
+  _userId: string,
+  profileId: string,
+  postId: string,
+  communityId: string,
+  content: string,
+  imageIds: string[] | undefined,
+  contentWarning: string | null | undefined,
+) {
+  // Validate post belongs to this community
+  const hasAccess = await validatePostCommunityAccess(postId, communityId);
+  if (!hasAccess) {
+    throw new AppException(404, "게시물을 찾을 수 없습니다");
+  }
+
+  // Find the post (exclude deleted posts)
+  const post = await db.query.post.findFirst({
+    where: and(
+      eq(postTable.id, postId),
+      eq(postTable.communityId, communityId),
+      isNull(postTable.deletedAt),
+      isNotNull(postTable.publishedAt),
+    ),
+    with: {
+      profile: true,
+    },
+  });
+
+  // Check if post exists
+  if (!post || post.profile?.communityId !== communityId) {
+    throw new AppException(404, "게시물을 찾을 수 없습니다");
+  }
+
+  // Only the post author can edit the post
+  if (post.authorId !== profileId) {
+    throw new AppException(403, "본인의 게시물만 수정할 수 있습니다");
+  }
+
+  // Cannot edit announcements
+  if (post.announcement) {
+    throw new AppException(400, "공지사항은 수정할 수 없습니다");
+  }
+
+  // Cannot edit scheduled posts
+  if (post.scheduledAt) {
+    throw new AppException(400, "예약된 게시물은 수정할 수 없습니다");
+  }
+
+  // Validate that at least content or images are provided
+  if (!content.trim() && (!imageIds || imageIds.length === 0)) {
+    throw new AppException(400, "게시물 내용 또는 이미지를 제공해야 합니다");
+  }
+
+  // Validate images if provided
+  if (imageIds && imageIds.length > 0) {
+    const validImages = await db.query.image.findMany({
+      where: and(
+        inArray(imageTable.id, imageIds),
+        isNull(imageTable.deletedAt),
+      ),
+    });
+
+    if (validImages.length !== imageIds.length) {
+      throw new AppException(400, "일부 이미지가 유효하지 않습니다");
+    }
+  }
+
+  // Update the post in a transaction
+  await db.transaction(async (tx) => {
+    // Update the post
+    await tx
+      .update(postTable)
+      .set({
+        content,
+        contentWarning: contentWarning || null,
+        updatedAt: sql`NOW()`,
+      })
+      .where(eq(postTable.id, postId));
+
+    // Delete existing post images
+    await tx.delete(postImageTable).where(eq(postImageTable.postId, postId));
+
+    // Associate new images with the post
+    if (imageIds && imageIds.length > 0) {
+      const postImageInserts = imageIds.map((imageId) => ({
+        postId: postId,
+        imageId: imageId,
+      }));
+
+      await tx.insert(postImageTable).values(postImageInserts);
+    }
+  });
+
+  // Get the updated post with author and images for response
+  const updatedPost = await db.query.post.findFirst({
+    where: eq(postTable.id, postId),
+    with: {
+      profile: {
+        with: {
+          profilePictures: {
+            with: {
+              image: true,
+            },
+          },
+        },
+      },
+      postImages: {
+        with: {
+          image: true,
+        },
+      },
+      postReactions: {
+        with: {
+          profile: true,
+        },
+      },
+    },
+  });
+
+  const authorProfilePicture = updatedPost?.profile?.profilePictures.find(
+    (pp) => pp.deletedAt === null,
+  )?.image;
+  const profile_picture_url = authorProfilePicture
+    ? addImageUrl(authorProfilePicture).url
+    : null;
+
+  const images =
+    updatedPost?.postImages.map((pi) => ({
+      id: pi.image.id,
+      url: addImageUrl(pi.image).url,
+      width: pi.image.width,
+      height: pi.image.height,
+      filename: pi.image.filename,
+    })) || [];
+
+  return {
+    id: updatedPost?.id,
+    content: updatedPost?.content,
+    createdAt: updatedPost?.createdAt,
+    updatedAt: updatedPost?.updatedAt,
+    announcement: updatedPost?.announcement,
+    content_warning: updatedPost?.contentWarning,
+    in_reply_to_id: updatedPost?.inReplyToId,
+    depth: updatedPost?.depth,
+    author: {
+      id: updatedPost?.profile?.id,
+      name: updatedPost?.profile?.name,
+      username: updatedPost?.profile?.username,
+      profile_picture_url,
+    },
+    images,
+    reactions:
+      updatedPost?.postReactions?.map((reaction) => ({
+        emoji: reaction.emoji,
+        user: {
+          id: reaction.profile.id,
+          username: reaction.profile.username,
+          name: reaction.profile.name,
+        },
+      })) || [],
+  };
+}
+
+/**
  * Delete a post
  */
 export async function deletePost(
