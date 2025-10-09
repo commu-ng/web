@@ -126,7 +126,7 @@ export async function getScheduledPosts(
     : scheduledPosts;
   const nextCursor =
     hasMore && postsToReturn.length > 0
-      ? postsToReturn[postsToReturn.length - 1].post?.id || null
+      ? postsToReturn[postsToReturn.length - 1]?.post?.id || null
       : null;
 
   // Collect all profile IDs and post IDs for batch loading
@@ -453,7 +453,7 @@ export async function getBookmarks(
   const bookmarksToReturn = hasMore ? bookmarks.slice(0, limit) : bookmarks;
   const nextCursor =
     hasMore && bookmarksToReturn.length > 0
-      ? bookmarksToReturn[bookmarksToReturn.length - 1].id
+      ? bookmarksToReturn[bookmarksToReturn.length - 1]?.id
       : null;
 
   const data = bookmarksToReturn
@@ -827,7 +827,7 @@ export async function getPosts(
   // Get the last post's ID as the next cursor
   const nextCursor =
     hasMore && postsToReturn.length > 0
-      ? postsToReturn[postsToReturn.length - 1].post?.id || null
+      ? postsToReturn[postsToReturn.length - 1]?.post?.id || null
       : null;
 
   // Collect all profile IDs and post IDs for batch loading
@@ -1041,7 +1041,7 @@ export async function searchPosts(
   const postsToReturn = hasMore ? posts.slice(0, limit) : posts;
   const nextCursor =
     hasMore && postsToReturn.length > 0
-      ? postsToReturn[postsToReturn.length - 1].post?.id || null
+      ? postsToReturn[postsToReturn.length - 1]?.post?.id || null
       : null;
 
   // Collect all profile IDs and post IDs for batch loading
@@ -1180,6 +1180,44 @@ export async function searchPosts(
 }
 
 /**
+ * Reply data type for threaded replies
+ */
+type ReplyData = {
+  id: string;
+  content: string;
+  createdAt: string;
+  updatedAt: string;
+  announcement: boolean;
+  content_warning: string | null;
+  author: {
+    id: string;
+    name: string;
+    username: string;
+    profile_picture_url: string | null;
+  };
+  images: {
+    id: string;
+    url: string;
+    width: number;
+    height: number;
+    filename: string;
+  }[];
+  in_reply_to_id: string | null;
+  depth: number;
+  root_post_id: string | null;
+  is_bookmarked: boolean;
+  replies: never[];
+  reactions: {
+    emoji: string;
+    user: {
+      id: string;
+      username: string;
+      name: string;
+    };
+  }[];
+};
+
+/**
  * Batch version: Build threaded replies for multiple root posts in a single query
  */
 async function buildThreadedRepliesForMultiplePosts(
@@ -1187,12 +1225,7 @@ async function buildThreadedRepliesForMultiplePosts(
   communityId: string,
   depthLimit: number = 10,
   profileId?: string,
-): Promise<
-  Map<
-    string,
-    ReturnType<typeof buildThreadedReplies> extends Promise<infer T> ? T : never
-  >
-> {
+): Promise<Map<string, ReplyData[]>> {
   if (rootPostIds.length === 0) {
     return new Map();
   }
@@ -1325,7 +1358,7 @@ async function buildThreadedRepliesForMultiplePosts(
   });
 
   // Group replies by original root post ID
-  const repliesByRootPost = new Map<string, typeof replyData>();
+  const repliesByRootPost = new Map<string, ReplyData[]>();
 
   // Initialize empty arrays for all root posts
   for (const rootId of rootPostIds) {
@@ -1333,7 +1366,6 @@ async function buildThreadedRepliesForMultiplePosts(
   }
 
   // Build reply data using pre-loaded data
-  const replyData = [];
   for (const row of rows) {
     const profile = profileMap.get(row.author_id);
     if (!profile) continue;

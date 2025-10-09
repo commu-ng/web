@@ -220,7 +220,9 @@ describe("Membership State Transitions", () => {
       const activeResponse = await profileService.listProfilesByUser(
         community.id,
       );
-      const activeUsernames = activeResponse.data.map((p) => p.username);
+      const activeUsernames = activeResponse.map(
+        (p: { username: string }) => p.username,
+      );
       expect(activeUsernames).toContain("member");
 
       // Deactivate the membership
@@ -238,7 +240,9 @@ describe("Membership State Transitions", () => {
       const inactiveResponse = await profileService.listProfilesByUser(
         community.id,
       );
-      const inactiveUsernames = inactiveResponse.data.map((p) => p.username);
+      const inactiveUsernames = inactiveResponse.map(
+        (p: { username: string }) => p.username,
+      );
       expect(inactiveUsernames).not.toContain("member");
     });
   });

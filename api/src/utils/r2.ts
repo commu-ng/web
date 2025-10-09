@@ -114,7 +114,8 @@ export async function uploadExportFile(
     params: {
       Bucket: env.r2.bucketName,
       Key: uniqueKey,
-      Body: stream,
+      // biome-ignore lint/suspicious/noExplicitAny: Cast needed for Node.js ReadableStream compatibility
+      Body: stream as any,
       ContentType: "application/zip",
     },
   });

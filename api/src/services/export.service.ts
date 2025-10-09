@@ -153,8 +153,8 @@ async function* streamPostsForExport(
         reactions: post.reactions || [],
         depth: post.depth,
         inReplyToId: post.in_reply_to_id || null,
-        replies: (post.threaded_replies || []).map((reply) =>
-          convertReply(reply),
+        replies: (post.threaded_replies || []).map(
+          (reply: Parameters<typeof convertReply>[0]) => convertReply(reply),
         ),
       });
     }

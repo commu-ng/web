@@ -157,11 +157,7 @@ export const messagesRouter = new Hono<{ Variables: AuthVariables }>()
       const user = c.get("user");
       const community = c.get("community");
       const { other_profile_id: otherProfileId } = c.req.valid("param");
-      const {
-        profile_id: profileId,
-        limit = 50,
-        offset = 0,
-      } = c.req.valid("query");
+      const { profile_id: profileId, limit = 50 } = c.req.valid("query");
 
       // Validate user has access to this profile
       const profile = await profileService.validateAndGetProfile(
@@ -181,7 +177,7 @@ export const messagesRouter = new Hono<{ Variables: AuthVariables }>()
           otherProfileId,
           community.id,
           limit,
-          offset,
+          0, // TODO: Implement cursor-based pagination
         );
         return c.json(result);
       } catch (error) {
@@ -403,11 +399,7 @@ export const messagesRouter = new Hono<{ Variables: AuthVariables }>()
     async (c) => {
       const user = c.get("user");
       const community = c.get("community");
-      const {
-        profile_id: profileId,
-        limit = 20,
-        offset = 0,
-      } = c.req.valid("query");
+      const { profile_id: profileId, limit = 20 } = c.req.valid("query");
 
       // Get and validate the profile belongs to the user
       const profile = await profileService.validateAndGetProfile(
@@ -426,7 +418,7 @@ export const messagesRouter = new Hono<{ Variables: AuthVariables }>()
           profileId,
           community.id,
           limit,
-          offset,
+          0, // TODO: Implement cursor-based pagination
         );
         return c.json(result);
       } catch (error) {

@@ -34,6 +34,9 @@ describe("Moderation Service", () => {
         isRecruiting: false,
       })
       .returning();
+    if (!community[0]) {
+      throw new Error("Failed to create test community");
+    }
     communityId = community[0].id;
 
     // Create owner user with unique login name
@@ -44,6 +47,9 @@ describe("Moderation Service", () => {
         passwordHash: "hash",
       })
       .returning();
+    if (!ownerUser[0]) {
+      throw new Error("Failed to create owner user");
+    }
     ownerUserId = ownerUser[0].id;
 
     // Create owner membership
@@ -64,6 +70,9 @@ describe("Moderation Service", () => {
         activatedAt: new Date().toISOString(),
       })
       .returning();
+    if (!ownerProfile[0]) {
+      throw new Error("Failed to create owner profile");
+    }
     ownerProfileId = ownerProfile[0].id;
 
     // Create owner profile ownership
@@ -82,6 +91,9 @@ describe("Moderation Service", () => {
         passwordHash: "hash",
       })
       .returning();
+    if (!moderatorUser[0]) {
+      throw new Error("Failed to create moderator user");
+    }
     moderatorUserId = moderatorUser[0].id;
 
     // Create moderator membership
@@ -102,6 +114,9 @@ describe("Moderation Service", () => {
         activatedAt: new Date().toISOString(),
       })
       .returning();
+    if (!moderatorProfile[0]) {
+      throw new Error("Failed to create moderator profile");
+    }
     moderatorProfileId = moderatorProfile[0].id;
 
     // Create moderator profile ownership
@@ -120,6 +135,9 @@ describe("Moderation Service", () => {
         passwordHash: "hash",
       })
       .returning();
+    if (!memberUser[0]) {
+      throw new Error("Failed to create member user");
+    }
     memberUserId = memberUser[0].id;
 
     // Create member membership
@@ -140,6 +158,9 @@ describe("Moderation Service", () => {
         activatedAt: new Date().toISOString(),
       })
       .returning();
+    if (!memberProfile[0]) {
+      throw new Error("Failed to create member profile");
+    }
     memberProfileId = memberProfile[0].id;
 
     // Create member profile ownership

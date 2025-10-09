@@ -18,6 +18,7 @@ import {
   communityApplication as communityApplicationTable,
   image as imageTable,
   membership as membershipTable,
+  moderationLog as moderationLogTable,
   profileOwnership as profileOwnershipTable,
   profile as profileTable,
 } from "../drizzle/schema";

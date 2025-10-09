@@ -87,7 +87,11 @@ describe("Security: Export Data Isolation", () => {
       // Verify User1 has conversation with User2
       const conv1 = Array.from(user1Conversations.values()).find((messages) =>
         messages.some(
-          (m) =>
+          (m: {
+            sender: { id: string };
+            receiver: { id: string };
+            content: string;
+          }) =>
             (m.sender.id === profile1.id && m.receiver.id === profile2.id) ||
             (m.sender.id === profile2.id && m.receiver.id === profile1.id),
         ),
@@ -99,7 +103,11 @@ describe("Security: Export Data Isolation", () => {
       // Verify User1 has conversation with User3
       const conv2 = Array.from(user1Conversations.values()).find((messages) =>
         messages.some(
-          (m) =>
+          (m: {
+            sender: { id: string };
+            receiver: { id: string };
+            content: string;
+          }) =>
             (m.sender.id === profile1.id && m.receiver.id === profile3.id) ||
             (m.sender.id === profile3.id && m.receiver.id === profile1.id),
         ),
@@ -146,9 +154,9 @@ describe("Security: Export Data Isolation", () => {
 
       expect(user1Conversations.size).toBe(1);
       const messages = Array.from(user1Conversations.values())[0];
-      expect(messages.length).toBe(1);
-      expect(messages[0].content).toBe("Message to User1");
-      expect(messages[0].receiver.id).toBe(profile1.id);
+      expect(messages?.length).toBe(1);
+      expect(messages?.[0]?.content).toBe("Message to User1");
+      expect(messages?.[0]?.receiver.id).toBe(profile1.id);
     });
 
     it("should not export deleted direct messages", async () => {
@@ -250,12 +258,14 @@ describe("Security: Export Data Isolation", () => {
 
       // User1 should only see groupChat1
       expect(user1GroupChats.length).toBe(1);
-      expect(user1GroupChats[0].id).toBe(groupChat1.id);
-      expect(user1GroupChats[0].name).toBe("User1 and User2 Group");
+      expect(user1GroupChats[0]?.id).toBe(groupChat1.id);
+      expect(user1GroupChats[0]?.name).toBe("User1 and User2 Group");
 
       // Verify the message content
-      expect(user1GroupChats[0].messages.length).toBe(1);
-      expect(user1GroupChats[0].messages[0].content).toBe("Message in group 1");
+      expect(user1GroupChats[0]?.messages.length).toBe(1);
+      expect(user1GroupChats[0]?.messages[0]?.content).toBe(
+        "Message in group 1",
+      );
 
       // Verify User1 does NOT see the secret message
       const allMessages = user1GroupChats.flatMap((gc) => gc.messages);
@@ -315,14 +325,14 @@ describe("Security: Export Data Isolation", () => {
       );
 
       // Verify all messages are included
-      expect(user1GroupChats[0].messages.length).toBe(3);
-      expect(user1GroupChats[0].messages[0].content).toBe(
+      expect(user1GroupChats[0]?.messages.length).toBe(3);
+      expect(user1GroupChats[0]?.messages[0]?.content).toBe(
         "Message 1 from User1",
       );
-      expect(user1GroupChats[0].messages[1].content).toBe(
+      expect(user1GroupChats[0]?.messages[1]?.content).toBe(
         "Message 2 from User2",
       );
-      expect(user1GroupChats[0].messages[2].content).toBe(
+      expect(user1GroupChats[0]?.messages[2]?.content).toBe(
         "Message 3 from User1",
       );
     });
@@ -369,7 +379,7 @@ describe("Security: Export Data Isolation", () => {
 
       // Should get the group chat once (not duplicated)
       expect(groupChats.length).toBe(1);
-      expect(groupChats[0].messages.length).toBe(2);
+      expect(groupChats[0]?.messages.length).toBe(2);
     });
   });
 
@@ -419,7 +429,7 @@ describe("Security: Export Data Isolation", () => {
 
       expect(community1Conversations.size).toBe(1);
       const messages = Array.from(community1Conversations.values())[0];
-      expect(messages[0].content).toBe("Message in community 1");
+      expect(messages?.[0]?.content).toBe("Message in community 1");
     });
   });
 
@@ -490,7 +500,7 @@ describe("Security: Export Data Isolation", () => {
       expect(user1DMs.size).toBe(1);
       const user1Messages = Array.from(user1DMs.values()).flat();
       expect(user1Messages.length).toBe(1);
-      expect(user1Messages[0].content).toBe("User1 to User2");
+      expect(user1Messages[0]?.content).toBe("User1 to User2");
 
       // Verify User1 has no group chats
       expect(user1Groups.length).toBe(0);

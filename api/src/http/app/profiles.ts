@@ -279,14 +279,14 @@ export const profilesRouter = new Hono<{ Variables: AuthVariables }>()
     async (c) => {
       const { username } = c.req.valid("param");
       const community = c.get("community");
-      const { limit = 20, offset = 0 } = c.req.valid("query");
+      const { limit = 20 } = c.req.valid("query");
 
       try {
         const result = await profileService.getProfilePosts(
           username,
           community.id,
           limit,
-          offset,
+          0, // TODO: Implement cursor-based pagination
         );
         return c.json(result);
       } catch (error) {

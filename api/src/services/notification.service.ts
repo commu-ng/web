@@ -82,7 +82,7 @@ export async function getNotificationsForProfile(
     : notificationTableList;
   const nextCursor =
     hasMore && notificationsToReturn.length > 0
-      ? notificationsToReturn[notificationsToReturn.length - 1].id
+      ? notificationsToReturn[notificationsToReturn.length - 1]?.id
       : null;
 
   // Filter out notifications where related content doesn't belong to this community

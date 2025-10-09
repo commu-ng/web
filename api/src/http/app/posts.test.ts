@@ -315,7 +315,9 @@ describe("Posts Routes", () => {
 
       // Create a regular member (non-owner)
       const memberUser = await createTestUser();
-      await createTestMembership(memberUser.id, community.id, "member");
+      await createTestMembership(memberUser.id, community.id, {
+        role: "member",
+      });
       const memberProfile = await createTestProfile(
         memberUser.id,
         community.id,
@@ -353,7 +355,9 @@ describe("Posts Routes", () => {
 
       // Create a moderator (not owner)
       const moderatorUser = await createTestUser();
-      await createTestMembership(moderatorUser.id, community.id, "moderator");
+      await createTestMembership(moderatorUser.id, community.id, {
+        role: "moderator",
+      });
       const moderatorProfile = await createTestProfile(
         moderatorUser.id,
         community.id,
