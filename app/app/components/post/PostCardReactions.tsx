@@ -82,11 +82,11 @@ export function PostCardReactions({
     <>
       {/* Reaction button */}
       {currentProfileId && canInteract && (
-        <div className="reaction-selector inline-flex flex-col gap-2">
+        <>
           <button
             type="button"
             onClick={() => setOpenReactionSelector(!openReactionSelector)}
-            className={`inline-flex items-center gap-1 ${
+            className={`reaction-selector inline-flex items-center gap-1 ${
               isReply ? "text-xs" : "text-sm"
             } text-muted-foreground hover:text-blue-600 transition-colors`}
           >
@@ -95,7 +95,7 @@ export function PostCardReactions({
           </button>
 
           {openReactionSelector && (
-            <div className="bg-popover border border-border rounded-lg shadow-lg p-2 flex flex-wrap gap-1">
+            <div className="basis-full bg-popover border border-border rounded-lg shadow-lg p-2 flex flex-wrap gap-1">
               {AVAILABLE_REACTIONS.map(({ emoji, label }) => (
                 <button
                   type="button"
@@ -109,7 +109,7 @@ export function PostCardReactions({
               ))}
             </div>
           )}
-        </div>
+        </>
       )}
 
       {/* Reactions display - placed in separate row */}
