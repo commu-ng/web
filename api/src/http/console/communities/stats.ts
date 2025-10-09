@@ -39,7 +39,7 @@ export const statsRouter = new Hono().get(
       if (error instanceof AppException) {
         return c.json({ error: error.message }, error.statusCode);
       }
-      return c.json({ error: "통계 조회에 실패했습니다" }, 500);
+      throw error;
     }
   },
 );

@@ -1,5 +1,6 @@
 import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
+import { z } from "zod";
 import { AppException } from "../../exception";
 import {
   appAuthMiddleware,
@@ -23,9 +24,8 @@ import {
 import * as exportJobService from "../../services/export-job.service";
 import * as postService from "../../services/post.service";
 import * as profileService from "../../services/profile.service";
-import { getFileUrl } from "../../utils/r2";
 import type { AuthVariables } from "../../types";
-import { z } from "zod";
+import { getFileUrl } from "../../utils/r2";
 
 const exportJobIdParamSchema = z.object({
   job_id: z.string().uuid(),
@@ -365,7 +365,7 @@ export const postsRouter = new Hono<{ Variables: AuthVariables }>()
         if (error instanceof AppException) {
           return c.json({ error: error.message }, error.statusCode);
         }
-        return c.json({ error: "게시물 조회에 실패했습니다" }, 500);
+        throw error;
       }
     },
   )
@@ -406,7 +406,7 @@ export const postsRouter = new Hono<{ Variables: AuthVariables }>()
         if (error instanceof AppException) {
           return c.json({ error: error.message }, error.statusCode);
         }
-        return c.json({ error: "게시물 삭제에 실패했습니다" }, 500);
+        throw error;
       }
     },
   )
@@ -450,8 +450,7 @@ export const postsRouter = new Hono<{ Variables: AuthVariables }>()
         if (error instanceof AppException) {
           return c.json({ error: error.message }, error.statusCode);
         }
-        logger.http.error("Error creating bookmark", { error });
-        return c.json({ error: "게시물 북마크에 실패했습니다" }, 400);
+        throw error;
       }
     },
   )
@@ -490,7 +489,7 @@ export const postsRouter = new Hono<{ Variables: AuthVariables }>()
         if (error instanceof AppException) {
           return c.json({ error: error.message }, error.statusCode);
         }
-        return c.json({ error: "북마크 제거에 실패했습니다" }, 500);
+        throw error;
       }
     },
   )
@@ -532,7 +531,7 @@ export const postsRouter = new Hono<{ Variables: AuthVariables }>()
         if (error instanceof AppException) {
           return c.json({ error: error.message }, error.statusCode);
         }
-        return c.json({ error: "반응 추가에 실패했습니다" }, 500);
+        throw error;
       }
     },
   )
@@ -578,7 +577,7 @@ export const postsRouter = new Hono<{ Variables: AuthVariables }>()
         if (error instanceof AppException) {
           return c.json({ error: error.message }, error.statusCode);
         }
-        return c.json({ error: "반응 제거에 실패했습니다" }, 500);
+        throw error;
       }
     },
   )

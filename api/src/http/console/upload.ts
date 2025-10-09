@@ -52,14 +52,10 @@ export const uploadRouter = new Hono().post(
     // Use sharp to get image dimensions
     let width = 0;
     let height = 0;
-    try {
-      const image = sharp(Buffer.from(fileBuffer));
-      const metadata = await image.metadata();
-      width = metadata.width ?? 0;
-      height = metadata.height ?? 0;
-    } catch (_err) {
-      return c.json({ error: "이미지 크기를 가져오는데 실패했습니다" }, 500);
-    }
+    const image = sharp(Buffer.from(fileBuffer));
+    const metadata = await image.metadata();
+    width = metadata.width ?? 0;
+    height = metadata.height ?? 0;
 
     const newImage = await imageService.createImageRecord(
       uniqueKey,

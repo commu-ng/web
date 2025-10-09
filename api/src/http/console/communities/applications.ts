@@ -136,43 +136,33 @@ export const applicationsRouter = new Hono()
         );
       }
 
-      try {
-        if (status === "approved") {
-          // Use membership service to approve and create membership + profile
-          const result = await membershipService.approveMembershipApplication(
+      if (status === "approved") {
+        // Use membership service to approve and create membership + profile
+        const result = await membershipService.approveMembershipApplication(
+          applicationId,
+          user.id,
+        );
+
+        return c.json({
+          id: applicationId,
+          status: "approved",
+          membership_id: result.membership.id,
+          profile_id: result.profile.id,
+        });
+      } else {
+        // Use membership service to reject
+        const updatedApplication =
+          await membershipService.rejectMembershipApplication(
             applicationId,
             user.id,
+            rejection_reason,
           );
 
-          return c.json({
-            id: applicationId,
-            status: "approved",
-            membership_id: result.membership.id,
-            profile_id: result.profile.id,
-          });
-        } else {
-          // Use membership service to reject
-          const updatedApplication =
-            await membershipService.rejectMembershipApplication(
-              applicationId,
-              user.id,
-              rejection_reason,
-            );
-
-          return c.json({
-            id: updatedApplication.id,
-            status: updatedApplication.status,
-            reviewed_at: updatedApplication.reviewedAt,
-          });
-        }
-      } catch (error: unknown) {
-        logger.http.error("Error reviewing application", { error });
-        if (error instanceof AppException) {
-          return c.json({ error: error.message }, error.statusCode);
-        }
-        const message =
-          error instanceof Error ? error.message : "지원서 검토에 실패했습니다";
-        return c.json({ error: message }, 500);
+        return c.json({
+          id: updatedApplication.id,
+          status: updatedApplication.status,
+          reviewed_at: updatedApplication.reviewedAt,
+        });
       }
     },
   )
@@ -211,19 +201,8 @@ export const applicationsRouter = new Hono()
         );
       }
 
-      try {
-        await membershipService.revokeApplicationReview(applicationId);
-        return c.json({ message: "지원서 검토가 취소되었습니다" });
-      } catch (error) {
-        if (error instanceof AppException) {
-          return c.json({ error: error.message }, error.statusCode);
-        }
-        const message =
-          error instanceof Error
-            ? error.message
-            : "지원서 검토 취소에 실패했습니다";
-        return c.json({ error: message }, 500);
-      }
+      await membershipService.revokeApplicationReview(applicationId);
+      return c.json({ message: "지원서 검토가 취소되었습니다" });
     },
   )
   .get(

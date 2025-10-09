@@ -35,9 +35,7 @@ export const membersRouter = new Hono()
         if (error instanceof AppException) {
           return c.json({ error: error.message }, error.statusCode);
         }
-        const message =
-          error instanceof Error ? error.message : "회원 제거에 실패했습니다";
-        return c.json({ error: message }, 500);
+        throw error;
       }
     },
   )
@@ -60,11 +58,7 @@ export const membersRouter = new Hono()
         if (error instanceof AppException) {
           return c.json({ error: error.message }, error.statusCode);
         }
-        const message =
-          error instanceof Error
-            ? error.message
-            : "커뮤에서 나가기에 실패했습니다";
-        return c.json({ error: message }, 500);
+        throw error;
       }
     },
   )
@@ -144,11 +138,7 @@ export const membersRouter = new Hono()
         if (error instanceof AppException) {
           return c.json({ error: error.message }, error.statusCode);
         }
-        const message =
-          error instanceof Error
-            ? error.message
-            : "회원 역할 업데이트에 실패했습니다";
-        return c.json({ error: message }, 500);
+        throw error;
       }
     },
   );

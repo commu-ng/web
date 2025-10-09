@@ -41,7 +41,7 @@ export const linksRouter = new Hono()
         if (error instanceof AppException) {
           return c.json({ error: error.message }, error.statusCode);
         }
-        return c.json({ error: "링크 조회에 실패했습니다" }, 500);
+        throw error;
       }
     },
   )
@@ -91,7 +91,7 @@ export const linksRouter = new Hono()
         if (error instanceof AppException) {
           return c.json({ error: error.message }, error.statusCode);
         }
-        return c.json({ error: "링크 생성에 실패했습니다" }, 500);
+        throw error;
       }
     },
   )
@@ -142,7 +142,7 @@ export const linksRouter = new Hono()
         if (error instanceof AppException) {
           return c.json({ error: error.message }, error.statusCode);
         }
-        return c.json({ error: "링크 수정에 실패했습니다" }, 500);
+        throw error;
       }
     },
   )
@@ -180,7 +180,7 @@ export const linksRouter = new Hono()
         if (error instanceof AppException) {
           return c.json({ error: error.message }, error.statusCode);
         }
-        return c.json({ error: "링크 삭제에 실패했습니다" }, 500);
+        throw error;
       }
     },
   );

@@ -27,22 +27,15 @@ export const notificationsRouter = new Hono<{ Variables: AuthVariables }>()
         cursor,
       } = c.req.valid("query");
 
-      try {
-        const result = await notificationService.getNotificationsForProfile(
-          user.id,
-          community.id,
-          profileId,
-          limit,
-          cursor,
-        );
+      const result = await notificationService.getNotificationsForProfile(
+        user.id,
+        community.id,
+        profileId,
+        limit,
+        cursor,
+      );
 
-        return c.json(result);
-      } catch (error) {
-        if (error instanceof AppException) {
-          return c.json({ error: error.message }, error.statusCode);
-        }
-        return c.json({ error: "알림을 가져오는데 실패했습니다" }, 500);
-      }
+      return c.json(result);
     },
   )
 
@@ -94,7 +87,7 @@ export const notificationsRouter = new Hono<{ Variables: AuthVariables }>()
         if (error instanceof AppException) {
           return c.json({ error: error.message }, error.statusCode);
         }
-        return c.json({ error: "알림 읽음 표시에 실패했습니다" }, 500);
+        throw error;
       }
     },
   )
@@ -124,7 +117,7 @@ export const notificationsRouter = new Hono<{ Variables: AuthVariables }>()
         if (error instanceof AppException) {
           return c.json({ error: error.message }, error.statusCode);
         }
-        return c.json({ error: "알림 읽음 표시에 실패했습니다" }, 500);
+        throw error;
       }
     },
   )
@@ -154,7 +147,7 @@ export const notificationsRouter = new Hono<{ Variables: AuthVariables }>()
         if (error instanceof AppException) {
           return c.json({ error: error.message }, error.statusCode);
         }
-        return c.json({ error: "알림 읽지 않음 표시에 실패했습니다" }, 500);
+        throw error;
       }
     },
   );

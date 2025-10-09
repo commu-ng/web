@@ -216,7 +216,7 @@ export const profilesRouter = new Hono<{ Variables: AuthVariables }>()
         if (error instanceof AppException) {
           return c.json({ error: error.message }, error.statusCode);
         }
-        return c.json({ error: "온라인 상태 조회에 실패했습니다" }, 500);
+        throw error;
       }
     },
   )
@@ -241,7 +241,7 @@ export const profilesRouter = new Hono<{ Variables: AuthVariables }>()
         if (error instanceof AppException) {
           return c.json({ error: error.message }, error.statusCode);
         }
-        return c.json({ error: "설정 변경에 실패했습니다" }, 500);
+        throw error;
       }
     },
   )
@@ -408,7 +408,6 @@ export const profilesRouter = new Hono<{ Variables: AuthVariables }>()
         if (error instanceof AppException) {
           return c.json({ error: error.message }, error.statusCode);
         }
-        logger.http.error("Error adding user to profile", { error });
         // Handle duplicate constraint error
         type DatabaseError = Error & { cause?: { constraint?: string } };
         if (
@@ -424,7 +423,7 @@ export const profilesRouter = new Hono<{ Variables: AuthVariables }>()
             400,
           );
         }
-        return c.json({ error: "사용자 추가에 실패했습니다" }, 500);
+        throw error;
       }
     },
   )
