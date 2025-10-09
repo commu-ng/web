@@ -438,8 +438,10 @@ export default function Messages() {
                             }
                             name={item.data.other_profile.name}
                             username={item.data.other_profile.username}
+                            profileId={item.data.other_profile.id}
                             size="lg"
                             className="border-2 border-border"
+                            showOnlineStatus={true}
                           />
                         </div>
 
@@ -663,7 +665,9 @@ export default function Messages() {
                               profilePictureUrl={profile.profile_picture_url}
                               name={profile.name}
                               username={profile.username}
+                              profileId={profile.id}
                               size="sm"
+                              showOnlineStatus={true}
                             />
                             <div>
                               <div className="text-sm font-medium text-foreground">

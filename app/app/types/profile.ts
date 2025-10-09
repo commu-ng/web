@@ -11,6 +11,9 @@ export interface Profile {
   is_active?: boolean;
   is_primary?: boolean;
   user_group?: string;
+  // Online status fields
+  onlineStatusVisible?: boolean;
+  lastActiveAt?: string | null;
   // Shared profile fields
   is_owned?: boolean;
   role?: "owner" | "admin";

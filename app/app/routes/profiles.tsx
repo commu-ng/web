@@ -202,7 +202,9 @@ export default function Profiles() {
                     profilePictureUrl={profile.profile_picture_url || undefined}
                     name={profile.name}
                     username={profile.username}
+                    profileId={profile.id}
                     size="lg"
+                    showOnlineStatus={true}
                   />
                   <div className="flex-1 min-w-0">
                     <h3 className="text-lg font-semibold text-foreground group-hover:text-blue-600 transition-colors truncate">

@@ -3,6 +3,7 @@ import { useEffect, useRef } from "react";
 import { useLocation } from "react-router";
 import { LoginButton } from "~/components/LoginButton";
 import { MessageSender } from "~/components/message-sender";
+import { OnlineUsers } from "~/components/online-users";
 import { PostList, type PostListRef } from "~/components/post-list";
 import {
   ScheduledPostsList,
@@ -118,6 +119,9 @@ export default function Home() {
   return (
     <main className="max-w-4xl mx-auto px-4 py-6">
       <div className="max-w-2xl mx-auto space-y-6">
+        {/* Online Users */}
+        <OnlineUsers />
+
         {/* Message Composer */}
         <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
           <MessageSender

@@ -67,7 +67,9 @@ export function PostCardHeader({
             profilePictureUrl={author.profile_picture_url}
             name={author.name}
             username={author.username}
+            profileId={author.id}
             size={isReply ? "sm" : "md"}
+            showOnlineStatus={true}
           />
         </Link>
         <div>

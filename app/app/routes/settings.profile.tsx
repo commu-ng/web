@@ -3,6 +3,8 @@ import {
   AtSign,
   Camera,
   ChevronLeft,
+  Eye,
+  EyeOff,
   FileText,
   RotateCcw,
   Save,
@@ -37,6 +39,7 @@ export default function ProfileSettings() {
   const [newName, setNewName] = useState("");
   const [newUsername, setNewUsername] = useState("");
   const [newBio, setNewBio] = useState("");
+  const [onlineStatusVisible, setOnlineStatusVisible] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingProfilePicture, setIsUploadingProfilePicture] =
@@ -78,6 +81,7 @@ export default function ProfileSettings() {
       setNewName(currentProfile.name || "");
       setNewUsername(currentProfile.username || "");
       setNewBio(currentProfile.bio || "");
+      setOnlineStatusVisible(currentProfile.onlineStatusVisible ?? true);
       setProfilePicturePreview(currentProfile.profile_picture_url || null);
       // Validate initial username
       const error = validateUsername(currentProfile.username);
@@ -223,8 +227,44 @@ export default function ProfileSettings() {
       setNewName(profile.name || "");
       setNewUsername(profile.username || "");
       setNewBio(profile.bio || "");
+      setOnlineStatusVisible(profile.onlineStatusVisible ?? true);
       setProfilePicturePreview(profile.profile_picture_url || null);
       setUsernameError(""); // Clear username validation error
+    }
+  };
+
+  const handleOnlineStatusToggle = async (visible: boolean) => {
+    if (!currentProfile) return;
+
+    setOnlineStatusVisible(visible);
+
+    try {
+      const response = await client.app.profiles["online-status-settings"].$put(
+        {
+          json: {
+            profile_id: currentProfile.id,
+            visible,
+          },
+        },
+      );
+
+      if (response.ok) {
+        // Update the profile cache
+        queryClient.setQueryData(["auth", "currentProfile"], {
+          ...currentProfile,
+          onlineStatusVisible: visible,
+        });
+        toast.success(
+          visible ? "온라인 상태가 표시됩니다" : "온라인 상태가 숨겨집니다",
+        );
+      } else {
+        throw new Error("온라인 상태 업데이트에 실패했습니다");
+      }
+    } catch (error) {
+      console.error("Failed to update online status visibility:", error);
+      // Revert on error
+      setOnlineStatusVisible(!visible);
+      toast.error("온라인 상태 설정 변경에 실패했습니다");
     }
   };
 
@@ -450,6 +490,45 @@ export default function ProfileSettings() {
                   <span className={newBio.length > 450 ? "text-red-500" : ""}>
                     {newBio.length}/500
                   </span>
+                </div>
+              </div>
+
+              {/* Online Status Visibility */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                  {onlineStatusVisible ? (
+                    <Eye className="h-4 w-4 text-muted-foreground" />
+                  ) : (
+                    <EyeOff className="h-4 w-4 text-muted-foreground" />
+                  )}
+                  온라인 상태
+                </div>
+                <div className="flex items-center justify-between p-4 bg-background rounded-xl border border-border">
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-foreground mb-1">
+                      온라인 상태 표시
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      다른 사용자에게 내 온라인 상태를 표시합니다
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={onlineStatusVisible}
+                    onClick={() =>
+                      handleOnlineStatusToggle(!onlineStatusVisible)
+                    }
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                      onlineStatusVisible ? "bg-blue-600" : "bg-gray-300"
+                    }`}
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                        onlineStatusVisible ? "translate-x-6" : "translate-x-1"
+                      }`}
+                    />
+                  </button>
                 </div>
               </div>
 

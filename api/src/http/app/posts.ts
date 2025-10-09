@@ -204,6 +204,14 @@ export const postsRouter = new Hono<{ Variables: AuthVariables }>()
       const community = c.get("community");
       const { limit = 20, cursor, profile_id } = c.req.valid("query");
 
+      // Update last activity for the profile if provided
+      if (profile_id) {
+        // Don't await - fire and forget to avoid slowing down the request
+        profileService.updateLastActivity(profile_id).catch(() => {
+          // Silently ignore errors to not break the request
+        });
+      }
+
       const result = await postService.getPosts(
         community.id,
         limit,
@@ -308,6 +316,11 @@ export const postsRouter = new Hono<{ Variables: AuthVariables }>()
           404,
         );
       }
+
+      // Update last activity
+      profileService.updateLastActivity(profile.id).catch(() => {
+        // Silently ignore errors
+      });
 
       try {
         const result = await postService.createPost(

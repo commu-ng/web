@@ -469,6 +469,13 @@ export const profile = pgTable(
     isPrimary: boolean("is_primary").default(false).notNull(),
     mutedAt: timestamp("muted_at", { withTimezone: true, mode: "string" }),
     mutedById: uuid("muted_by_id"),
+    lastActiveAt: timestamp("last_active_at", {
+      withTimezone: true,
+      mode: "string",
+    }),
+    onlineStatusVisible: boolean("online_status_visible")
+      .default(true)
+      .notNull(),
   },
   (table) => [
     foreignKey({
@@ -482,6 +489,7 @@ export const profile = pgTable(
       name: "profile_muted_by_id_fkey",
     }),
     unique("unique_username_community").on(table.username, table.communityId),
+    index("idx_profile_last_active_at").on(table.lastActiveAt),
     sql`CONSTRAINT valid_username CHECK (username ~ '^[a-zA-Z0-9_]+$' AND length(username) > 0 AND length(username) <= 50)`,
     sql`CONSTRAINT valid_name CHECK (length(name) > 0 AND length(name) <= 100)`,
   ],

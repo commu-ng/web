@@ -335,3 +335,16 @@ export const communityApplicationParamSchema = z.object({
   id: z.uuid(),
   application_id: z.uuid(),
 });
+
+// Online status schemas
+export const onlineStatusQuerySchema = z.object({
+  profile_ids: z
+    .union([z.string(), z.array(z.string())])
+    .transform((val) => (Array.isArray(val) ? val : [val]))
+    .pipe(z.array(z.uuid()).min(1, "At least one profile ID is required")),
+});
+
+export const onlineStatusVisibilitySchema = z.object({
+  profile_id: z.uuid(),
+  visible: z.boolean(),
+});

@@ -13,6 +13,8 @@ import {
   ownerOnlyMiddleware,
 } from "../../middleware/membership";
 import {
+  onlineStatusQuerySchema,
+  onlineStatusVisibilitySchema,
   paginationQuerySchema,
   profileCreateSchema,
   profileIdParamSchema,
@@ -208,6 +210,53 @@ export const profilesRouter = new Hono<{ Variables: AuthVariables }>()
       }
     },
   )
+  // Online status endpoints - must be before :username routes
+  .get(
+    "/profiles/online-status",
+    appAuthMiddleware,
+    communityMiddleware,
+    membershipMiddleware,
+    zValidator("query", onlineStatusQuerySchema),
+    async (c) => {
+      const { profile_ids } = c.req.valid("query");
+
+      try {
+        const onlineStatus = await profileService.getOnlineStatus(profile_ids);
+        return c.json(onlineStatus);
+      } catch (error) {
+        if (error instanceof AppException) {
+          return c.json({ error: error.message }, error.statusCode);
+        }
+        return c.json({ error: "온라인 상태 조회에 실패했습니다" }, 500);
+      }
+    },
+  )
+  .put(
+    "/profiles/online-status-settings",
+    appAuthMiddleware,
+    communityMiddleware,
+    membershipMiddleware,
+    zValidator("json", onlineStatusVisibilitySchema),
+    async (c) => {
+      const user = c.get("user");
+      const { profile_id: profileId, visible } = c.req.valid("json");
+
+      try {
+        await profileService.updateOnlineStatusVisibility(
+          user.id,
+          profileId,
+          visible,
+        );
+        return c.json({ message: "온라인 상태 설정이 변경되었습니다" });
+      } catch (error) {
+        if (error instanceof AppException) {
+          return c.json({ error: error.message }, error.statusCode);
+        }
+        return c.json({ error: "설정 변경에 실패했습니다" }, 500);
+      }
+    },
+  )
+  // Parameterized routes - must be after specific routes
   .get(
     "/profiles/:username",
     optionalAppAuthMiddleware,

@@ -1023,3 +1023,99 @@ export async function getUserIdsFromProfile(profileId: string) {
 
   return profileOwnerships.map((ownership) => ownership.userId);
 }
+
+/**
+ * In-memory cache for last activity updates to implement debouncing
+ * Maps profileId to the last update timestamp
+ */
+const lastActivityUpdateCache = new Map<string, number>();
+const ACTIVITY_UPDATE_DEBOUNCE_MS = 60000; // 1 minute
+
+/**
+ * Update lastActiveAt for a profile with debouncing
+ * Only updates if more than 1 minute has passed since last update
+ */
+export async function updateLastActivity(profileId: string) {
+  const now = Date.now();
+  const lastUpdate = lastActivityUpdateCache.get(profileId);
+
+  // Skip if updated within the last minute
+  if (lastUpdate && now - lastUpdate < ACTIVITY_UPDATE_DEBOUNCE_MS) {
+    return;
+  }
+
+  // Update the database
+  await db
+    .update(profileTable)
+    .set({ lastActiveAt: sql`NOW()` })
+    .where(eq(profileTable.id, profileId));
+
+  // Update cache
+  lastActivityUpdateCache.set(profileId, now);
+}
+
+/**
+ * Get online status for a list of profile IDs
+ * A profile is considered online if:
+ * - lastActiveAt is within the last 5 minutes
+ * - onlineStatusVisible is true
+ */
+export async function getOnlineStatus(profileIds: string[]) {
+  if (profileIds.length === 0) {
+    return [];
+  }
+
+  const profiles = await db.query.profile.findMany({
+    where: and(
+      inArray(profileTable.id, profileIds),
+      isNull(profileTable.deletedAt),
+    ),
+    columns: {
+      id: true,
+      lastActiveAt: true,
+      onlineStatusVisible: true,
+    },
+  });
+
+  const fiveMinutesAgo = Date.now() - 5 * 60 * 1000;
+
+  return profiles.map((profile) => {
+    if (!profile.onlineStatusVisible || !profile.lastActiveAt) {
+      return {
+        profile_id: profile.id,
+        is_online: false,
+      };
+    }
+
+    // Parse the timestamp and compare as numbers
+    const lastActiveTime = new Date(profile.lastActiveAt).getTime();
+    const isOnline = lastActiveTime > fiveMinutesAgo;
+
+    return {
+      profile_id: profile.id,
+      is_online: isOnline,
+    };
+  });
+}
+
+/**
+ * Update online status visibility for a profile
+ */
+export async function updateOnlineStatusVisibility(
+  userId: string,
+  profileId: string,
+  visible: boolean,
+) {
+  // Verify user can manage this profile
+  const canManage = await canManageProfile(userId, profileId);
+  if (!canManage) {
+    throw new AppException(404, "프로필을 찾을 수 없거나 관리 권한이 없습니다");
+  }
+
+  await db
+    .update(profileTable)
+    .set({ onlineStatusVisible: visible })
+    .where(eq(profileTable.id, profileId));
+
+  return { success: true };
+}
