@@ -1,3 +1,4 @@
+import type { Readable } from "node:stream";
 import {
   DeleteObjectCommand,
   PutObjectCommand,
@@ -102,7 +103,7 @@ export async function deleteFile(key: string): Promise<boolean> {
 }
 
 export async function uploadExportFile(
-  stream: NodeJS.ReadableStream,
+  stream: Readable,
   filename: string,
 ): Promise<string> {
   const uniqueKey = `${R2_KEY_PREFIXES.EXPORT}/${crypto.randomUUID()}-${filename}`;
@@ -114,8 +115,7 @@ export async function uploadExportFile(
     params: {
       Bucket: env.r2.bucketName,
       Key: uniqueKey,
-      // biome-ignore lint/suspicious/noExplicitAny: Cast needed for Node.js ReadableStream compatibility
-      Body: stream as any,
+      Body: stream,
       ContentType: "application/zip",
     },
   });
