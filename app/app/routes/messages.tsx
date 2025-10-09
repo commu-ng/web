@@ -237,13 +237,14 @@ export default function Messages() {
     // Fetch available profiles
     try {
       const response = await client.app.profiles.$get({
-        query: { limit: "100" },
+        query: {},
       });
       if (response.ok) {
         const result = await response.json();
+        const allProfiles = Array.isArray(result) ? result : [];
 
         // Filter out current profile
-        const otherProfiles = result.data.filter(
+        const otherProfiles = allProfiles.filter(
           (profile) => profile.id !== currentProfile.id,
         );
         setAvailableProfiles(otherProfiles);

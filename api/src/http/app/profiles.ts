@@ -124,24 +124,13 @@ export const profilesRouter = new Hono<{ Variables: AuthVariables }>()
     },
   )
 
-  .get(
-    "/profiles",
-    appAuthMiddleware,
-    communityMiddleware,
-    zValidator("query", paginationQuerySchema),
-    async (c) => {
-      const community = c.get("community");
-      const { limit = 20, cursor } = c.req.valid("query");
+  .get("/profiles", appAuthMiddleware, communityMiddleware, async (c) => {
+    const community = c.get("community");
 
-      const result = await profileService.listProfilesByUser(
-        community.id,
-        limit,
-        cursor,
-      );
+    const result = await profileService.listProfilesByUser(community.id);
 
-      return c.json(result);
-    },
-  )
+    return c.json(result);
+  })
 
   .post(
     "/profiles",

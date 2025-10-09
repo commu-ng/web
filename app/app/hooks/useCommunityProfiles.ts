@@ -21,13 +21,13 @@ export function useCommunityProfiles() {
     setLoading(true);
     try {
       const response = await client.app.profiles.$get({
-        query: { limit: "100" },
+        query: {},
       });
 
       if (response.ok) {
         const result = await response.json();
-        // API returns { data, nextCursor, hasMore }
-        setProfiles(result.data || []);
+        // API now returns an array of profiles directly (no pagination)
+        setProfiles(Array.isArray(result) ? result : []);
       } else {
         console.error("Failed to fetch community profiles");
         setProfiles([]);

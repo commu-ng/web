@@ -1,9 +1,8 @@
-import { useInfiniteQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Search, UserPlus, Users } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import { Link } from "react-router";
 import { ProfileAvatar } from "~/components/profile-avatar";
-import { LoadingState } from "~/components/shared/LoadingState";
 import { ProfileCardSkeleton } from "~/components/skeletons/ProfileCardSkeleton";
 import { client } from "~/lib/api-client";
 
@@ -16,24 +15,12 @@ export function meta() {
 
 export default function Profiles() {
   const [searchQuery, setSearchQuery] = useState("");
-  const PROFILES_PER_PAGE = 20;
 
-  const {
-    data,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-    isLoading,
-    isError,
-    error,
-  } = useInfiniteQuery({
+  const { data, isLoading, isError, error } = useQuery({
     queryKey: ["profiles"],
-    queryFn: async ({ pageParam }) => {
+    queryFn: async () => {
       const response = await client.app.profiles.$get({
-        query: {
-          limit: PROFILES_PER_PAGE.toString(),
-          ...(pageParam && { cursor: pageParam }),
-        },
+        query: {},
       });
 
       if (!response.ok) {
@@ -44,13 +31,9 @@ export default function Profiles() {
 
       return result;
     },
-    getNextPageParam: (lastPage) => {
-      return lastPage.hasMore ? lastPage.nextCursor : undefined;
-    },
-    initialPageParam: undefined,
   });
 
-  const allProfiles = data?.pages.flatMap((page) => page.data) ?? [];
+  const allProfiles = Array.isArray(data) ? data : [];
 
   // Filter profiles based on search query
   const filteredProfiles = allProfiles.filter(
@@ -59,33 +42,6 @@ export default function Profiles() {
       profile.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
       profile.bio?.toLowerCase().includes(searchQuery.toLowerCase()),
   );
-
-  // Infinite scroll trigger
-  const loadMore = useCallback(() => {
-    if (hasNextPage && !isFetchingNextPage) {
-      fetchNextPage();
-    }
-  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
-
-  // Scroll event listener for infinite scroll
-  useEffect(() => {
-    const handleScroll = () => {
-      const scrollTop =
-        document.documentElement.scrollTop || document.body.scrollTop;
-      const scrollHeight =
-        document.documentElement.scrollHeight || document.body.scrollHeight;
-      const clientHeight =
-        document.documentElement.clientHeight || window.innerHeight;
-
-      // Load more when within 200px of the bottom
-      if (scrollHeight - scrollTop - clientHeight < 200) {
-        loadMore();
-      }
-    };
-
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, [loadMore]);
 
   if (isLoading) {
     return (
@@ -238,18 +194,11 @@ export default function Profiles() {
           </div>
         )}
 
-        {/* Loading indicator for infinite scroll */}
-        {isFetchingNextPage && (
-          <div className="mt-6">
-            <LoadingState message="더 많은 멤버를 불러오는 중..." />
-          </div>
-        )}
-
-        {/* End of content indicator */}
-        {!hasNextPage && allProfiles.length > 0 && !searchQuery && (
+        {/* Total profiles count */}
+        {!searchQuery && allProfiles.length > 0 && (
           <div className="bg-background rounded-2xl border border-border p-6 text-center mt-6">
             <p className="text-muted-foreground text-sm">
-              모든 멤버를 확인했습니다
+              총 {allProfiles.length}명의 멤버
             </p>
           </div>
         )}

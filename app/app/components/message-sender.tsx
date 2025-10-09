@@ -136,8 +136,8 @@ export function MessageSender({
       });
       if (response.ok) {
         const result = await response.json();
-        // API returns an object with data, nextCursor, and hasMore
-        const allProfiles: Profile[] = result.data || [];
+        // API now returns an array of profiles directly (no pagination)
+        const allProfiles: Profile[] = Array.isArray(result) ? result : [];
 
         // Filter profiles by query if provided
         const filteredProfiles = query

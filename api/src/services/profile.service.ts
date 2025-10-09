@@ -141,14 +141,11 @@ export async function checkUsernameAvailability(
 }
 
 /**
- * Get all profiles in a community grouped by user
+ * Get all profiles in a community
  * Only shows active members (isActive = true)
+ * Returns all profiles without pagination for mention autocomplete
  */
-export async function listProfilesByUser(
-  communityId: string,
-  limit: number = 20,
-  cursor?: string,
-) {
+export async function listProfilesByUser(communityId: string) {
   // Build where conditions
   const conditions = [
     eq(profileTable.communityId, communityId),
@@ -156,16 +153,10 @@ export async function listProfilesByUser(
     isNotNull(profileTable.activatedAt), // Only show active members
   ];
 
-  // Add cursor condition if provided
-  if (cursor) {
-    conditions.push(sql`${profileTable.id} < ${cursor}`);
-  }
-
-  // Fetch limit + 1 to check if there are more results
+  // Fetch all profiles without pagination
   const profileTableList = await db.query.profile.findMany({
     where: and(...conditions),
     orderBy: [desc(profileTable.id)], // Use ID for consistent ordering
-    limit: limit + 1,
     with: {
       profilePictures: {
         with: {
@@ -184,16 +175,6 @@ export async function listProfilesByUser(
       },
     },
   });
-
-  // Check if there are more results
-  const hasMore = profileTableList.length > limit;
-  const profilesToReturn = hasMore
-    ? profileTableList.slice(0, limit)
-    : profileTableList;
-  const nextCursor =
-    hasMore && profilesToReturn.length > 0
-      ? profilesToReturn[profilesToReturn.length - 1].id
-      : null;
 
   // Get memberships to determine user roles
   const memberships = await db.query.membership.findMany({
@@ -214,7 +195,7 @@ export async function listProfilesByUser(
   const userGroupKeyMap = new Map<string, string>();
 
   // Map each profile to its data, using the owner ownership only (not shared/admin ownerships)
-  const allProfiles = profilesToReturn
+  const allProfiles = profileTableList
     .map((profile) => {
       // Find the ownership with role='owner' (there should be exactly one)
       const ownerOwnership = profile.ownerships.find((o) => o.role === "owner");
@@ -253,11 +234,7 @@ export async function listProfilesByUser(
       (profile): profile is NonNullable<typeof profile> => profile !== null,
     );
 
-  return {
-    data: allProfiles,
-    nextCursor,
-    hasMore,
-  };
+  return allProfiles;
 }
 
 /**

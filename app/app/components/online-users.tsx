@@ -10,9 +10,7 @@ export function OnlineUsers() {
     queryKey: ["profiles"],
     queryFn: async () => {
       const response = await client.app.profiles.$get({
-        query: {
-          limit: "100", // Get more profiles to show online users
-        },
+        query: {},
       });
 
       if (!response.ok) {
@@ -25,7 +23,7 @@ export function OnlineUsers() {
     refetchInterval: 30000, // Refetch every 30 seconds
   });
 
-  const allProfiles = profilesData?.data ?? [];
+  const allProfiles = Array.isArray(profilesData) ? profilesData : [];
   const profileIds = allProfiles.map((profile) => profile.id);
 
   // Get online status for all profiles
