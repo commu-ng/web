@@ -64,6 +64,9 @@ export function MessageSender({
   const [mentionProfiles, setMentionProfiles] = useState<Profile[]>([]);
   const [selectedMentionIndex, setSelectedMentionIndex] = useState(0);
 
+  // IME composition state for CJK input
+  const compositionDataRef = useRef<string>("");
+
   // Debounced message for markdown rendering - only render preview after 500ms of no typing
   const [debouncedMessage, setDebouncedMessage] = useState(message);
 
@@ -171,7 +174,14 @@ export function MessageSender({
 
   // Check for @ mentions in the text
   const checkForMention = (text: string, cursorPosition: number) => {
-    const beforeCursor = text.slice(0, cursorPosition);
+    let beforeCursor = text.slice(0, cursorPosition);
+
+    // If we're composing CJK characters, exclude the composition data from the search
+    const compositionData = compositionDataRef.current;
+    if (compositionData && beforeCursor.endsWith(compositionData)) {
+      beforeCursor = beforeCursor.slice(0, -compositionData.length);
+    }
+
     const mentionMatch = beforeCursor.match(/@(\w*)$/);
 
     if (mentionMatch) {
@@ -329,6 +339,33 @@ export function MessageSender({
   const handleTextareaClick = (e: React.MouseEvent<HTMLTextAreaElement>) => {
     const cursorPosition = e.currentTarget.selectionStart;
     checkForMention(message, cursorPosition);
+  };
+
+  // IME composition handlers for CJK input
+  const handleCompositionStart = () => {
+    compositionDataRef.current = "";
+  };
+
+  const handleCompositionUpdate = (
+    e: React.CompositionEvent<HTMLTextAreaElement>,
+  ) => {
+    // Track the current composition data
+    compositionDataRef.current = e.data || "";
+    // Check for mentions during composition, excluding the composition data
+    const currentValue = e.currentTarget.value;
+    const cursorPosition = e.currentTarget.selectionStart;
+    checkForMention(currentValue, cursorPosition);
+  };
+
+  const handleCompositionEnd = (
+    e: React.CompositionEvent<HTMLTextAreaElement>,
+  ) => {
+    // Clear composition data
+    compositionDataRef.current = "";
+    // Check for mentions after composition ends
+    const currentValue = e.currentTarget.value;
+    const cursorPosition = e.currentTarget.selectionStart;
+    checkForMention(currentValue, cursorPosition);
   };
 
   // Close dropdown when clicking outside
@@ -585,6 +622,9 @@ export function MessageSender({
               onChange={handleMessageChange}
               onKeyDown={handleKeyDown}
               onClick={handleTextareaClick}
+              onCompositionStart={handleCompositionStart}
+              onCompositionUpdate={handleCompositionUpdate}
+              onCompositionEnd={handleCompositionEnd}
               placeholder={placeholder}
               disabled={isPosting}
               className={`resize-none border-0 focus:ring-0 focus:border-0 focus-visible:ring-0 focus-visible:ring-offset-0 bg-transparent text-base leading-relaxed transition-all ${
