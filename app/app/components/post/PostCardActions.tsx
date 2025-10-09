@@ -1,4 +1,4 @@
-import { Bookmark, MessageCircle, Pin } from "lucide-react";
+import { Bookmark, MessageCircle, Pin, SendIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { client } from "~/lib/api-client";
@@ -16,6 +16,7 @@ interface PostCardActionsProps {
   showReplyForm: boolean;
   onBookmarkChange: (isBookmarked: boolean) => void;
   onPinChange?: (isPinned: boolean) => void;
+  onOpenDMModal?: () => void;
 }
 
 export function PostCardActions({
@@ -31,6 +32,7 @@ export function PostCardActions({
   showReplyForm,
   onBookmarkChange,
   onPinChange,
+  onOpenDMModal,
 }: PostCardActionsProps) {
   const [isBookmarked, setIsBookmarked] = useState(initialBookmarked);
   const [isBookmarkLoading, setIsBookmarkLoading] = useState(false);
@@ -176,6 +178,18 @@ export function PostCardActions({
             }`}
           />
           <span>{isBookmarked ? "북마크됨" : "북마크"}</span>
+        </button>
+      )}
+      {currentProfileId && !isOwnPost && onOpenDMModal && (
+        <button
+          type="button"
+          onClick={onOpenDMModal}
+          className={`inline-flex items-center gap-1 ${
+            isReply ? "text-xs" : "text-sm"
+          } text-muted-foreground hover:text-blue-600 transition-colors`}
+        >
+          <SendIcon className={isReply ? "h-3 w-3" : "h-4 w-4"} />
+          <span>메시지</span>
         </button>
       )}
       {isProfileView && isOwnPost && currentProfileId && (

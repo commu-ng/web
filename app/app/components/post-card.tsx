@@ -1,6 +1,7 @@
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { memo, useCallback, useMemo, useState } from "react";
 import { toast } from "sonner";
+import { DirectMessageModal } from "~/components/DirectMessageModal";
 import { useAuth } from "~/hooks/useAuth";
 import { useCurrentInstance } from "~/hooks/useCurrentInstance";
 import { useMarkdownWithMentions } from "~/hooks/useMarkdownWithMentions";
@@ -32,6 +33,7 @@ export const PostCard = memo(function PostCard({
     url: string;
     filename: string;
   } | null>(null);
+  const [showDMModal, setShowDMModal] = useState(false);
 
   // Check if current user is part of the conversation thread
   const isUserPartOfThread = useCallback(() => {
@@ -330,6 +332,7 @@ export const PostCard = memo(function PostCard({
                 // Trigger refresh to update the pinned status
                 (onRefresh || onDelete)?.();
               }}
+              onOpenDMModal={() => setShowDMModal(true)}
             />
 
             {/* Reaction button and reactions display */}
@@ -425,6 +428,21 @@ export const PostCard = memo(function PostCard({
         image={selectedImage}
         onClose={() => setSelectedImage(null)}
       />
+
+      {/* Direct Message Modal */}
+      {currentProfileId && (
+        <DirectMessageModal
+          postId={post.id}
+          postAuthor={{
+            username: post.author.username,
+            name: post.author.name,
+          }}
+          isOpen={showDMModal}
+          onClose={() => setShowDMModal(false)}
+          currentProfileId={currentProfileId}
+          receiverId={post.author.id}
+        />
+      )}
     </div>
   );
 });

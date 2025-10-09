@@ -633,6 +633,7 @@ export default function GroupChatDetail() {
                     }
                     hasReactions={hasReactions}
                     images={message.images}
+                    currentProfileId={currentProfile?.id}
                   >
                     {hasReactions ? (
                       <GroupChatMessageReactions

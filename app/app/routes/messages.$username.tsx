@@ -775,6 +775,7 @@ export default function MessageConversation() {
                           timestamp={formatTime(message.createdAt)}
                           isFromMe={message.sender.id === currentProfile?.id}
                           images={message.images}
+                          currentProfileId={currentProfile?.id}
                         >
                           <DirectMessageReactions
                             reactions={message.reactions || []}
