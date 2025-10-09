@@ -120,7 +120,7 @@ export default function Home() {
     <main className="max-w-4xl mx-auto px-4 py-6">
       <div className="max-w-2xl mx-auto space-y-6">
         {/* Online Users */}
-        <OnlineUsers />
+        {/* <OnlineUsers /> */}
 
         {/* Message Composer */}
         <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">

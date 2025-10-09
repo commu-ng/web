@@ -494,7 +494,7 @@ export default function ProfileSettings() {
               </div>
 
               {/* Online Status Visibility */}
-              <div className="space-y-3">
+              {/* <div className="space-y-3">
                 <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
                   {onlineStatusVisible ? (
                     <Eye className="h-4 w-4 text-muted-foreground" />
@@ -530,7 +530,7 @@ export default function ProfileSettings() {
                     />
                   </button>
                 </div>
-              </div>
+              </div> */}
 
               {/* Action Buttons */}
               <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-border">
