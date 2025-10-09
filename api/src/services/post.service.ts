@@ -286,11 +286,7 @@ export async function uploadImage(
 /**
  * Get announcements for a community
  */
-export async function getAnnouncements(
-  communityId: string,
-  limit: number = 10,
-  offset: number = 0,
-) {
+export async function getAnnouncements(communityId: string) {
   const announcementsList = await db
     .select()
     .from(postTable)
@@ -304,9 +300,7 @@ export async function getAnnouncements(
         eq(profileTable.communityId, communityId),
       ),
     )
-    .orderBy(desc(postTable.createdAt))
-    .limit(limit)
-    .offset(offset);
+    .orderBy(desc(postTable.createdAt));
 
   // Early return if no announcements
   if (announcementsList.length === 0) {

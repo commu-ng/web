@@ -17,9 +17,7 @@ export default function Announcements() {
   const fetchAnnouncements = useCallback(async () => {
     try {
       setIsLoading(true);
-      const response = await client.app.announcements.$get({
-        query: {},
-      });
+      const response = await client.app.announcements.$get();
 
       if (response.ok) {
         const data = await response.json();

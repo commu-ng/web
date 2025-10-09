@@ -143,16 +143,10 @@ export const postsRouter = new Hono<{ Variables: AuthVariables }>()
     "/announcements",
     optionalAppAuthMiddleware,
     communityMiddleware,
-    zValidator("query", paginationQuerySchema),
     async (c) => {
       const community = c.get("community");
-      const { limit = 10, offset = 0 } = c.req.valid("query");
 
-      const result = await postService.getAnnouncements(
-        community.id,
-        limit,
-        offset,
-      );
+      const result = await postService.getAnnouncements(community.id);
 
       return c.json(result);
     },
