@@ -45,6 +45,11 @@ export function PostPreview({ postUrl, currentProfileId }: PostPreviewProps) {
 
         const postId = match[2];
 
+        if (!postId) {
+          setError("잘못된 게시물 링크입니다");
+          return;
+        }
+
         const response = await client.app.posts[":post_id"].$get({
           param: { post_id: postId },
           query: currentProfileId ? { profile_id: currentProfileId } : {},

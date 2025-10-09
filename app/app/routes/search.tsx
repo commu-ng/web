@@ -59,7 +59,7 @@ export default function SearchPage() {
     refetch,
   } = useInfiniteQuery({
     queryKey: ["search", debouncedQuery, currentProfile?.id],
-    queryFn: async ({ pageParam }) => {
+    queryFn: async ({ pageParam }: { pageParam: string | undefined }) => {
       if (!debouncedQuery || debouncedQuery.length < 2) {
         return { data: [], nextCursor: null, hasMore: false };
       }
@@ -83,14 +83,15 @@ export default function SearchPage() {
     getNextPageParam: (lastPage) => {
       return lastPage.hasMore ? lastPage.nextCursor : undefined;
     },
-    initialPageParam: undefined,
+    initialPageParam: undefined as string | undefined,
     enabled:
       !!isAuthenticated &&
       !!belongsToCurrentInstance &&
       debouncedQuery.length >= 2,
   });
 
-  const searchResults = data?.pages.flatMap((page) => page.data) ?? [];
+  const searchResults =
+    data?.pages.flatMap((page: { data: Post[] }) => page.data) ?? [];
 
   // Infinite scroll trigger
   const loadMore = useCallback(() => {

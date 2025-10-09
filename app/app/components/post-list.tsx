@@ -41,7 +41,7 @@ export const PostList = forwardRef<PostListRef>((_props, ref) => {
     refetch,
   } = useInfiniteQuery({
     queryKey: ["posts", currentProfile?.id],
-    queryFn: async ({ pageParam }) => {
+    queryFn: async ({ pageParam }: { pageParam: string | undefined }) => {
       const response = await client.app.posts.$get({
         query: {
           limit: POSTS_PER_PAGE.toString(),
@@ -60,7 +60,7 @@ export const PostList = forwardRef<PostListRef>((_props, ref) => {
       // Use cursor from API response
       return lastPage.hasMore ? lastPage.nextCursor : undefined;
     },
-    initialPageParam: undefined,
+    initialPageParam: undefined as string | undefined,
     staleTime: 2 * 60 * 1000, // 2 minutes - posts are dynamic but can be cached briefly
     gcTime: 10 * 60 * 1000, // 10 minutes - keep in cache for navigation back
     refetchOnMount: true, // Refetch on mount to get new posts

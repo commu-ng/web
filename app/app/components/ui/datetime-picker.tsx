@@ -38,8 +38,10 @@ export function DateTimePicker({
 
     // If we have a time input, combine it with the selected date
     if (timeInput) {
-      const [hours, minutes] = timeInput.split(":").map(Number);
-      if (!Number.isNaN(hours) && !Number.isNaN(minutes)) {
+      const timeParts = timeInput.split(":").map(Number);
+      const hours = timeParts[0];
+      const minutes = timeParts[1];
+      if (hours !== undefined && minutes !== undefined && !Number.isNaN(hours) && !Number.isNaN(minutes)) {
         const newDate = new Date(date);
         newDate.setHours(hours, minutes, 0, 0);
         setSelectedDate(newDate);
@@ -61,8 +63,10 @@ export function DateTimePicker({
     setTimeInput(newTime);
 
     if (selectedDate && newTime) {
-      const [hours, minutes] = newTime.split(":").map(Number);
-      if (!Number.isNaN(hours) && !Number.isNaN(minutes)) {
+      const timeParts = newTime.split(":").map(Number);
+      const hours = timeParts[0];
+      const minutes = timeParts[1];
+      if (hours !== undefined && minutes !== undefined && !Number.isNaN(hours) && !Number.isNaN(minutes)) {
         const newDate = new Date(selectedDate);
         newDate.setHours(hours, minutes, 0, 0);
         onChange(newDate);

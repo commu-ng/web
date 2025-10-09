@@ -87,7 +87,7 @@ export default function Notifications() {
     refetch,
   } = useInfiniteQuery({
     queryKey: ["notifications", currentProfile?.id],
-    queryFn: async ({ pageParam }) => {
+    queryFn: async ({ pageParam }: { pageParam: string | undefined }) => {
       if (!currentProfile?.id) {
         return { data: [], nextCursor: null, hasMore: false };
       }
@@ -110,11 +110,12 @@ export default function Notifications() {
     getNextPageParam: (lastPage) => {
       return lastPage.hasMore ? lastPage.nextCursor : undefined;
     },
-    initialPageParam: undefined,
+    initialPageParam: undefined as string | undefined,
     enabled: isAuthenticated && !!instanceSlug && !!currentProfile,
   });
 
-  const notifications = data?.pages.flatMap((page) => page.data) ?? [];
+  const notifications =
+    data?.pages.flatMap((page: { data: Notification[] }) => page.data) ?? [];
 
   const markAllAsRead = async () => {
     if (!currentProfile) return;

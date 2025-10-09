@@ -69,7 +69,7 @@ export default function Messages() {
         query: {
           profile_id: currentProfile.id,
           limit: ITEMS_PER_PAGE.toString(),
-          offset: pageParam.toString(),
+          ...(pageParam > 0 && { cursor: pageParam.toString() }),
         },
       });
 
@@ -109,7 +109,7 @@ export default function Messages() {
         query: {
           profile_id: currentProfile.id,
           limit: ITEMS_PER_PAGE.toString(),
-          offset: pageParam.toString(),
+          ...(pageParam > 0 && { cursor: pageParam.toString() }),
         },
       });
 

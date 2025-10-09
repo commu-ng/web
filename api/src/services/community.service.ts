@@ -1123,6 +1123,23 @@ export async function getCommunityDetailWithUserContext(
     }
   }
 
+  // Get owner profile ID
+  const ownerMembership = await db.query.membership.findFirst({
+    where: and(
+      eq(membershipTable.communityId, communityId),
+      eq(membershipTable.role, "owner"),
+      isNotNull(membershipTable.activatedAt),
+    ),
+  });
+
+  let ownerProfileId = null;
+  if (ownerMembership?.userId) {
+    ownerProfileId = await getPrimaryProfileIdForUserInCommunity(
+      ownerMembership.userId,
+      communityId,
+    );
+  }
+
   return {
     id: community.id,
     name: community.name,
@@ -1144,5 +1161,6 @@ export async function getCommunityDetailWithUserContext(
     application_status: applicationStatus,
     user_role: userRole,
     description: community.description,
+    owner_profile_id: ownerProfileId,
   };
 }

@@ -27,7 +27,7 @@ export const ScheduledPostsList = forwardRef<ScheduledPostsListRef>(
       refetch,
     } = useInfiniteQuery({
       queryKey: ["scheduledPosts", currentProfile?.id],
-      queryFn: async ({ pageParam }) => {
+      queryFn: async ({ pageParam }: { pageParam: string | undefined }) => {
         if (!currentProfile?.id) {
           return { data: [], nextCursor: null, hasMore: false };
         }
@@ -52,7 +52,7 @@ export const ScheduledPostsList = forwardRef<ScheduledPostsListRef>(
       getNextPageParam: (lastPage) => {
         return lastPage.hasMore ? lastPage.nextCursor : undefined;
       },
-      initialPageParam: undefined,
+      initialPageParam: undefined as string | undefined,
       enabled: !!currentProfile?.id,
     });
 

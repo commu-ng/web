@@ -38,7 +38,7 @@ export default function Bookmarks() {
     refetch,
   } = useInfiniteQuery({
     queryKey: ["bookmarks", currentProfile?.id],
-    queryFn: async ({ pageParam }) => {
+    queryFn: async ({ pageParam }: { pageParam: string | undefined }) => {
       if (!currentProfile?.id) {
         return { data: [], nextCursor: null, hasMore: false };
       }
@@ -58,22 +58,45 @@ export default function Bookmarks() {
       const result = await response.json();
 
       // Transform and ensure all bookmarked posts have is_bookmarked set to true
-      const transformedData = result.data.map((bookmark) => ({
-        ...bookmark,
-        author: {
-          ...bookmark.author,
-          profile_picture_url: bookmark.author.profile_picture_url || null,
-        },
-        images: bookmark.images || [],
-        content_warning: bookmark.content_warning || null,
-        in_reply_to_id: null,
-        depth: 0,
-        root_post_id: null,
-        is_bookmarked: true,
-        replies: [],
-        threaded_replies: [],
-        reactions: bookmark.reactions || [],
-      }));
+      const transformedData = result.data.map(
+        (bookmark: {
+          id: string;
+          author: {
+            id: string;
+            name: string;
+            username: string;
+            profile_picture_url: string | null;
+          };
+          images: {
+            id: string;
+            url: string;
+            width: number;
+            height: number;
+            filename: string;
+          }[];
+          content_warning: string | null;
+          reactions: {
+            emoji: string;
+            user: { id: string; username: string; name: string };
+          }[];
+          [key: string]: unknown;
+        }) => ({
+          ...bookmark,
+          author: {
+            ...bookmark.author,
+            profile_picture_url: bookmark.author.profile_picture_url || null,
+          },
+          images: bookmark.images || [],
+          content_warning: bookmark.content_warning || null,
+          in_reply_to_id: null,
+          depth: 0,
+          root_post_id: null,
+          is_bookmarked: true,
+          replies: [],
+          threaded_replies: [],
+          reactions: bookmark.reactions || [],
+        }),
+      );
 
       return {
         data: transformedData,
@@ -84,11 +107,14 @@ export default function Bookmarks() {
     getNextPageParam: (lastPage) => {
       return lastPage.hasMore ? lastPage.nextCursor : undefined;
     },
-    initialPageParam: undefined,
+    initialPageParam: undefined as string | undefined,
     enabled: !!user && !!currentProfile?.id,
   });
 
-  const bookmarks = data?.pages.flatMap((page) => page.data) ?? [];
+  const bookmarks =
+    data?.pages.flatMap(
+      (page: { data: Record<string, unknown>[] }) => page.data,
+    ) ?? ([] as Record<string, unknown>[]);
 
   // Infinite scroll trigger
   const loadMore = useCallback(() => {
@@ -234,15 +260,22 @@ export default function Bookmarks() {
 
               {bookmarks.map((bookmark) => (
                 <PostCard
-                  key={bookmark.id}
-                  post={{
-                    ...bookmark,
-                    depth: bookmark.depth || 0,
-                    replies: [],
-                    content_warning: bookmark.content_warning || null,
-                    in_reply_to_id: bookmark.in_reply_to_id ?? "",
-                    threaded_replies: [],
-                  }}
+                  key={bookmark.id as string}
+                  post={
+                    {
+                      ...bookmark,
+                      depth: (bookmark.depth as number | undefined) || 0,
+                      replies: [],
+                      content_warning:
+                        (bookmark.content_warning as
+                          | string
+                          | null
+                          | undefined) || null,
+                      in_reply_to_id:
+                        (bookmark.in_reply_to_id as string | undefined) ?? "",
+                      threaded_replies: [],
+                    } as unknown as import("~/types/post").Post
+                  }
                   currentProfileId={currentProfile.id}
                   onDelete={() => refetch()} // Refresh bookmarks when a post is deleted/unbookmarked
                 />
