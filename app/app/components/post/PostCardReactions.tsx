@@ -82,7 +82,7 @@ export function PostCardReactions({
     <>
       {/* Reaction button */}
       {currentProfileId && canInteract && (
-        <div className="relative reaction-selector inline-flex">
+        <div className="reaction-selector inline-flex flex-col gap-2">
           <button
             type="button"
             onClick={() => setOpenReactionSelector(!openReactionSelector)}
@@ -95,7 +95,7 @@ export function PostCardReactions({
           </button>
 
           {openReactionSelector && (
-            <div className="absolute bottom-full left-0 mb-2 bg-popover border border-border rounded-lg shadow-lg p-2 flex gap-1 z-10">
+            <div className="bg-popover border border-border rounded-lg shadow-lg p-2 flex flex-wrap gap-1">
               {AVAILABLE_REACTIONS.map(({ emoji, label }) => (
                 <button
                   type="button"
