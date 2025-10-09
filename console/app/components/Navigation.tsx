@@ -1,6 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
 import {
-  AlertCircle,
   FileText,
   Home,
   LogIn,
@@ -11,7 +10,6 @@ import {
 } from "lucide-react";
 import { Link } from "react-router";
 import { ThemeToggle } from "~/components/ThemeToggle";
-import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { Spinner } from "~/components/ui/spinner";
@@ -41,7 +39,7 @@ async function fetchMyCommunities(): Promise<Community[]> {
 }
 
 export function Navigation() {
-  const { isAuthenticated, isLoading, user } = useAuth();
+  const { isAuthenticated, isLoading } = useAuth();
 
   // Fetch communities to get pending application counts
   const { data: communities } = useQuery({
