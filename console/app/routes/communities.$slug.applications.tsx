@@ -141,6 +141,7 @@ function ApplicationsTable({ communityId }: { communityId: string }) {
           : "지원서를 거절했습니다.",
       );
       queryClient.invalidateQueries({ queryKey: ["applications"] });
+      queryClient.invalidateQueries({ queryKey: ["communities", "mine"] });
       setRejectDialogOpen(false);
       setSelectedApplicationId("");
       setRejectionReason("");
@@ -162,6 +163,7 @@ function ApplicationsTable({ communityId }: { communityId: string }) {
     onSuccess: () => {
       toast.success("지원서 처리를 취소했습니다!");
       queryClient.invalidateQueries({ queryKey: ["applications"] });
+      queryClient.invalidateQueries({ queryKey: ["communities", "mine"] });
     },
     onError: (error: Error) => {
       toast.error(error.message);
