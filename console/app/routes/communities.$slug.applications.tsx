@@ -105,6 +105,8 @@ function ApplicationsTable({ communityId }: { communityId: string }) {
   const [selectedApplicationId, setSelectedApplicationId] =
     useState<string>("");
   const [rejectionReason, setRejectionReason] = useState("");
+  const [processingApplicationId, setProcessingApplicationId] =
+    useState<string>("");
 
   const {
     data: allApplications = [],
@@ -145,6 +147,7 @@ function ApplicationsTable({ communityId }: { communityId: string }) {
       setRejectDialogOpen(false);
       setSelectedApplicationId("");
       setRejectionReason("");
+      setProcessingApplicationId("");
     },
     onError: (error: Error) => {
       toast.error(error.message);
@@ -164,6 +167,7 @@ function ApplicationsTable({ communityId }: { communityId: string }) {
       toast.success("지원서 처리를 취소했습니다!");
       queryClient.invalidateQueries({ queryKey: ["applications"] });
       queryClient.invalidateQueries({ queryKey: ["communities", "mine"] });
+      setProcessingApplicationId("");
     },
     onError: (error: Error) => {
       toast.error(error.message);
@@ -178,12 +182,14 @@ function ApplicationsTable({ communityId }: { communityId: string }) {
       setSelectedApplicationId(applicationId);
       setRejectDialogOpen(true);
     } else {
+      setProcessingApplicationId(applicationId);
       reviewMutation.mutate({ applicationId, status });
     }
   };
 
   const handleRejectConfirm = () => {
     if (!selectedApplicationId) return;
+    setProcessingApplicationId(selectedApplicationId);
     reviewMutation.mutate({
       applicationId: selectedApplicationId,
       status: "rejected",
@@ -192,6 +198,7 @@ function ApplicationsTable({ communityId }: { communityId: string }) {
   };
 
   const handleRevoke = (applicationId: string) => {
+    setProcessingApplicationId(applicationId);
     revokeMutation.mutate(applicationId);
   };
 
@@ -376,10 +383,12 @@ function ApplicationsTable({ communityId }: { communityId: string }) {
                             onClick={() =>
                               handleReview(application.id, "approved")
                             }
-                            disabled={reviewMutation.isPending}
+                            disabled={
+                              processingApplicationId === application.id
+                            }
                             className="text-green-600 border-green-600 hover:bg-green-50 flex-1"
                           >
-                            {reviewMutation.isPending ? (
+                            {processingApplicationId === application.id ? (
                               <Spinner />
                             ) : (
                               <CheckIcon className="w-4 h-4" />
@@ -392,10 +401,12 @@ function ApplicationsTable({ communityId }: { communityId: string }) {
                             onClick={() =>
                               handleReview(application.id, "rejected")
                             }
-                            disabled={reviewMutation.isPending}
+                            disabled={
+                              processingApplicationId === application.id
+                            }
                             className="text-red-600 border-red-600 hover:bg-red-50 flex-1"
                           >
-                            {reviewMutation.isPending ? (
+                            {processingApplicationId === application.id ? (
                               <Spinner />
                             ) : (
                               <XIcon className="w-4 h-4" />
@@ -408,10 +419,10 @@ function ApplicationsTable({ communityId }: { communityId: string }) {
                           variant="destructive"
                           size="sm"
                           onClick={() => handleRevoke(application.id)}
-                          disabled={revokeMutation.isPending}
+                          disabled={processingApplicationId === application.id}
                           className="w-full"
                         >
-                          {revokeMutation.isPending ? (
+                          {processingApplicationId === application.id ? (
                             <Spinner />
                           ) : (
                             <RotateCcw className="h-4 w-4" />
