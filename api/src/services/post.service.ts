@@ -979,8 +979,8 @@ export async function getPosts(
 }
 
 /**
- * Search posts by content using PostgreSQL full-text search
- * Returns posts matching the search query, ordered by relevance and creation date
+ * Search posts by content using substring matching (ILIKE)
+ * Returns posts matching the search query, ordered by creation date
  */
 export async function searchPosts(
   searchQuery: string,
@@ -989,16 +989,9 @@ export async function searchPosts(
   cursor?: string,
   profileId?: string,
 ) {
-  // Sanitize and prepare the search query
-  // Replace special characters and spaces with '&' for AND search
-  const sanitizedQuery = searchQuery
-    .trim()
-    .replace(/[&|!():*]/g, " ")
-    .split(/\s+/)
-    .filter((term) => term.length > 0)
-    .join(" & ");
+  const trimmedQuery = searchQuery.trim();
 
-  if (!sanitizedQuery) {
+  if (!trimmedQuery || trimmedQuery.length < 2) {
     return { data: [], nextCursor: null, hasMore: false };
   }
 
@@ -1009,7 +1002,7 @@ export async function searchPosts(
     eq(postTable.depth, 0), // Only root posts
     eq(postTable.communityId, communityId),
     eq(profileTable.communityId, communityId),
-    sql`to_tsvector('simple', ${postTable.content}) @@ to_tsquery('simple', ${sanitizedQuery})`,
+    sql`${postTable.content} ILIKE ${`%${trimmedQuery}%`}`,
   ];
 
   // Add cursor condition if provided (for pagination)
@@ -1017,20 +1010,16 @@ export async function searchPosts(
     conditions.push(sql`${postTable.id} < ${cursor}`);
   }
 
-  // Search posts with relevance ranking
+  // Search posts
   const posts = await db
     .select({
       post: postTable,
       profile: profileTable,
-      rank: sql<number>`ts_rank(to_tsvector('simple', ${postTable.content}), to_tsquery('simple', ${sanitizedQuery}))`,
     })
     .from(postTable)
     .leftJoin(profileTable, eq(postTable.authorId, profileTable.id))
     .where(and(...conditions))
-    .orderBy(
-      sql`ts_rank(to_tsvector('simple', ${postTable.content}), to_tsquery('simple', ${sanitizedQuery})) DESC`,
-      desc(postTable.id),
-    )
+    .orderBy(desc(postTable.id))
     .limit(limit + 1);
 
   // Early return if no posts
