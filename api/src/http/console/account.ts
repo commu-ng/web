@@ -191,9 +191,10 @@ export const consoleAccountRouter = new Hono()
           email: user.email || "",
         });
       } catch (error: unknown) {
-        const message =
-          error instanceof Error ? error.message : "토큰 확인에 실패했습니다";
-        return c.json({ error: message }, 400);
+        if (error instanceof AppException) {
+          return c.json({ error: error.message }, error.statusCode);
+        }
+        throw error;
       }
     },
   )
@@ -212,9 +213,10 @@ export const consoleAccountRouter = new Hono()
 
         return c.json({ message: "계정이 성공적으로 삭제되었습니다" });
       } catch (error: unknown) {
-        const message =
-          error instanceof Error ? error.message : "계정 삭제에 실패했습니다";
-        return c.json({ error: message }, 400);
+        if (error instanceof AppException) {
+          return c.json({ error: error.message }, error.statusCode);
+        }
+        throw error;
       }
     },
   )

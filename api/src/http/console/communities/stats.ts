@@ -14,25 +14,18 @@ export const statsRouter = new Hono().get(
     const { id: slug } = c.req.valid("param");
     const user = c.get("user");
 
-    // Validate community exists and get its ID
-    const community =
-      await communityService.validateCommunityExistsBySlug(slug);
-    const communityId = community.id;
-
-    // Check if user is owner or moderator
     try {
+      // Validate community exists and get its ID
+      const community =
+        await communityService.validateCommunityExistsBySlug(slug);
+      const communityId = community.id;
+
+      // Check if user is owner or moderator
       await membershipService.validateMembershipRole(user.id, communityId, [
         "owner",
         "moderator",
       ]);
-    } catch (error) {
-      if (error instanceof AppException) {
-        return c.json({ error: error.message }, error.statusCode);
-      }
-      return c.json({ error: "접근이 거부되었습니다" }, 403);
-    }
 
-    try {
       const stats = await communityService.getCommunityStats(communityId);
       return c.json(stats);
     } catch (error) {

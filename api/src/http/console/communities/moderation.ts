@@ -29,11 +29,11 @@ export const moderationRouter = new Hono()
       const { id: slug, profileId } = c.req.valid("param");
       const { reason } = c.req.valid("json");
 
-      // Validate community exists and get its ID
-      const community =
-        await communityService.validateCommunityExistsBySlug(slug);
-
       try {
+        // Validate community exists and get its ID
+        const community =
+          await communityService.validateCommunityExistsBySlug(slug);
+
         const result = await moderationService.muteProfile(
           user.id,
           community.id,
@@ -58,11 +58,11 @@ export const moderationRouter = new Hono()
       const user = c.get("user");
       const { id: slug, profileId } = c.req.valid("param");
 
-      // Validate community exists and get its ID
-      const community =
-        await communityService.validateCommunityExistsBySlug(slug);
-
       try {
+        // Validate community exists and get its ID
+        const community =
+          await communityService.validateCommunityExistsBySlug(slug);
+
         const result = await moderationService.unmuteProfile(
           user.id,
           community.id,

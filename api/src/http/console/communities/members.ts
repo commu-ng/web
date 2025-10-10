@@ -20,11 +20,11 @@ export const membersRouter = new Hono()
       const { id: slug, membership_id: membershipId } = c.req.valid("param");
       const user = c.get("user");
 
-      // Validate community exists and get its ID
-      const community =
-        await communityService.validateCommunityExistsBySlug(slug);
-
       try {
+        // Validate community exists and get its ID
+        const community =
+          await communityService.validateCommunityExistsBySlug(slug);
+
         await membershipService.removeMember(
           community.id,
           membershipId,
@@ -47,11 +47,11 @@ export const membersRouter = new Hono()
       const { id: slug } = c.req.valid("param");
       const user = c.get("user");
 
-      // Validate community exists and get its ID
-      const community =
-        await communityService.validateCommunityExistsBySlug(slug);
-
       try {
+        // Validate community exists and get its ID
+        const community =
+          await communityService.validateCommunityExistsBySlug(slug);
+
         await membershipService.leaveCommunity(user.id, community.id);
         return c.json({ message: "커뮤에서 성공적으로 나갔습니다" });
       } catch (error) {
@@ -72,33 +72,30 @@ export const membersRouter = new Hono()
       const user = c.get("user");
       const { limit = 50, offset = 0 } = c.req.valid("query");
 
-      // Validate community exists and get its ID
-      const community =
-        await communityService.validateCommunityExistsBySlug(slug);
-
       // Check if user has permission (must be owner only)
       try {
+        // Validate community exists and get its ID
+        const community =
+          await communityService.validateCommunityExistsBySlug(slug);
+
         await membershipService.validateMembershipRole(user.id, community.id, [
           "owner",
         ]);
+
+        // Get community members with profiles
+        const result = await membershipService.getCommunityMembers(
+          community.id,
+          user.id,
+          { limit, offset },
+        );
+
+        return c.json(result);
       } catch (error) {
         if (error instanceof AppException) {
           return c.json({ error: error.message }, error.statusCode);
         }
-        return c.json(
-          { error: "커뮤 소유자만 회원 목록을 볼 수 있습니다" },
-          403,
-        );
+        throw error;
       }
-
-      // Get community members with profiles
-      const result = await membershipService.getCommunityMembers(
-        community.id,
-        user.id,
-        { limit, offset },
-      );
-
-      return c.json(result);
     },
   )
   .put(
@@ -112,11 +109,11 @@ export const membersRouter = new Hono()
       const { membership_id: membershipId, role: newRole } =
         c.req.valid("json");
 
-      // Validate community exists and get its ID
-      const community =
-        await communityService.validateCommunityExistsBySlug(slug);
-
       try {
+        // Validate community exists and get its ID
+        const community =
+          await communityService.validateCommunityExistsBySlug(slug);
+
         const result = await membershipService.updateMemberRole(
           community.id,
           membershipId,

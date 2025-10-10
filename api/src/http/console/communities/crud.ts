@@ -137,25 +137,17 @@ export const crudRouter = new Hono()
         mute_new_members,
       } = c.req.valid("json");
 
-      // Validate community exists and get its ID
-      const community =
-        await communityService.validateCommunityExistsBySlug(slugParam);
-      const communityId = community.id;
-
       // Check if user is the owner
       try {
+        // Validate community exists and get its ID
+        const community =
+          await communityService.validateCommunityExistsBySlug(slugParam);
+        const communityId = community.id;
+
         await membershipService.validateMembershipRole(user.id, communityId, [
           "owner",
         ]);
-      } catch (error) {
-        if (error instanceof AppException) {
-          return c.json({ error: error.message }, error.statusCode);
-        }
-        throw error;
-      }
 
-      // Update community using service
-      try {
         const { community: updatedCommunity, ownerProfileId } =
           await communityService.updateCommunity(communityId, {
             name,
@@ -203,25 +195,17 @@ export const crudRouter = new Hono()
       const { id: slug } = c.req.valid("param");
       const user = c.get("user");
 
-      // Validate community exists and get its ID
-      const community =
-        await communityService.validateCommunityExistsBySlug(slug);
-      const communityId = community.id;
-
       // Check if user is the owner
       try {
+        // Validate community exists and get its ID
+        const community =
+          await communityService.validateCommunityExistsBySlug(slug);
+        const communityId = community.id;
+
         await membershipService.validateMembershipRole(user.id, communityId, [
           "owner",
         ]);
-      } catch (error) {
-        if (error instanceof AppException) {
-          return c.json({ error: error.message }, error.statusCode);
-        }
-        throw error;
-      }
 
-      // Delete community using service
-      try {
         await communityService.deleteCommunity(communityId);
         return c.json({ message: "커뮤가 성공적으로 삭제되었습니다" });
       } catch (error: unknown) {

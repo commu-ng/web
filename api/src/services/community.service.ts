@@ -33,24 +33,6 @@ import { addImageUrl } from "../utils/r2";
 import * as imageService from "./image.service";
 
 /**
- * Validate that a community exists and is not deleted
- */
-export async function validateCommunityExists(communityId: string) {
-  const community = await db.query.community.findFirst({
-    where: and(
-      eq(communityTable.id, communityId),
-      isNull(communityTable.deletedAt),
-    ),
-  });
-
-  if (!community) {
-    throw new AppException(404, "커뮤를 찾을 수 없습니다");
-  }
-
-  return community;
-}
-
-/**
  * Get community by custom domain
  */
 export async function getCommunityByCustomDomain(customDomain: string) {

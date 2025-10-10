@@ -154,26 +154,16 @@ export const linksRouter = new Hono()
       const { id: slug, linkId } = c.req.valid("param");
       const user = c.get("user");
 
-      // Validate community exists and get its ID
-      const community =
-        await communityService.validateCommunityExistsBySlug(slug);
-
       // Check permissions
       try {
+        // Validate community exists and get its ID
+        const community =
+          await communityService.validateCommunityExistsBySlug(slug);
+
         await membershipService.validateMembershipRole(user.id, community.id, [
           "owner",
         ]);
-      } catch (error) {
-        if (error instanceof AppException) {
-          return c.json({ error: error.message }, error.statusCode);
-        }
-        return c.json(
-          { error: "커뮤 소유자만 링크를 관리할 수 있습니다" },
-          403,
-        );
-      }
 
-      try {
         await communityService.deleteCommunityLink(community.id, linkId);
         return c.json({ message: "링크가 성공적으로 삭제되었습니다" });
       } catch (error) {
