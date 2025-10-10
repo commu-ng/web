@@ -9,6 +9,8 @@ import {
   moderationLog as moderationLogTable,
   notification as notificationTable,
   postBookmark as postBookmarkTable,
+  postHistory as postHistoryTable,
+  postHistoryImage as postHistoryImageTable,
   postImage as postImageTable,
   postReaction as postReactionTable,
   post as postTable,
@@ -2036,8 +2038,38 @@ export async function updatePost(
     }
   }
 
+  // Get current post images before updating
+  const currentImages = await db.query.postImage.findMany({
+    where: eq(postImageTable.postId, postId),
+  });
+
   // Update the post in a transaction
   await db.transaction(async (tx) => {
+    // Save current state to history before updating
+    const historyResult = await tx
+      .insert(postHistoryTable)
+      .values({
+        postId: postId,
+        content: post.content,
+        contentWarning: post.contentWarning,
+        editedByProfileId: profileId,
+      })
+      .returning();
+
+    const historyEntry = historyResult[0];
+    if (!historyEntry) {
+      throw new Error("Failed to create history entry");
+    }
+
+    // Save history images
+    if (currentImages.length > 0) {
+      const historyImageInserts = currentImages.map((pi) => ({
+        postHistoryId: historyEntry.id,
+        imageId: pi.imageId,
+      }));
+      await tx.insert(postHistoryImageTable).values(historyImageInserts);
+    }
+
     // Update the post
     await tx
       .update(postTable)
@@ -2130,6 +2162,64 @@ export async function updatePost(
         },
       })) || [],
   };
+}
+
+/**
+ * Get edit history for a post
+ */
+export async function getPostHistory(postId: string, communityId: string) {
+  // Validate post belongs to this community
+  const hasAccess = await validatePostCommunityAccess(postId, communityId);
+  if (!hasAccess) {
+    throw new AppException(404, "게시물을 찾을 수 없습니다");
+  }
+
+  // Get all history entries for this post, ordered by most recent first
+  const historyEntries = await db.query.postHistory.findMany({
+    where: eq(postHistoryTable.postId, postId),
+    orderBy: [desc(postHistoryTable.editedAt)],
+    with: {
+      postHistoryImages: {
+        with: {
+          image: true,
+        },
+      },
+      profile: true,
+    },
+  });
+
+  // Collect all editor profile IDs for batch loading profile pictures
+  const editorProfileIds = new Set(
+    historyEntries.map((entry) => entry.editedByProfileId),
+  );
+
+  // Batch load profile pictures for all editors
+  const profilePictureMap = await batchLoadProfilePictures(
+    Array.from(editorProfileIds),
+  );
+
+  // Format the history data
+  const history = historyEntries.map((entry) => ({
+    id: entry.id,
+    content: entry.content,
+    content_warning: entry.contentWarning,
+    edited_at: entry.editedAt,
+    edited_by: {
+      id: entry.profile.id,
+      name: entry.profile.name,
+      username: entry.profile.username,
+      profile_picture_url: profilePictureMap.get(entry.profile.id) || null,
+    },
+    images: entry.postHistoryImages.map((phi) => ({
+      id: phi.image.id,
+      url: addImageUrl(phi.image).url,
+      width: phi.image.width,
+      height: phi.image.height,
+      filename: phi.image.filename,
+    })),
+  }));
+
+  return history;
 }
 
 /**

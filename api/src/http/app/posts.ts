@@ -364,6 +364,27 @@ export const postsRouter = new Hono<{ Variables: AuthVariables }>()
     },
   )
 
+  .get(
+    "/posts/:post_id/history",
+    optionalAppAuthMiddleware,
+    communityMiddleware,
+    zValidator("param", postIdParamSchema),
+    async (c) => {
+      const { post_id: postId } = c.req.valid("param");
+      const community = c.get("community");
+
+      try {
+        const history = await postService.getPostHistory(postId, community.id);
+        return c.json(history);
+      } catch (error: unknown) {
+        if (error instanceof AppException) {
+          return c.json({ error: error.message }, error.statusCode);
+        }
+        throw error;
+      }
+    },
+  )
+
   .delete(
     "/posts/:post_id",
     appAuthMiddleware,

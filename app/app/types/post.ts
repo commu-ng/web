@@ -14,6 +14,20 @@ export interface PostAuthor {
   profile_picture_url: string | null;
 }
 
+export interface PostHistoryEntry {
+  id: string;
+  content: string;
+  content_warning: string | null;
+  edited_at: string;
+  edited_by: {
+    id: string;
+    name: string;
+    username: string;
+    profile_picture_url: string | null;
+  };
+  images: PostImage[];
+}
+
 export interface Post {
   id: string;
   content: string;

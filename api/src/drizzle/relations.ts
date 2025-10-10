@@ -25,6 +25,8 @@ import {
   notification,
   post,
   postBookmark,
+  postHistory,
+  postHistoryImage,
   postImage,
   postReaction,
   profile,
@@ -258,6 +260,7 @@ export const imageRelations = relations(image, ({ many }) => ({
   applicationAttachments: many(applicationAttachment),
   profilePictures: many(profilePicture),
   postImages: many(postImage),
+  postHistoryImages: many(postHistoryImage),
   groupChatMessageImages: many(groupChatMessageImage),
   directMessageImages: many(directMessageImage),
 }));
@@ -330,6 +333,7 @@ export const postRelations = relations(post, ({ one, many }) => ({
   mentions: many(mention),
   postImages: many(postImage),
   postReactions: many(postReaction),
+  postHistories: many(postHistory),
   profile: one(profile, {
     fields: [post.authorId],
     references: [profile.id],
@@ -438,6 +442,32 @@ export const postBookmarkRelations = relations(postBookmark, ({ one }) => ({
     references: [post.id],
   }),
 }));
+
+export const postHistoryRelations = relations(postHistory, ({ one, many }) => ({
+  post: one(post, {
+    fields: [postHistory.postId],
+    references: [post.id],
+  }),
+  profile: one(profile, {
+    fields: [postHistory.editedByProfileId],
+    references: [profile.id],
+  }),
+  postHistoryImages: many(postHistoryImage),
+}));
+
+export const postHistoryImageRelations = relations(
+  postHistoryImage,
+  ({ one }) => ({
+    postHistory: one(postHistory, {
+      fields: [postHistoryImage.postHistoryId],
+      references: [postHistory.id],
+    }),
+    image: one(image, {
+      fields: [postHistoryImage.imageId],
+      references: [image.id],
+    }),
+  }),
+);
 
 export const membershipRelations = relations(membership, ({ one }) => ({
   community: one(community, {

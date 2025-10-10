@@ -1053,6 +1053,60 @@ export const postBookmark = pgTable(
   ],
 );
 
+export const postHistory = pgTable(
+  "post_history",
+  {
+    id: uuid().primaryKey().default(sql`uuidv7()`),
+    postId: uuid("post_id").notNull(),
+    content: text().notNull(),
+    contentWarning: text("content_warning"),
+    editedAt: timestamp("edited_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+    editedByProfileId: uuid("edited_by_profile_id").notNull(),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.postId],
+      foreignColumns: [post.id],
+      name: "post_history_post_id_fkey",
+    }),
+    foreignKey({
+      columns: [table.editedByProfileId],
+      foreignColumns: [profile.id],
+      name: "post_history_edited_by_profile_id_fkey",
+    }),
+    index("idx_post_history_post_id_edited_at").on(
+      table.postId,
+      table.editedAt,
+    ),
+    sql`CONSTRAINT valid_post_history_content CHECK (length(content) <= 10000)`,
+    sql`CONSTRAINT valid_post_history_content_warning CHECK (content_warning IS NULL OR length(content_warning) <= 500)`,
+  ],
+);
+
+export const postHistoryImage = pgTable(
+  "post_history_image",
+  {
+    id: uuid().primaryKey().default(sql`uuidv7()`),
+    postHistoryId: uuid("post_history_id").notNull(),
+    imageId: uuid("image_id").notNull(),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.postHistoryId],
+      foreignColumns: [postHistory.id],
+      name: "post_history_image_post_history_id_fkey",
+    }),
+    foreignKey({
+      columns: [table.imageId],
+      foreignColumns: [image.id],
+      name: "post_history_image_image_id_fkey",
+    }),
+    unique("unique_post_history_image").on(table.postHistoryId, table.imageId),
+  ],
+);
+
 export const membership = pgTable(
   "membership",
   {

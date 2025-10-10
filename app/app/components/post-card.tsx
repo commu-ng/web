@@ -283,6 +283,7 @@ export const PostCard = memo(function PostCard({
           postId={post.id}
           author={post.author}
           createdAt={post.createdAt}
+          updatedAt={post.updatedAt}
           isAnnouncement={post.announcement}
           isPinned={!!post.pinned_at}
           isReply={isReply}
