@@ -957,6 +957,56 @@ export async function createApplication(
     throw new AppException(400, "이 커뮤에 이미 대기 중인 지원서가 있습니다");
   }
 
+  // Check if username is already taken by an existing profile
+  const existingProfile = await db.query.profile.findFirst({
+    where: and(
+      eq(profileTable.username, data.profileUsername),
+      eq(profileTable.communityId, communityId),
+      isNull(profileTable.deletedAt),
+    ),
+    with: {
+      ownerships: {
+        where: and(
+          eq(profileOwnershipTable.userId, userId),
+          eq(profileOwnershipTable.role, "owner"),
+        ),
+      },
+    },
+  });
+
+  // Allow reapplying with your own deactivated username
+  // Reject if username is taken by someone else (active or inactive) or by an active profile of the same user
+  if (existingProfile) {
+    const isOwnProfile = existingProfile.ownerships.length > 0;
+    const isActive = existingProfile.activatedAt !== null;
+
+    // Reject if it's someone else's username OR if it's your own active profile
+    if (!isOwnProfile || isActive) {
+      throw new AppException(
+        409,
+        "이 사용자명은 이미 사용중입니다. 다른 사용자명을 선택해주세요",
+      );
+    }
+  }
+
+  // Check if username is reserved by another pending application
+  const pendingApplicationWithUsername =
+    await db.query.communityApplication.findFirst({
+      where: and(
+        eq(communityApplicationTable.profileUsername, data.profileUsername),
+        eq(communityApplicationTable.communityId, communityId),
+        eq(communityApplicationTable.status, "pending"),
+        ne(communityApplicationTable.userId, userId), // Allow user to update their own pending application
+      ),
+    });
+
+  if (pendingApplicationWithUsername) {
+    throw new AppException(
+      409,
+      "이 사용자명은 다른 대기 중인 지원서에서 사용중입니다. 다른 사용자명을 선택해주세요",
+    );
+  }
+
   // Validate that all attachment images exist if provided
   if (data.attachmentIds && data.attachmentIds.length > 0) {
     const existingImages = await db.query.image.findMany({

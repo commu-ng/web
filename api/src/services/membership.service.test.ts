@@ -245,6 +245,100 @@ describe("Membership State Transitions", () => {
       );
       expect(inactiveUsernames).not.toContain("member");
     });
+
+    it("should reject application with username already taken by existing profile", async () => {
+      const { user: owner, community } = await createCommunityWithOwner();
+      const existingMember = await createTestUser();
+
+      // Create approved member with username "taken"
+      const existingApplication = await createTestApplication(
+        existingMember.id,
+        community.id,
+        {
+          profileUsername: "taken",
+        },
+      );
+      await membershipService.approveMembershipApplication(
+        existingApplication.id,
+        owner.id,
+      );
+
+      // New user tries to apply with same username
+      const newUser = await createTestUser();
+      await expect(
+        membershipService.createApplication(newUser.id, community.id, {
+          profileName: "New User",
+          profileUsername: "taken",
+        }),
+      ).rejects.toThrow("이 사용자명은 이미 사용중입니다");
+    });
+
+    it("should reject application with username reserved by another pending application", async () => {
+      const community = await createTestCommunity();
+      const user1 = await createTestUser();
+      const user2 = await createTestUser();
+
+      // User1 applies with username "reserved"
+      await createTestApplication(user1.id, community.id, {
+        profileUsername: "reserved",
+      });
+
+      // User2 tries to apply with same username - should be rejected
+      await expect(
+        membershipService.createApplication(user2.id, community.id, {
+          profileName: "User 2",
+          profileUsername: "reserved",
+        }),
+      ).rejects.toThrow("이 사용자명은 다른 대기 중인 지원서에서 사용중입니다");
+    });
+
+    it("should allow application with username from deactivated profile after rejection", async () => {
+      const { user: owner, community } = await createCommunityWithOwner();
+      const user1 = await createTestUser();
+
+      // User1 joins and leaves
+      const app1 = await createTestApplication(user1.id, community.id, {
+        profileUsername: "available",
+      });
+      await membershipService.approveMembershipApplication(app1.id, owner.id);
+      const membership = await testDb.query.membership.findFirst({
+        where: and(
+          eq(membershipTable.userId, user1.id),
+          eq(membershipTable.communityId, community.id),
+        ),
+      });
+      if (!membership) throw new Error("Membership not found");
+      await membershipService.leaveCommunity(user1.id, community.id);
+
+      // User2 tries to apply with same username - should be rejected during application
+      const user2 = await createTestUser();
+      await expect(
+        membershipService.createApplication(user2.id, community.id, {
+          profileName: "User 2",
+          profileUsername: "available",
+        }),
+      ).rejects.toThrow("이 사용자명은 이미 사용중입니다");
+    });
+
+    it("should not allow two concurrent applications with same username", async () => {
+      const community = await createTestCommunity();
+      const user1 = await createTestUser();
+      const user2 = await createTestUser();
+
+      // User1 creates pending application
+      await membershipService.createApplication(user1.id, community.id, {
+        profileName: "User 1",
+        profileUsername: "concurrent",
+      });
+
+      // User2 tries to create application with same username
+      await expect(
+        membershipService.createApplication(user2.id, community.id, {
+          profileName: "User 2",
+          profileUsername: "concurrent",
+        }),
+      ).rejects.toThrow("이 사용자명은 다른 대기 중인 지원서에서 사용중입니다");
+    });
   });
 
   describe("Membership Deactivation", () => {
