@@ -409,3 +409,73 @@ export async function sendApplicationNotificationEmail(
     throw new Error(`이메일 전송 실패: ${receipt.errorMessages.join(", ")}`);
   }
 }
+
+/**
+ * Send application approved notification email to applicant
+ */
+export async function sendApplicationApprovedEmail(
+  applicantEmail: string,
+  communityName: string,
+) {
+  const consoleUrl = `https://${DOMAIN}`;
+
+  const message = createMessage({
+    from: `커뮹! <noreply@${env.mailgun.domain}>`,
+    to: applicantEmail,
+    subject: `[${communityName}] 가입 지원서가 승인되었습니다`,
+    content: {
+      text: `${communityName} 커뮤 가입 지원서가 승인되었습니다.\n\n이제 ${communityName} 커뮤의 멤버가 되었습니다.\n\n커뮹 바로가기:\n${consoleUrl}`,
+      html: `
+        <h2>[${communityName}] 가입 지원서가 승인되었습니다</h2>
+        <p>${communityName} 커뮤 가입 지원서가 승인되었습니다.</p>
+        <p>이제 ${communityName} 커뮤의 멤버가 되었습니다.</p>
+        <p>아래 버튼을 클릭하여 커뮹으로 이동하세요:</p>
+        <a href="${consoleUrl}" style="display: inline-block; padding: 12px 24px; background-color: #007bff; color: white; text-decoration: none; border-radius: 4px;">커뮹 바로가기</a>
+        <p>또는 다음 링크를 복사하여 브라우저에 붙여넣으세요:</p>
+        <p>${consoleUrl}</p>
+      `,
+    },
+  });
+
+  const receipt = await transport.send(message);
+
+  if (!receipt.successful) {
+    throw new Error(`이메일 전송 실패: ${receipt.errorMessages.join(", ")}`);
+  }
+}
+
+/**
+ * Send application rejected notification email to applicant
+ */
+export async function sendApplicationRejectedEmail(
+  applicantEmail: string,
+  communityName: string,
+  rejectionReason?: string,
+) {
+  const reasonText = rejectionReason ? `\n\n거절 사유: ${rejectionReason}` : "";
+  const consoleUrl = `https://${DOMAIN}`;
+
+  const message = createMessage({
+    from: `커뮹! <noreply@${env.mailgun.domain}>`,
+    to: applicantEmail,
+    subject: `[${communityName}] 가입 지원서가 거절되었습니다`,
+    content: {
+      text: `${communityName} 커뮤 가입 지원서가 거절되었습니다.${reasonText}\n\n커뮹 바로가기:\n${consoleUrl}`,
+      html: `
+        <h2>[${communityName}] 가입 지원서가 거절되었습니다</h2>
+        <p>${communityName} 커뮤 가입 지원서가 거절되었습니다.</p>
+        ${rejectionReason ? `<p><strong>거절 사유:</strong> ${rejectionReason}</p>` : ""}
+        <p>아래 버튼을 클릭하여 커뮹으로 이동하세요:</p>
+        <a href="${consoleUrl}" style="display: inline-block; padding: 12px 24px; background-color: #007bff; color: white; text-decoration: none; border-radius: 4px;">커뮹 바로가기</a>
+        <p>또는 다음 링크를 복사하여 브라우저에 붙여넣으세요:</p>
+        <p>${consoleUrl}</p>
+      `,
+    },
+  });
+
+  const receipt = await transport.send(message);
+
+  if (!receipt.successful) {
+    throw new Error(`이메일 전송 실패: ${receipt.errorMessages.join(", ")}`);
+  }
+}

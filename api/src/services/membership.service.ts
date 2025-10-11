@@ -797,6 +797,33 @@ export async function approveMembershipApplication(
     };
   });
 
+  // Send email notification to applicant
+  // This is done after the transaction to avoid blocking application approval
+  // Errors in email sending are logged but do not prevent application approval
+  try {
+    // Get applicant's user information with email
+    const applicantUser = await db.query.user.findFirst({
+      where: and(
+        eq(userTable.id, application.userId),
+        isNull(userTable.deletedAt),
+      ),
+    });
+
+    // Send email only if applicant has a verified email
+    if (applicantUser?.email && applicantUser.emailVerifiedAt) {
+      await emailService.sendApplicationApprovedEmail(
+        applicantUser.email,
+        community.name,
+      );
+    }
+  } catch (emailError: unknown) {
+    // Log email error but don't fail the application approval
+    logger.service.error("Failed to send application approved email", {
+      error: emailError,
+      applicationId,
+    });
+  }
+
   return result;
 }
 
@@ -837,6 +864,44 @@ export async function rejectMembershipApplication(
   const updatedApplication = result[0];
   if (!updatedApplication) {
     throw new Error("Failed to reject application");
+  }
+
+  // Send email notification to applicant
+  // This is done after the update to avoid blocking application rejection
+  // Errors in email sending are logged but do not prevent application rejection
+  try {
+    // Get community information
+    const community = await db.query.community.findFirst({
+      where: and(
+        eq(communityTable.id, application.communityId),
+        isNull(communityTable.deletedAt),
+      ),
+    });
+
+    if (community) {
+      // Get applicant's user information with email
+      const applicantUser = await db.query.user.findFirst({
+        where: and(
+          eq(userTable.id, application.userId),
+          isNull(userTable.deletedAt),
+        ),
+      });
+
+      // Send email only if applicant has a verified email
+      if (applicantUser?.email && applicantUser.emailVerifiedAt) {
+        await emailService.sendApplicationRejectedEmail(
+          applicantUser.email,
+          community.name,
+          rejectionReason,
+        );
+      }
+    }
+  } catch (emailError: unknown) {
+    // Log email error but don't fail the application rejection
+    logger.service.error("Failed to send application rejected email", {
+      error: emailError,
+      applicationId,
+    });
   }
 
   return updatedApplication;
