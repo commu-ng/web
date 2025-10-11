@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import {
+  AlertCircle,
   FileText,
   Home,
   LogIn,
@@ -15,6 +16,7 @@ import { Button } from "~/components/ui/button";
 import { Spinner } from "~/components/ui/spinner";
 import { useAuth } from "~/hooks/useAuth";
 import { api } from "~/lib/api-client";
+import { Alert, AlertDescription, AlertTitle } from "./ui/alert";
 
 interface Community {
   id: string;
@@ -39,7 +41,7 @@ async function fetchMyCommunities(): Promise<Community[]> {
 }
 
 export function Navigation() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
 
   // Fetch communities to get pending application counts
   const { data: communities } = useQuery({
@@ -69,19 +71,19 @@ export function Navigation() {
           타임라인 기반 커뮤 플랫폼
         </p>
 
-        {/* {isAuthenticated && user && !user.emailVerified && (
+        {isAuthenticated && user && !user.emailVerified && (
           <Alert variant="destructive" className="max-w-2xl">
             <AlertCircle className="h-4 w-4" />
             <AlertTitle>이메일 인증이 필요합니다</AlertTitle>
             <AlertDescription>
-              비밀번호 재설정 등 중요한 기능을 사용하려면 이메일 인증이
-              필요합니다.{" "}
+              비밀번호 재설정, 커뮤 지원서 알림 수신 등 중요한 기능을 사용하려면
+              이메일 인증이 필요합니다.{" "}
               <Link to="/account" className="underline font-medium">
                 계정 설정에서 이메일을 인증하세요
               </Link>
             </AlertDescription>
           </Alert>
-        )} */}
+        )}
 
         <div className="grid grid-cols-2 sm:grid-cols-3 md:flex md:flex-wrap justify-center gap-2 max-w-2xl w-full">
           {isLoading ? (
