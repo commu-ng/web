@@ -225,7 +225,7 @@ export function CommunityCard({ community }: CommunityCardProps) {
                   ? "지원 거부됨"
                   : hasApplied
                     ? "신청 완료"
-                    : "가입 지원"}
+                    : "커뮤 상세"}
               </Button>
             </div>
           )}
