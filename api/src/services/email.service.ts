@@ -373,3 +373,39 @@ export async function sendExportReadyEmail(
     throw new Error(`이메일 전송 실패: ${receipt.errorMessages.join(", ")}`);
   }
 }
+
+/**
+ * Send new application notification email to community owner
+ */
+export async function sendApplicationNotificationEmail(
+  ownerEmail: string,
+  communityName: string,
+  communitySlug: string,
+  applicantUsername: string,
+) {
+  const applicationsUrl = `https://${DOMAIN}/communities/${communitySlug}/applications`;
+
+  const message = createMessage({
+    from: `커뮹! <noreply@${env.mailgun.domain}>`,
+    to: ownerEmail,
+    subject: `[${communityName}] 새로운 가입 지원서`,
+    content: {
+      text: `${communityName} 커뮤에 새로운 가입 지원서가 도착했습니다.\n\n지원자: ${applicantUsername}\n\n지원서 확인하기:\n${applicationsUrl}`,
+      html: `
+        <h2>[${communityName}] 새로운 가입 지원서</h2>
+        <p>${communityName} 커뮤에 새로운 가입 지원서가 도착했습니다.</p>
+        <p><strong>지원자:</strong> ${applicantUsername}</p>
+        <p>아래 버튼을 클릭하여 지원서를 확인하세요:</p>
+        <a href="${applicationsUrl}" style="display: inline-block; padding: 12px 24px; background-color: #007bff; color: white; text-decoration: none; border-radius: 4px;">지원서 확인하기</a>
+        <p>또는 다음 링크를 복사하여 브라우저에 붙여넣으세요:</p>
+        <p>${applicationsUrl}</p>
+      `,
+    },
+  });
+
+  const receipt = await transport.send(message);
+
+  if (!receipt.successful) {
+    throw new Error(`이메일 전송 실패: ${receipt.errorMessages.join(", ")}`);
+  }
+}

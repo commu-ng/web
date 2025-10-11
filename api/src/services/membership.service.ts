@@ -16,17 +16,20 @@ import { db } from "../db";
 import {
   applicationAttachment as applicationAttachmentTable,
   communityApplication as communityApplicationTable,
+  community as communityTable,
   image as imageTable,
   membership as membershipTable,
   moderationLog as moderationLogTable,
   profileOwnership as profileOwnershipTable,
   profile as profileTable,
+  user as userTable,
 } from "../drizzle/schema";
 import { AppException } from "../exception";
 import {
   getPrimaryProfileIdForUserInCommunity,
   revokeSharedProfileAccess,
 } from "../utils/profile-ownership";
+import * as emailService from "./email.service";
 
 /**
  * Query Functions
@@ -1057,6 +1060,57 @@ export async function createApplication(
 
       return application;
     });
+
+    // Send email notification to community owner
+    // This is done after the transaction to avoid blocking application creation
+    // Errors in email sending are logged but do not prevent application creation
+    try {
+      // Get community information
+      const community = await db.query.community.findFirst({
+        where: and(
+          eq(communityTable.id, communityId),
+          isNull(communityTable.deletedAt),
+        ),
+      });
+
+      if (community) {
+        // Get community owner's membership
+        const ownerMembership = await db.query.membership.findFirst({
+          where: and(
+            eq(membershipTable.communityId, communityId),
+            eq(membershipTable.role, "owner"),
+            isNotNull(membershipTable.activatedAt),
+          ),
+        });
+
+        if (ownerMembership) {
+          // Get owner's user information with email
+          const ownerUser = await db.query.user.findFirst({
+            where: and(
+              eq(userTable.id, ownerMembership.userId),
+              isNull(userTable.deletedAt),
+            ),
+          });
+
+          // Send email only if owner has a verified email
+          if (ownerUser?.email && ownerUser.emailVerifiedAt) {
+            await emailService.sendApplicationNotificationEmail(
+              ownerUser.email,
+              community.name,
+              community.slug,
+              data.profileUsername,
+            );
+          }
+        }
+      }
+    } catch (emailError: unknown) {
+      // Log email error but don't fail the application creation
+      logger.service.error("Failed to send application notification email", {
+        error: emailError,
+        applicationId: newApplication.id,
+        communityId,
+      });
+    }
 
     return newApplication;
   } catch (error: unknown) {
