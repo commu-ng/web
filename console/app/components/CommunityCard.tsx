@@ -174,7 +174,7 @@ export function CommunityCard({ community }: CommunityCardProps) {
           {/* Hashtags */}
           {community.hashtags && community.hashtags.length > 0 && (
             <div className="flex flex-wrap gap-1 mb-2">
-              {community.hashtags.slice(0, 3).map((hashtag) => (
+              {community.hashtags.map((hashtag) => (
                 <Badge
                   key={hashtag.id}
                   variant="outline"
@@ -184,14 +184,6 @@ export function CommunityCard({ community }: CommunityCardProps) {
                   {hashtag.tag}
                 </Badge>
               ))}
-              {community.hashtags.length > 3 && (
-                <Badge
-                  variant="outline"
-                  className="text-xs px-2 py-0.5 bg-gray-50 text-gray-600 border-gray-200"
-                >
-                  +{community.hashtags.length - 3}
-                </Badge>
-              )}
             </div>
           )}
 
