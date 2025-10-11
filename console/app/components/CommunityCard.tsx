@@ -178,7 +178,7 @@ export function CommunityCard({ community }: CommunityCardProps) {
                 <Badge
                   key={hashtag.id}
                   variant="outline"
-                  className="text-xs px-2 py-0.5 bg-blue-50 text-blue-700 border-blue-200"
+                  className="text-xs px-2 py-0.5 bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-800"
                 >
                   <Hash className="h-2.5 w-2.5 mr-1" />
                   {hashtag.tag}
@@ -204,8 +204,8 @@ export function CommunityCard({ community }: CommunityCardProps) {
                 className={`w-full h-8 text-sm ${
                   hasApplied
                     ? isRejected
-                      ? "bg-red-100 text-red-600 hover:bg-red-200 border-red-200"
-                      : "bg-gray-200 text-gray-600 hover:bg-gray-300"
+                      ? "bg-red-100 text-red-600 hover:bg-red-200 border-red-200 dark:bg-red-950 dark:text-red-300 dark:hover:bg-red-900 dark:border-red-800"
+                      : "bg-gray-200 text-gray-600 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
                     : ""
                 }`}
                 onClick={() => {
