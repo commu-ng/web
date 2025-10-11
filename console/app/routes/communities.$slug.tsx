@@ -528,10 +528,7 @@ export default function CommunityDetails() {
                       <p className="text-sm text-muted-foreground">검토 대기</p>
                     </div>
                   </div>
-                  <Badge
-                    variant="secondary"
-                    className="bg-yellow-100 text-yellow-800"
-                  >
+                  <Badge className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
                     {stats.applications.pending}
                   </Badge>
                 </div>
@@ -544,10 +541,7 @@ export default function CommunityDetails() {
                       <p className="text-sm text-muted-foreground">가입 완료</p>
                     </div>
                   </div>
-                  <Badge
-                    variant="secondary"
-                    className="bg-green-100 text-green-800"
-                  >
+                  <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
                     {stats.applications.approved}
                   </Badge>
                 </div>
@@ -560,10 +554,7 @@ export default function CommunityDetails() {
                       <p className="text-sm text-muted-foreground">가입 거절</p>
                     </div>
                   </div>
-                  <Badge
-                    variant="secondary"
-                    className="bg-red-100 text-red-800"
-                  >
+                  <Badge className="bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">
                     {stats.applications.rejected}
                   </Badge>
                 </div>
