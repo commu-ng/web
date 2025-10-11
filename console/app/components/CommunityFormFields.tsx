@@ -74,6 +74,10 @@ export function CommunityFormFields({
   const recruitingId = useId();
   const muteNewMembersId = useId();
 
+  const communityCreationYear = existingCommunity
+    ? new Date(existingCommunity.starts_at).getFullYear()
+    : undefined;
+
   return (
     <>
       <Field>
@@ -253,6 +257,7 @@ export function CommunityFormFields({
           value={startDate}
           onChange={onStartDateChange}
           maxDate={endDate ? new Date(endDate.getTime() - 1) : undefined}
+          communityCreationYear={communityCreationYear}
         />
       </Field>
 
@@ -262,6 +267,7 @@ export function CommunityFormFields({
           value={endDate}
           onChange={onEndDateChange}
           minDate={startDate ? new Date(startDate.getTime() + 1) : undefined}
+          communityCreationYear={communityCreationYear}
         />
       </Field>
 
@@ -296,6 +302,7 @@ export function CommunityFormFields({
             <CommunityDateTimePicker
               value={recruitingStartDate}
               onChange={onRecruitingStartDateChange}
+              communityCreationYear={communityCreationYear}
             />
           </Field>
 
@@ -309,6 +316,7 @@ export function CommunityFormFields({
                   ? new Date(recruitingStartDate.getTime() + 1)
                   : undefined
               }
+              communityCreationYear={communityCreationYear}
             />
           </Field>
 

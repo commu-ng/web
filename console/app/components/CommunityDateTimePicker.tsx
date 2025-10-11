@@ -15,6 +15,7 @@ interface CommunityDateTimePickerProps {
   minDate?: Date;
   maxDate?: Date;
   disabled?: boolean;
+  communityCreationYear?: number;
 }
 
 export function CommunityDateTimePicker({
@@ -23,6 +24,7 @@ export function CommunityDateTimePicker({
   minDate,
   maxDate,
   disabled = false,
+  communityCreationYear,
 }: CommunityDateTimePickerProps) {
   const [open, setOpen] = useState(false);
   const [date, setDate] = useState<Date | undefined>(value);
@@ -110,8 +112,13 @@ export function CommunityDateTimePicker({
               selected={date}
               captionLayout="dropdown"
               onSelect={handleDateSelect}
-              fromYear={new Date().getFullYear() - 1}
-              toYear={new Date().getFullYear() + 1}
+              startMonth={
+                new Date(
+                  communityCreationYear ?? new Date().getFullYear() - 1,
+                  0,
+                )
+              }
+              endMonth={new Date(new Date().getFullYear() + 5, 11)}
               disabled={[
                 ...(minDate ? [{ before: minDate }] : []),
                 ...(maxDate ? [{ after: maxDate }] : []),
