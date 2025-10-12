@@ -95,7 +95,7 @@ export function PostCardReactions({
           </button>
 
           {openReactionSelector && (
-            <div className="basis-full bg-popover border border-border rounded-lg shadow-lg p-2 flex flex-wrap gap-1">
+            <div className="reaction-selector basis-full bg-popover border border-border rounded-lg shadow-lg p-2 flex flex-wrap gap-1">
               {AVAILABLE_REACTIONS.map(({ emoji, label }) => (
                 <button
                   type="button"
