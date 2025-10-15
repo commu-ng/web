@@ -11,6 +11,7 @@ import {
   Scripts,
   ScrollRestoration,
 } from "react-router";
+import { MasqueradeBanner } from "~/components/MasqueradeBanner";
 import { Navigation } from "~/components/Navigation";
 import { Toaster } from "~/components/ui/sonner";
 import type { Route } from "./+types/root";
@@ -60,6 +61,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
       <body>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <QueryClientProvider client={queryClient}>
+            <MasqueradeBanner />
             <Navigation />
             {children}
             {import.meta.env.DEV && <ReactQueryDevtools />}

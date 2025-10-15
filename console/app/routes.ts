@@ -42,4 +42,5 @@ export default [
   ),
   route("boards/:boardSlug", "routes/boards.$boardSlug.tsx"),
   route("admin/boards", "routes/admin.boards.tsx"),
+  route("admin/masquerade", "routes/admin.masquerade.tsx"),
 ] satisfies RouteConfig;

@@ -43,6 +43,13 @@
       "when": 1760530191755,
       "tag": "0005_zippy_ezekiel",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1760533097933,
+      "tag": "0006_spicy_kingpin",
+      "breakpoints": true
     }
   ]
 }

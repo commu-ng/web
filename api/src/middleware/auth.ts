@@ -5,9 +5,12 @@ import type {
   user as userTable,
 } from "../drizzle/schema";
 import * as authService from "../services/auth.service";
+import * as masqueradeService from "../services/masquerade.service";
 
 type AuthVariables = {
   user: typeof userTable.$inferSelect;
+  isMasquerading?: boolean;
+  originalUserId?: string;
 };
 
 export const authMiddleware = createMiddleware<{
@@ -32,6 +35,13 @@ export const authMiddleware = createMiddleware<{
   }
 
   c.set("user", result.user);
+
+  // Check if this is a masquerade session and add context
+  if (masqueradeService.isMasqueradeSession(result.session)) {
+    c.set("isMasquerading", true);
+    c.set("originalUserId", result.session.originalUserId || undefined);
+  }
+
   await next();
 });
 

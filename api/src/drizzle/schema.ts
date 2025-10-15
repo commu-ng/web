@@ -388,6 +388,7 @@ export const session = pgTable(
     }).notNull(),
     userId: uuid("user_id").notNull(),
     communityId: uuid("community_id"),
+    originalUserId: uuid("original_user_id"),
   },
   (table) => [
     foreignKey({
@@ -400,8 +401,49 @@ export const session = pgTable(
       foreignColumns: [community.id],
       name: "session_community_id_fkey",
     }),
+    foreignKey({
+      columns: [table.originalUserId],
+      foreignColumns: [user.id],
+      name: "session_original_user_id_fkey",
+    }),
     unique("session_token_key").on(table.token),
     index("idx_session_expires_at").on(table.expiresAt),
+  ],
+);
+
+export const masqueradeAuditLog = pgTable(
+  "masquerade_audit_log",
+  {
+    id: uuid().primaryKey().default(sql`uuidv7()`),
+    adminUserId: uuid("admin_user_id").notNull(),
+    targetUserId: uuid("target_user_id").notNull(),
+    action: text().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+    endedAt: timestamp("ended_at", { withTimezone: true, mode: "string" }),
+    sessionId: uuid("session_id"),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.adminUserId],
+      foreignColumns: [user.id],
+      name: "masquerade_audit_log_admin_user_id_fkey",
+    }),
+    foreignKey({
+      columns: [table.targetUserId],
+      foreignColumns: [user.id],
+      name: "masquerade_audit_log_target_user_id_fkey",
+    }),
+    foreignKey({
+      columns: [table.sessionId],
+      foreignColumns: [session.id],
+      name: "masquerade_audit_log_session_id_fkey",
+    }),
+    index("idx_masquerade_audit_log_admin_user").on(table.adminUserId),
+    index("idx_masquerade_audit_log_target_user").on(table.targetUserId),
+    index("idx_masquerade_audit_log_created_at").on(table.createdAt),
+    sql`CONSTRAINT valid_masquerade_action CHECK (action IN ('start', 'end'))`,
   ],
 );
 

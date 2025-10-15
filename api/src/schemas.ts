@@ -415,3 +415,16 @@ export const boardPostQuerySchema = z.object({
   limit: z.string().regex(/^\d+$/).transform(Number).optional(),
   cursor: z.string().optional(),
 });
+
+// Masquerade schemas
+export const masqueradeStartRequestSchema = z.object({
+  target_user_id: z.uuid(),
+});
+
+export const masqueradeUserListQuerySchema = z.object({
+  limit: z.string().regex(/^\d+$/).transform(Number).optional(),
+});
+
+export const masqueradeAuditLogQuerySchema = z.object({
+  limit: z.string().regex(/^\d+$/).transform(Number).optional(),
+});

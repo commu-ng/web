@@ -45,6 +45,16 @@ export const consoleAccountRouter = new Hono()
     zValidator("json", passwordChangeRequestSchema),
     async (c) => {
       const user = c.get("user");
+      const isMasquerading = c.get("isMasquerading");
+
+      // Block password changes during masquerade
+      if (isMasquerading) {
+        return c.json(
+          { error: "전환 중에는 비밀번호를 변경할 수 없습니다" },
+          403,
+        );
+      }
+
       const { current_password, new_password } = c.req.valid("json");
 
       try {
@@ -68,6 +78,16 @@ export const consoleAccountRouter = new Hono()
     zValidator("json", emailUpdateSchema),
     async (c) => {
       const user = c.get("user");
+      const isMasquerading = c.get("isMasquerading");
+
+      // Block email changes during masquerade
+      if (isMasquerading) {
+        return c.json(
+          { error: "전환 중에는 이메일을 변경할 수 없습니다" },
+          403,
+        );
+      }
+
       const { email } = c.req.valid("json");
 
       try {
@@ -142,6 +162,12 @@ export const consoleAccountRouter = new Hono()
   })
   .delete("/users/me", authMiddleware, async (c) => {
     const user = c.get("user");
+    const isMasquerading = c.get("isMasquerading");
+
+    // Block account deletion during masquerade
+    if (isMasquerading) {
+      return c.json({ error: "전환 중에는 계정을 삭제할 수 없습니다" }, 403);
+    }
 
     // Check if user owns any active communities
     const { hasActiveCommunities, communities } =
