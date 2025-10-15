@@ -233,9 +233,7 @@ export default function AdminMasquerade() {
         </CardHeader>
         <CardContent>
           {isFetching && (
-            <div className="mb-4 text-sm text-muted-foreground">
-              검색 중...
-            </div>
+            <div className="mb-4 text-sm text-muted-foreground">검색 중...</div>
           )}
           {!users || users.length === 0 ? (
             <Empty>
