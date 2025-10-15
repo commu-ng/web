@@ -1,4 +1,4 @@
-import { and, desc, eq, ilike, isNull, ne, or } from "drizzle-orm";
+import { and, desc, eq, ilike, isNull, ne, or, sql } from "drizzle-orm";
 import { db } from "../db";
 import {
   masqueradeAuditLog as masqueradeAuditLogTable,
@@ -218,7 +218,7 @@ export async function listUsersForMasquerade(
     const searchCondition = or(
       ilike(userTable.loginName, searchPattern),
       ilike(userTable.email, searchPattern),
-      ilike(userTable.id, searchPattern),
+      sql`${userTable.id}::text ilike ${searchPattern}`, // Cast UUID to text for search
     );
 
     whereCondition = and(whereCondition, searchCondition);
