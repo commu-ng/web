@@ -74,6 +74,7 @@ export default function AdminMasquerade() {
   const {
     data: users,
     isLoading,
+    isFetching,
     error,
     refetch,
   } = useQuery({
@@ -120,7 +121,8 @@ export default function AdminMasquerade() {
     }
   };
 
-  if (authLoading || isLoading) {
+  // Only show full loading state on initial load, not during search refetch
+  if (authLoading || (isLoading && !users)) {
     return <LoadingState message="사용자 목록을 불러오는 중..." />;
   }
 
@@ -230,6 +232,11 @@ export default function AdminMasquerade() {
           </div>
         </CardHeader>
         <CardContent>
+          {isFetching && (
+            <div className="mb-4 text-sm text-muted-foreground">
+              검색 중...
+            </div>
+          )}
           {!users || users.length === 0 ? (
             <Empty>
               <EmptyHeader>
