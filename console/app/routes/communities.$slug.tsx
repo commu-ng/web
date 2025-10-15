@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
   ArrowRight,
+  BarChart3,
   CheckCircle,
   Clock,
   ExternalLink,
@@ -345,6 +346,15 @@ export default function CommunityDetails() {
                 </Button>
               </Link>
             )}
+            {currentUser &&
+              (userRole === "owner" || userRole === "moderator") && (
+                <Link to={`/communities/${slug}/analytics`}>
+                  <Button variant="outline" size="sm">
+                    <BarChart3 className="h-4 w-4" />
+                    분석
+                  </Button>
+                </Link>
+              )}
             {currentUser &&
               (userRole === "owner" || userRole === "moderator") && (
                 <Link to={`/communities/${slug}/members`}>

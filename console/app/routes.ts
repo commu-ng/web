@@ -25,5 +25,9 @@ export default [
   route("communities/:slug/settings", "routes/communities.$slug.settings.tsx"),
   route("communities/:slug/members", "routes/communities.$slug.members.tsx"),
   route("communities/:slug/links", "routes/communities.$slug.links.tsx"),
+  route(
+    "communities/:slug/analytics",
+    "routes/communities.$slug.analytics.tsx",
+  ),
   route("communities/:slug", "routes/communities.$slug.tsx"),
 ] satisfies RouteConfig;

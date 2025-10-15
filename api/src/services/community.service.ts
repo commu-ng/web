@@ -17,8 +17,12 @@ import {
   communityDescriptionImage as communityDescriptionImageTable,
   communityLink as communityLinkTable,
   community as communityTable,
+  directMessage as directMessageTable,
+  groupChatMessage as groupChatMessageTable,
+  groupChat as groupChatTable,
   image as imageTable,
   membership as membershipTable,
+  post as postTable,
   profileOwnership as profileOwnershipTable,
   profile as profileTable,
 } from "../drizzle/schema";
@@ -29,6 +33,7 @@ import {
 } from "../utils/hashtag-helper";
 import { sanitizeCommunityDescription } from "../utils/html-sanitizer";
 import { getPrimaryProfileIdForUserInCommunity } from "../utils/profile-ownership";
+import { batchLoadProfilePictures } from "../utils/profile-picture-helper";
 import { addImageUrl } from "../utils/r2";
 import * as imageService from "./image.service";
 
@@ -1015,6 +1020,504 @@ export async function getCommunityStats(communityId: string) {
     members: {
       total: totalMembersResult[0]?.count ?? 0,
     },
+  };
+}
+
+/**
+ * Get community activity statistics for analytics dashboard
+ * Returns time-series data for posts and direct messages
+ */
+export async function getCommunityActivityStats(
+  communityId: string,
+  days = 30,
+) {
+  const community = await db.query.community.findFirst({
+    where: and(
+      eq(communityTable.id, communityId),
+      isNull(communityTable.deletedAt),
+    ),
+  });
+
+  if (!community) {
+    throw new AppException(404, "커뮤를 찾을 수 없습니다");
+  }
+
+  // Get posts activity by date
+  const postsTimeline = await db
+    .select({
+      date: sql<string>`DATE(${postTable.createdAt})`.as("date"),
+      count: count(postTable.id),
+    })
+    .from(postTable)
+    .where(
+      and(
+        eq(postTable.communityId, communityId),
+        isNull(postTable.deletedAt),
+        sql`${postTable.createdAt} >= NOW() - INTERVAL '${sql.raw(days.toString())} days'`,
+      ),
+    )
+    .groupBy(sql`DATE(${postTable.createdAt})`)
+    .orderBy(sql`DATE(${postTable.createdAt})`);
+
+  // Get direct messages activity by date
+  const dmsTimeline = await db
+    .select({
+      date: sql<string>`DATE(${directMessageTable.createdAt})`.as("date"),
+      count: count(directMessageTable.id),
+    })
+    .from(directMessageTable)
+    .where(
+      and(
+        eq(directMessageTable.communityId, communityId),
+        isNull(directMessageTable.deletedAt),
+        sql`${directMessageTable.createdAt} >= NOW() - INTERVAL '${sql.raw(days.toString())} days'`,
+      ),
+    )
+    .groupBy(sql`DATE(${directMessageTable.createdAt})`)
+    .orderBy(sql`DATE(${directMessageTable.createdAt})`);
+
+  // Get posts activity by hour (hourly timeline)
+  const postsHourlyTimeline = await db
+    .select({
+      datetime: sql<string>`DATE_TRUNC('hour', ${postTable.createdAt})`.as(
+        "datetime",
+      ),
+      count: count(postTable.id),
+    })
+    .from(postTable)
+    .where(
+      and(
+        eq(postTable.communityId, communityId),
+        isNull(postTable.deletedAt),
+        sql`${postTable.createdAt} >= NOW() - INTERVAL '${sql.raw(days.toString())} days'`,
+      ),
+    )
+    .groupBy(sql`DATE_TRUNC('hour', ${postTable.createdAt})`)
+    .orderBy(sql`DATE_TRUNC('hour', ${postTable.createdAt})`);
+
+  // Get direct messages activity by hour (hourly timeline)
+  const dmsHourlyTimeline = await db
+    .select({
+      datetime:
+        sql<string>`DATE_TRUNC('hour', ${directMessageTable.createdAt})`.as(
+          "datetime",
+        ),
+      count: count(directMessageTable.id),
+    })
+    .from(directMessageTable)
+    .where(
+      and(
+        eq(directMessageTable.communityId, communityId),
+        isNull(directMessageTable.deletedAt),
+        sql`${directMessageTable.createdAt} >= NOW() - INTERVAL '${sql.raw(days.toString())} days'`,
+      ),
+    )
+    .groupBy(sql`DATE_TRUNC('hour', ${directMessageTable.createdAt})`)
+    .orderBy(sql`DATE_TRUNC('hour', ${directMessageTable.createdAt})`);
+
+  // Get group messages activity by date
+  const groupMessagesTimeline = await db
+    .select({
+      date: sql<string>`DATE(${groupChatMessageTable.createdAt})`.as("date"),
+      count: count(groupChatMessageTable.id),
+    })
+    .from(groupChatMessageTable)
+    .innerJoin(
+      groupChatTable,
+      eq(groupChatMessageTable.groupChatId, groupChatTable.id),
+    )
+    .where(
+      and(
+        eq(groupChatTable.communityId, communityId),
+        isNull(groupChatMessageTable.deletedAt),
+        isNull(groupChatTable.deletedAt),
+        sql`${groupChatMessageTable.createdAt} >= NOW() - INTERVAL '${sql.raw(days.toString())} days'`,
+      ),
+    )
+    .groupBy(sql`DATE(${groupChatMessageTable.createdAt})`)
+    .orderBy(sql`DATE(${groupChatMessageTable.createdAt})`);
+
+  // Get group messages activity by hour (hourly timeline)
+  const groupMessagesHourlyTimeline = await db
+    .select({
+      datetime:
+        sql<string>`DATE_TRUNC('hour', ${groupChatMessageTable.createdAt})`.as(
+          "datetime",
+        ),
+      count: count(groupChatMessageTable.id),
+    })
+    .from(groupChatMessageTable)
+    .innerJoin(
+      groupChatTable,
+      eq(groupChatMessageTable.groupChatId, groupChatTable.id),
+    )
+    .where(
+      and(
+        eq(groupChatTable.communityId, communityId),
+        isNull(groupChatMessageTable.deletedAt),
+        isNull(groupChatTable.deletedAt),
+        sql`${groupChatMessageTable.createdAt} >= NOW() - INTERVAL '${sql.raw(days.toString())} days'`,
+      ),
+    )
+    .groupBy(sql`DATE_TRUNC('hour', ${groupChatMessageTable.createdAt})`)
+    .orderBy(sql`DATE_TRUNC('hour', ${groupChatMessageTable.createdAt})`);
+
+  // Get posts activity heatmap (hour of day x day of week) - use ALL data for patterns
+  const postsHeatmap = await db
+    .select({
+      hour: sql<number>`EXTRACT(HOUR FROM ${postTable.createdAt})`.as("hour"),
+      dayOfWeek: sql<number>`EXTRACT(DOW FROM ${postTable.createdAt})`.as(
+        "dayOfWeek",
+      ),
+      count: count(postTable.id),
+    })
+    .from(postTable)
+    .where(
+      and(eq(postTable.communityId, communityId), isNull(postTable.deletedAt)),
+    )
+    .groupBy(
+      sql`EXTRACT(HOUR FROM ${postTable.createdAt})`,
+      sql`EXTRACT(DOW FROM ${postTable.createdAt})`,
+    );
+
+  // Get direct messages activity heatmap (hour of day x day of week) - use ALL data for patterns
+  const dmsHeatmap = await db
+    .select({
+      hour: sql<number>`EXTRACT(HOUR FROM ${directMessageTable.createdAt})`.as(
+        "hour",
+      ),
+      dayOfWeek:
+        sql<number>`EXTRACT(DOW FROM ${directMessageTable.createdAt})`.as(
+          "dayOfWeek",
+        ),
+      count: count(directMessageTable.id),
+    })
+    .from(directMessageTable)
+    .where(
+      and(
+        eq(directMessageTable.communityId, communityId),
+        isNull(directMessageTable.deletedAt),
+      ),
+    )
+    .groupBy(
+      sql`EXTRACT(HOUR FROM ${directMessageTable.createdAt})`,
+      sql`EXTRACT(DOW FROM ${directMessageTable.createdAt})`,
+    );
+
+  // Get group messages activity heatmap (hour of day x day of week) - use ALL data for patterns
+  const groupMessagesHeatmap = await db
+    .select({
+      hour: sql<number>`EXTRACT(HOUR FROM ${groupChatMessageTable.createdAt})`.as(
+        "hour",
+      ),
+      dayOfWeek:
+        sql<number>`EXTRACT(DOW FROM ${groupChatMessageTable.createdAt})`.as(
+          "dayOfWeek",
+        ),
+      count: count(groupChatMessageTable.id),
+    })
+    .from(groupChatMessageTable)
+    .innerJoin(
+      groupChatTable,
+      eq(groupChatMessageTable.groupChatId, groupChatTable.id),
+    )
+    .where(
+      and(
+        eq(groupChatTable.communityId, communityId),
+        isNull(groupChatMessageTable.deletedAt),
+        isNull(groupChatTable.deletedAt),
+      ),
+    )
+    .groupBy(
+      sql`EXTRACT(HOUR FROM ${groupChatMessageTable.createdAt})`,
+      sql`EXTRACT(DOW FROM ${groupChatMessageTable.createdAt})`,
+    );
+
+  // Get totals
+  const totalPostsResult = await db
+    .select({ count: count(postTable.id) })
+    .from(postTable)
+    .where(
+      and(
+        eq(postTable.communityId, communityId),
+        isNull(postTable.deletedAt),
+        sql`${postTable.createdAt} >= NOW() - INTERVAL '${sql.raw(days.toString())} days'`,
+      ),
+    );
+
+  const totalDmsResult = await db
+    .select({ count: count(directMessageTable.id) })
+    .from(directMessageTable)
+    .where(
+      and(
+        eq(directMessageTable.communityId, communityId),
+        isNull(directMessageTable.deletedAt),
+        sql`${directMessageTable.createdAt} >= NOW() - INTERVAL '${sql.raw(days.toString())} days'`,
+      ),
+    );
+
+  const totalGroupMessagesResult = await db
+    .select({ count: count(groupChatMessageTable.id) })
+    .from(groupChatMessageTable)
+    .innerJoin(
+      groupChatTable,
+      eq(groupChatMessageTable.groupChatId, groupChatTable.id),
+    )
+    .where(
+      and(
+        eq(groupChatTable.communityId, communityId),
+        isNull(groupChatMessageTable.deletedAt),
+        isNull(groupChatTable.deletedAt),
+        sql`${groupChatMessageTable.createdAt} >= NOW() - INTERVAL '${sql.raw(days.toString())} days'`,
+      ),
+    );
+
+  // Get most active profiles (top 10)
+  // Count posts by profile
+  const profilePostCounts = await db
+    .select({
+      profileId: postTable.authorId,
+      count: count(postTable.id),
+    })
+    .from(postTable)
+    .where(
+      and(
+        eq(postTable.communityId, communityId),
+        isNull(postTable.deletedAt),
+        isNotNull(postTable.authorId),
+        sql`${postTable.createdAt} >= NOW() - INTERVAL '${sql.raw(days.toString())} days'`,
+      ),
+    )
+    .groupBy(postTable.authorId);
+
+  // Count DMs sent by profile
+  const profileDmCounts = await db
+    .select({
+      profileId: directMessageTable.senderId,
+      count: count(directMessageTable.id),
+    })
+    .from(directMessageTable)
+    .where(
+      and(
+        eq(directMessageTable.communityId, communityId),
+        isNull(directMessageTable.deletedAt),
+        isNotNull(directMessageTable.senderId),
+        sql`${directMessageTable.createdAt} >= NOW() - INTERVAL '${sql.raw(days.toString())} days'`,
+      ),
+    )
+    .groupBy(directMessageTable.senderId);
+
+  // Count group messages by profile
+  const profileGroupMessageCounts = await db
+    .select({
+      profileId: groupChatMessageTable.createdByUserId,
+      count: count(groupChatMessageTable.id),
+    })
+    .from(groupChatMessageTable)
+    .innerJoin(
+      groupChatTable,
+      eq(groupChatMessageTable.groupChatId, groupChatTable.id),
+    )
+    .where(
+      and(
+        eq(groupChatTable.communityId, communityId),
+        isNull(groupChatMessageTable.deletedAt),
+        isNull(groupChatTable.deletedAt),
+        isNotNull(groupChatMessageTable.createdByUserId),
+        sql`${groupChatMessageTable.createdAt} >= NOW() - INTERVAL '${sql.raw(days.toString())} days'`,
+      ),
+    )
+    .groupBy(groupChatMessageTable.createdByUserId);
+
+  // Aggregate counts by profile
+  const profileActivityMap = new Map<
+    string,
+    { posts: number; dms: number; groupMessages: number }
+  >();
+
+  for (const { profileId, count: postCount } of profilePostCounts) {
+    if (!profileActivityMap.has(profileId)) {
+      profileActivityMap.set(profileId, { posts: 0, dms: 0, groupMessages: 0 });
+    }
+    const activity = profileActivityMap.get(profileId);
+    if (activity) {
+      activity.posts = Number(postCount);
+    }
+  }
+
+  for (const { profileId, count: dmCount } of profileDmCounts) {
+    if (!profileActivityMap.has(profileId)) {
+      profileActivityMap.set(profileId, { posts: 0, dms: 0, groupMessages: 0 });
+    }
+    const activity = profileActivityMap.get(profileId);
+    if (activity) {
+      activity.dms = Number(dmCount);
+    }
+  }
+
+  for (const { profileId, count: gmCount } of profileGroupMessageCounts) {
+    if (!profileActivityMap.has(profileId)) {
+      profileActivityMap.set(profileId, { posts: 0, dms: 0, groupMessages: 0 });
+    }
+    const activity = profileActivityMap.get(profileId);
+    if (activity) {
+      activity.groupMessages = Number(gmCount);
+    }
+  }
+
+  // Sort by total activity
+  const profileActivityList = Array.from(profileActivityMap.entries())
+    .map(([profileId, activity]) => ({
+      profileId,
+      ...activity,
+      total: activity.posts + activity.dms + activity.groupMessages,
+    }))
+    .sort((a, b) => b.total - a.total);
+
+  // Get top 10 most active
+  const mostActiveList = profileActivityList.slice(0, 10);
+
+  // Get bottom 10 least active (but still with some activity)
+  const leastActiveList = profileActivityList
+    .filter((p) => p.total > 0)
+    .slice(-10)
+    .reverse(); // Reverse to show lowest first
+
+  // Fetch profile details and pictures for both most and least active
+  let profiles: Array<{ id: string; name: string; username: string }> = [];
+  let profilePictureMap = new Map<string, string | null>();
+
+  try {
+    if (mostActiveList.length > 0 || leastActiveList.length > 0) {
+      const allProfileIds = [
+        ...mostActiveList.map((p) => p.profileId),
+        ...leastActiveList.map((p) => p.profileId),
+      ];
+      const uniqueProfileIds = [...new Set(allProfileIds)].filter(
+        (id): id is string => typeof id === "string" && id.length > 0,
+      );
+
+      if (uniqueProfileIds.length > 0) {
+        const profilesPromise = db
+          .select({
+            id: profileTable.id,
+            name: profileTable.name,
+            username: profileTable.username,
+          })
+          .from(profileTable)
+          .where(
+            and(
+              inArray(profileTable.id, uniqueProfileIds),
+              isNull(profileTable.deletedAt),
+            ),
+          );
+
+        const picturesPromise = batchLoadProfilePictures(uniqueProfileIds);
+
+        [profiles, profilePictureMap] = await Promise.all([
+          profilesPromise,
+          picturesPromise,
+        ]);
+      }
+    }
+  } catch (error) {
+    logger.service.error("Error loading profile data for analytics", { error });
+    // Continue with empty profiles - don't fail the entire request
+    profiles = [];
+    profilePictureMap = new Map();
+  }
+
+  // Build final most active profiles list with activity counts
+  const mostActiveProfilesWithActivity = mostActiveList
+    .map((activity) => {
+      const profile = profiles.find((p) => p.id === activity.profileId);
+      if (!profile) return null;
+
+      return {
+        profile_id: profile.id,
+        profile_name: profile.name,
+        profile_username: profile.username,
+        avatar_url: profilePictureMap.get(profile.id) || null,
+        posts_count: activity.posts,
+        dms_count: activity.dms,
+        group_messages_count: activity.groupMessages,
+        total_activity: activity.total,
+      };
+    })
+    .filter((p) => p !== null);
+
+  // Build final least active profiles list with activity counts
+  const leastActiveProfilesWithActivity = leastActiveList
+    .map((activity) => {
+      const profile = profiles.find((p) => p.id === activity.profileId);
+      if (!profile) return null;
+
+      return {
+        profile_id: profile.id,
+        profile_name: profile.name,
+        profile_username: profile.username,
+        avatar_url: profilePictureMap.get(profile.id) || null,
+        posts_count: activity.posts,
+        dms_count: activity.dms,
+        group_messages_count: activity.groupMessages,
+        total_activity: activity.total,
+      };
+    })
+    .filter((p) => p !== null);
+
+  return {
+    timeline: {
+      posts: postsTimeline.map((row) => ({
+        date: row.date,
+        count: Number(row.count),
+      })),
+      directMessages: dmsTimeline.map((row) => ({
+        date: row.date,
+        count: Number(row.count),
+      })),
+      groupMessages: groupMessagesTimeline.map((row) => ({
+        date: row.date,
+        count: Number(row.count),
+      })),
+    },
+    hourlyTimeline: {
+      posts: postsHourlyTimeline.map((row) => ({
+        datetime: row.datetime,
+        count: Number(row.count),
+      })),
+      directMessages: dmsHourlyTimeline.map((row) => ({
+        datetime: row.datetime,
+        count: Number(row.count),
+      })),
+      groupMessages: groupMessagesHourlyTimeline.map((row) => ({
+        datetime: row.datetime,
+        count: Number(row.count),
+      })),
+    },
+    heatmap: {
+      posts: postsHeatmap.map((row) => ({
+        hour: Number(row.hour),
+        dayOfWeek: Number(row.dayOfWeek),
+        count: Number(row.count),
+      })),
+      directMessages: dmsHeatmap.map((row) => ({
+        hour: Number(row.hour),
+        dayOfWeek: Number(row.dayOfWeek),
+        count: Number(row.count),
+      })),
+      groupMessages: groupMessagesHeatmap.map((row) => ({
+        hour: Number(row.hour),
+        dayOfWeek: Number(row.dayOfWeek),
+        count: Number(row.count),
+      })),
+    },
+    totals: {
+      posts: Number(totalPostsResult[0]?.count ?? 0),
+      directMessages: Number(totalDmsResult[0]?.count ?? 0),
+      groupMessages: Number(totalGroupMessagesResult[0]?.count ?? 0),
+    },
+    mostActiveProfiles: mostActiveProfilesWithActivity,
+    leastActiveProfiles: leastActiveProfilesWithActivity,
   };
 }
 

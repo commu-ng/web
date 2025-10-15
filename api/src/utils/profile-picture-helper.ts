@@ -39,31 +39,49 @@ export async function batchLoadProfilePictures(
     return new Map();
   }
 
-  const profilePictures = await db.query.profilePicture.findMany({
-    where: and(
-      inArray(profilePictureTable.profileId, profileIds),
-      isNull(profilePictureTable.deletedAt),
-    ),
-    with: {
-      image: true,
-    },
-  });
+  // Filter out any invalid IDs
+  const validProfileIds = profileIds.filter(
+    (id) => id && typeof id === "string" && id.length > 0,
+  );
 
-  const pictureMap = new Map<string, string | null>();
-
-  // Initialize all profiles with null
-  for (const id of profileIds) {
-    pictureMap.set(id, null);
+  if (validProfileIds.length === 0) {
+    return new Map();
   }
 
-  // Set URLs for profiles that have pictures
-  profilePictures.forEach((pp) => {
-    if (pp.image && !pp.image.deletedAt) {
-      pictureMap.set(pp.profileId, addImageUrl(pp.image).url);
-    }
-  });
+  try {
+    const profilePictures = await db.query.profilePicture.findMany({
+      where: and(
+        inArray(profilePictureTable.profileId, validProfileIds),
+        isNull(profilePictureTable.deletedAt),
+      ),
+      with: {
+        image: true,
+      },
+    });
 
-  return pictureMap;
+    const pictureMap = new Map<string, string | null>();
+
+    // Initialize all profiles with null
+    for (const id of validProfileIds) {
+      pictureMap.set(id, null);
+    }
+
+    // Set URLs for profiles that have pictures
+    profilePictures.forEach((pp) => {
+      if (pp.image && !pp.image.deletedAt) {
+        pictureMap.set(pp.profileId, addImageUrl(pp.image).url);
+      }
+    });
+
+    return pictureMap;
+  } catch (_error) {
+    // Return empty map on error - don't fail the request
+    const emptyMap = new Map<string, string | null>();
+    for (const id of validProfileIds) {
+      emptyMap.set(id, null);
+    }
+    return emptyMap;
+  }
 }
 
 /**
