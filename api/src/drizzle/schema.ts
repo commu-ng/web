@@ -50,6 +50,14 @@ export const exportStatusEnum = pgEnum("export_status", [
   "failed",
 ]);
 
+export const boardCommunityTypeEnum = pgEnum("board_community_type", [
+  "x",
+  "oeee_cafe",
+  "band",
+  "mastodon",
+  "commung",
+]);
+
 export const groupChat = pgTable(
   "group_chat",
   {
@@ -1302,5 +1310,111 @@ export const communityExport = pgTable(
     index("community_export_community_id_idx").on(table.communityId),
     index("community_export_user_id_idx").on(table.userId),
     index("community_export_status_idx").on(table.status),
+  ],
+);
+
+export const board = pgTable(
+  "board",
+  {
+    id: uuid().primaryKey().default(sql`uuidv7()`),
+    name: text().notNull(),
+    slug: text().notNull(),
+    description: text(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+    deletedAt: timestamp("deleted_at", { withTimezone: true, mode: "string" }),
+  },
+  (table) => [
+    unique("board_slug_key").on(table.slug),
+    sql`CONSTRAINT valid_board_name CHECK (length(name) > 0)`,
+    sql`CONSTRAINT valid_board_slug CHECK (slug ~ '^[a-z0-9]([a-z0-9-]*[a-z0-9])?$')`,
+    sql`CONSTRAINT valid_board_description CHECK (description IS NULL OR length(description) <= 1000)`,
+  ],
+);
+
+export const boardPost = pgTable(
+  "board_post",
+  {
+    id: uuid().primaryKey().default(sql`uuidv7()`),
+    boardId: uuid("board_id").notNull(),
+    authorId: uuid("author_id").notNull(),
+    title: text().notNull(),
+    content: text().notNull(),
+    imageId: uuid("image_id"),
+    communityType: boardCommunityTypeEnum("community_type").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+    deletedAt: timestamp("deleted_at", { withTimezone: true, mode: "string" }),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.boardId],
+      foreignColumns: [board.id],
+      name: "board_post_board_id_fkey",
+    }),
+    foreignKey({
+      columns: [table.authorId],
+      foreignColumns: [user.id],
+      name: "board_post_author_id_fkey",
+    }),
+    foreignKey({
+      columns: [table.imageId],
+      foreignColumns: [image.id],
+      name: "board_post_image_id_fkey",
+    }),
+    index("idx_board_post_board_id_created").on(table.boardId, table.createdAt),
+    sql`CONSTRAINT valid_board_post_title CHECK (length(title) > 0 AND length(title) <= 200)`,
+    sql`CONSTRAINT valid_board_post_content CHECK (length(content) > 0 AND length(content) <= 50000)`,
+  ],
+);
+
+export const boardHashtag = pgTable(
+  "board_hashtag",
+  {
+    id: uuid().primaryKey().default(sql`uuidv7()`),
+    tag: text().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    unique("board_hashtag_tag_key").on(table.tag),
+    sql`CONSTRAINT valid_board_hashtag_tag CHECK (tag ~ '^[a-z0-9가-힣]+$' AND length(tag) > 0)`,
+    index("board_hashtag_tag_lower_idx").on(sql`LOWER(${table.tag})`),
+  ],
+);
+
+export const boardPostHashtag = pgTable(
+  "board_post_hashtag",
+  {
+    boardPostId: uuid("board_post_id").notNull(),
+    hashtagId: uuid("hashtag_id").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.boardPostId],
+      foreignColumns: [boardPost.id],
+      name: "board_post_hashtag_board_post_id_fkey",
+    }),
+    foreignKey({
+      columns: [table.hashtagId],
+      foreignColumns: [boardHashtag.id],
+      name: "board_post_hashtag_hashtag_id_fkey",
+    }),
+    primaryKey({
+      columns: [table.boardPostId, table.hashtagId],
+      name: "board_post_hashtag_pkey",
+    }),
   ],
 );

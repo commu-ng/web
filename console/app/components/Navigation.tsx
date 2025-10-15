@@ -4,12 +4,14 @@ import {
   FileText,
   Home,
   LogIn,
+  MessageSquare,
   Search,
   Star,
   UserIcon,
   UserPlus,
 } from "lucide-react";
 import { Link } from "react-router";
+import { AdministratorNavigation } from "~/components/AdministratorNavigation";
 import { ThemeToggle } from "~/components/ThemeToggle";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
@@ -134,6 +136,17 @@ export function Navigation() {
                 asChild
                 className="w-full md:w-auto"
               >
+                <Link to="/boards/promo">
+                  <MessageSquare className="h-4 w-4" />
+                  홍보 게시판
+                </Link>
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                asChild
+                className="w-full md:w-auto"
+              >
                 <Link to="/account">
                   <UserIcon className="h-4 w-4" />내 계정
                 </Link>
@@ -151,6 +164,17 @@ export function Navigation() {
                 <Link to="/communities/recruiting">
                   <Search className="h-4 w-4" />
                   모집 중인 커뮤
+                </Link>
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                asChild
+                className="w-full md:w-auto col-span-2"
+              >
+                <Link to="/boards/promo">
+                  <MessageSquare className="h-4 w-4" />
+                  홍보 게시판
                 </Link>
               </Button>
               <Button size="sm" asChild className="w-full md:w-auto">
@@ -174,6 +198,9 @@ export function Navigation() {
             </>
           )}
         </div>
+
+        {/* Administrator Navigation */}
+        {isAuthenticated && user?.admin && <AdministratorNavigation />}
       </div>
     </nav>
   );

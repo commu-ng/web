@@ -354,3 +354,64 @@ export const onlineStatusVisibilitySchema = z.object({
   profile_id: z.uuid(),
   visible: z.boolean(),
 });
+
+// Board schemas
+export const boardCreateRequestSchema = z.object({
+  name: z.string().min(1, "Name cannot be empty"),
+  slug: z
+    .string()
+    .min(1, "Slug cannot be empty")
+    .regex(
+      /^[a-z0-9]+(-[a-z0-9]+)*$/,
+      "Slug must contain only lowercase letters, numbers, and single hyphens",
+    ),
+  description: z.string().max(1000).nullable().optional(),
+});
+
+export const boardUpdateRequestSchema = z.object({
+  name: z.string().min(1, "Name cannot be empty"),
+  slug: z
+    .string()
+    .min(1, "Slug cannot be empty")
+    .regex(
+      /^[a-z0-9]+(-[a-z0-9]+)*$/,
+      "Slug must contain only lowercase letters, numbers, and single hyphens",
+    ),
+  description: z.string().max(1000).nullable().optional(),
+});
+
+export const boardIdParamSchema = z.object({
+  board_id: z.uuid(),
+});
+
+export const boardSlugParamSchema = z.object({
+  board_slug: z
+    .string()
+    .min(1)
+    .regex(/^[a-z0-9]+(-[a-z0-9]+)*$/),
+});
+
+export const boardPostCreateRequestSchema = z.object({
+  title: z.string().min(1, "Title cannot be empty").max(200),
+  content: z.string().min(1, "Content cannot be empty").max(50000),
+  image_id: z.uuid().nullable().optional(),
+  community_type: z.enum(["x", "oeee_cafe", "band", "mastodon", "commung"]),
+  hashtags: z.array(z.string()).optional(),
+});
+
+export const boardPostUpdateRequestSchema = z.object({
+  title: z.string().min(1, "Title cannot be empty").max(200),
+  content: z.string().min(1, "Content cannot be empty").max(50000),
+  image_id: z.uuid().nullable().optional(),
+  community_type: z.enum(["x", "oeee_cafe", "band", "mastodon", "commung"]),
+  hashtags: z.array(z.string()).optional(),
+});
+
+export const boardPostIdParamSchema = z.object({
+  board_post_id: z.uuid(),
+});
+
+export const boardPostQuerySchema = z.object({
+  limit: z.string().regex(/^\d+$/).transform(Number).optional(),
+  cursor: z.string().optional(),
+});

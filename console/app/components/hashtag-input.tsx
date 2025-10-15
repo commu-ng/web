@@ -110,6 +110,13 @@ export function HashtagInput({
     if (value.includes(cleanTag)) return;
     if (value.length >= maxTags) return;
 
+    // Validate tag format: only lowercase letters, numbers, and complete Korean characters
+    // Reject tags with incomplete Korean characters (jamo)
+    const validTagRegex = /^[a-z0-9가-힣]+$/;
+    if (!validTagRegex.test(cleanTag)) {
+      return;
+    }
+
     onChange([...value, cleanTag]);
     setInputValue("");
     setShowSuggestions(false);

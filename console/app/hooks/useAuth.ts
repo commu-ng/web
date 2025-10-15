@@ -45,6 +45,7 @@ export function useAuth(): AuthState {
     queryKey: ["auth", "currentUser"],
     queryFn: fetchCurrentUser,
     staleTime: 5 * 60 * 1000, // 5 minutes
+    retry: false, // Don't retry on 401 errors
   });
 
   const logout = async () => {

@@ -1,0 +1,621 @@
+import { and, desc, eq, inArray, isNull, sql } from "drizzle-orm";
+import { db } from "../db";
+import {
+  board as boardTable,
+  boardHashtag as boardHashtagTable,
+  boardPost as boardPostTable,
+  boardPostHashtag as boardPostHashtagTable,
+  image as imageTable,
+  user as userTable,
+} from "../drizzle/schema";
+import { AppException } from "../exception";
+import { addImageUrl } from "../utils/r2";
+
+/**
+ * Get all boards
+ */
+export async function getBoards() {
+  const boards = await db.query.board.findMany({
+    where: isNull(boardTable.deletedAt),
+    orderBy: [desc(boardTable.createdAt)],
+  });
+
+  return boards.map((board) => ({
+    id: board.id,
+    name: board.name,
+    slug: board.slug,
+    description: board.description,
+    created_at: board.createdAt,
+    updated_at: board.updatedAt,
+  }));
+}
+
+/**
+ * Get a single board by ID
+ */
+export async function getBoard(boardId: string) {
+  const board = await db.query.board.findFirst({
+    where: and(eq(boardTable.id, boardId), isNull(boardTable.deletedAt)),
+  });
+
+  if (!board) {
+    throw new AppException(404, "게시판을 찾을 수 없습니다");
+  }
+
+  return {
+    id: board.id,
+    name: board.name,
+    slug: board.slug,
+    description: board.description,
+    created_at: board.createdAt,
+    updated_at: board.updatedAt,
+  };
+}
+
+/**
+ * Get a single board by slug
+ */
+export async function getBoardBySlug(slug: string) {
+  const board = await db.query.board.findFirst({
+    where: and(eq(boardTable.slug, slug), isNull(boardTable.deletedAt)),
+  });
+
+  if (!board) {
+    throw new AppException(404, "게시판을 찾을 수 없습니다");
+  }
+
+  return {
+    id: board.id,
+    name: board.name,
+    slug: board.slug,
+    description: board.description,
+    created_at: board.createdAt,
+    updated_at: board.updatedAt,
+  };
+}
+
+/**
+ * Create a new board
+ */
+export async function createBoard(
+  name: string,
+  slug: string,
+  description: string | null | undefined,
+) {
+  // Check if slug already exists
+  const existingBoard = await db.query.board.findFirst({
+    where: eq(boardTable.slug, slug),
+  });
+
+  if (existingBoard) {
+    throw new AppException(409, "이미 존재하는 슬러그입니다");
+  }
+
+  const newBoardResult = await db
+    .insert(boardTable)
+    .values({
+      name,
+      slug,
+      description: description || null,
+    })
+    .returning();
+
+  const newBoard = newBoardResult[0];
+  if (!newBoard) {
+    throw new Error("Failed to create board");
+  }
+
+  return {
+    id: newBoard.id,
+    name: newBoard.name,
+    slug: newBoard.slug,
+    description: newBoard.description,
+    created_at: newBoard.createdAt,
+    updated_at: newBoard.updatedAt,
+  };
+}
+
+/**
+ * Update a board
+ */
+export async function updateBoard(
+  boardId: string,
+  name: string,
+  slug: string,
+  description: string | null | undefined,
+) {
+  // Check if board exists
+  const board = await db.query.board.findFirst({
+    where: and(eq(boardTable.id, boardId), isNull(boardTable.deletedAt)),
+  });
+
+  if (!board) {
+    throw new AppException(404, "게시판을 찾을 수 없습니다");
+  }
+
+  // Check if slug is taken by another board
+  if (slug !== board.slug) {
+    const existingBoard = await db.query.board.findFirst({
+      where: eq(boardTable.slug, slug),
+    });
+
+    if (existingBoard && existingBoard.id !== boardId) {
+      throw new AppException(409, "이미 존재하는 슬러그입니다");
+    }
+  }
+
+  const updatedBoardResult = await db
+    .update(boardTable)
+    .set({
+      name,
+      slug,
+      description: description || null,
+      updatedAt: sql`NOW()`,
+    })
+    .where(eq(boardTable.id, boardId))
+    .returning();
+
+  const updatedBoard = updatedBoardResult[0];
+  if (!updatedBoard) {
+    throw new Error("Failed to update board");
+  }
+
+  return {
+    id: updatedBoard.id,
+    name: updatedBoard.name,
+    slug: updatedBoard.slug,
+    description: updatedBoard.description,
+    created_at: updatedBoard.createdAt,
+    updated_at: updatedBoard.updatedAt,
+  };
+}
+
+/**
+ * Delete a board
+ */
+export async function deleteBoard(boardId: string) {
+  const board = await db.query.board.findFirst({
+    where: and(eq(boardTable.id, boardId), isNull(boardTable.deletedAt)),
+  });
+
+  if (!board) {
+    throw new AppException(404, "게시판을 찾을 수 없습니다");
+  }
+
+  await db
+    .update(boardTable)
+    .set({
+      deletedAt: sql`NOW()`,
+    })
+    .where(eq(boardTable.id, boardId));
+}
+
+/**
+ * Get board posts with pagination
+ */
+export async function getBoardPosts(
+  boardId: string | undefined,
+  limit: number = 20,
+  cursor?: string,
+) {
+  const conditions = [isNull(boardPostTable.deletedAt)];
+
+  if (boardId) {
+    conditions.push(eq(boardPostTable.boardId, boardId));
+  }
+
+  if (cursor) {
+    conditions.push(sql`${boardPostTable.id} < ${cursor}`);
+  }
+
+  const posts = await db
+    .select()
+    .from(boardPostTable)
+    .leftJoin(userTable, eq(boardPostTable.authorId, userTable.id))
+    .leftJoin(boardTable, eq(boardPostTable.boardId, boardTable.id))
+    .where(and(...conditions))
+    .orderBy(desc(boardPostTable.id))
+    .limit(limit + 1);
+
+  // Check if there are more results
+  const hasMore = posts.length > limit;
+  const postsToReturn = hasMore ? posts.slice(0, limit) : posts;
+  const nextCursor =
+    hasMore && postsToReturn.length > 0
+      ? postsToReturn[postsToReturn.length - 1]?.board_post?.id || null
+      : null;
+
+  // Collect all post IDs for batch loading hashtags and images
+  const postIds = postsToReturn
+    .map((row) => row.board_post?.id)
+    .filter((id): id is string => id !== undefined && id !== null);
+
+  const imageIds = postsToReturn
+    .map((row) => row.board_post?.imageId)
+    .filter((id): id is string => id !== undefined && id !== null);
+
+  // Batch load hashtags and images
+  const [allHashtags, allImages] = await Promise.all([
+    postIds.length > 0
+      ? db.query.boardPostHashtag.findMany({
+          where: inArray(boardPostHashtagTable.boardPostId, postIds),
+          with: {
+            hashtag: true,
+          },
+        })
+      : Promise.resolve([]),
+    imageIds.length > 0
+      ? db.query.image.findMany({
+          where: inArray(imageTable.id, imageIds),
+        })
+      : Promise.resolve([]),
+  ]);
+
+  // Group hashtags by post ID
+  const hashtagsByPostId = new Map<string, typeof allHashtags>();
+  allHashtags.forEach((h) => {
+    if (!hashtagsByPostId.has(h.boardPostId)) {
+      hashtagsByPostId.set(h.boardPostId, []);
+    }
+    hashtagsByPostId.get(h.boardPostId)?.push(h);
+  });
+
+  // Create image map
+  const imageMap = new Map(allImages.map((img) => [img.id, img]));
+
+  // Build result
+  const result = postsToReturn
+    .map((row) => {
+      const post = row.board_post;
+      const author = row.user;
+      const board = row.board;
+
+      if (!post || !author || !board) return null;
+
+      const hashtags = hashtagsByPostId.get(post.id) || [];
+      const image = post.imageId ? imageMap.get(post.imageId) : null;
+
+      return {
+        id: post.id,
+        board: {
+          id: board.id,
+          name: board.name,
+          slug: board.slug,
+        },
+        title: post.title,
+        content: post.content,
+        image: image
+          ? {
+              id: image.id,
+              url: addImageUrl(image).url,
+              width: image.width,
+              height: image.height,
+              filename: image.filename,
+            }
+          : null,
+        community_type: post.communityType,
+        hashtags: hashtags.map((h) => ({
+          id: h.hashtag.id,
+          tag: h.hashtag.tag,
+        })),
+        author: {
+          id: author.id,
+          login_name: author.loginName,
+        },
+        created_at: post.createdAt,
+        updated_at: post.updatedAt,
+      };
+    })
+    .filter((item): item is NonNullable<typeof item> => item !== null);
+
+  return {
+    data: result,
+    nextCursor,
+    hasMore,
+  };
+}
+
+/**
+ * Get a single board post
+ */
+export async function getBoardPost(postId: string) {
+  const post = await db.query.boardPost.findFirst({
+    where: and(eq(boardPostTable.id, postId), isNull(boardPostTable.deletedAt)),
+    with: {
+      board: true,
+      user: true,
+      image: true,
+    },
+  });
+
+  if (!post) {
+    throw new AppException(404, "게시물을 찾을 수 없습니다");
+  }
+
+  // Get hashtags
+  const hashtags = await db.query.boardPostHashtag.findMany({
+    where: eq(boardPostHashtagTable.boardPostId, postId),
+    with: {
+      hashtag: true,
+    },
+  });
+
+  return {
+    id: post.id,
+    board: {
+      id: post.board.id,
+      name: post.board.name,
+      slug: post.board.slug,
+    },
+    title: post.title,
+    content: post.content,
+    image: post.image
+      ? {
+          id: post.image.id,
+          url: addImageUrl(post.image).url,
+          width: post.image.width,
+          height: post.image.height,
+          filename: post.image.filename,
+        }
+      : null,
+    community_type: post.communityType,
+    hashtags: hashtags.map((h) => ({
+      id: h.hashtag.id,
+      tag: h.hashtag.tag,
+    })),
+    author: {
+      id: post.user.id,
+      login_name: post.user.loginName,
+    },
+    created_at: post.createdAt,
+    updated_at: post.updatedAt,
+  };
+}
+
+/**
+ * Create a board post
+ */
+export async function createBoardPost(
+  boardId: string,
+  authorId: string,
+  title: string,
+  content: string,
+  imageId: string | null | undefined,
+  communityType: "x" | "oeee_cafe" | "band" | "mastodon" | "commung",
+  hashtags: string[] | undefined,
+) {
+  // Validate board exists
+  const board = await db.query.board.findFirst({
+    where: and(eq(boardTable.id, boardId), isNull(boardTable.deletedAt)),
+  });
+
+  if (!board) {
+    throw new AppException(404, "게시판을 찾을 수 없습니다");
+  }
+
+  // Validate user exists
+  const user = await db.query.user.findFirst({
+    where: eq(userTable.id, authorId),
+  });
+
+  if (!user) {
+    throw new AppException(404, "사용자를 찾을 수 없습니다");
+  }
+
+  // Validate image if provided
+  if (imageId) {
+    const image = await db.query.image.findFirst({
+      where: and(eq(imageTable.id, imageId), isNull(imageTable.deletedAt)),
+    });
+
+    if (!image) {
+      throw new AppException(400, "유효하지 않은 이미지입니다");
+    }
+  }
+
+  // Create post in a transaction
+  const result = await db.transaction(async (tx) => {
+    // Create the post
+    const newPostResult = await tx
+      .insert(boardPostTable)
+      .values({
+        boardId,
+        authorId,
+        title,
+        content,
+        imageId: imageId || null,
+        communityType,
+      })
+      .returning();
+
+    const newPost = newPostResult[0];
+    if (!newPost) {
+      throw new Error("Failed to create board post");
+    }
+
+    // Handle hashtags
+    if (hashtags && hashtags.length > 0) {
+      // Get or create hashtags
+      const hashtagRecords = await Promise.all(
+        hashtags.map(async (tag) => {
+          const normalizedTag = tag.toLowerCase().trim();
+
+          // Try to find existing hashtag
+          const existing = await tx.query.boardHashtag.findFirst({
+            where: eq(boardHashtagTable.tag, normalizedTag),
+          });
+
+          if (existing) {
+            return existing;
+          }
+
+          // Create new hashtag
+          const newHashtagResult = await tx
+            .insert(boardHashtagTable)
+            .values({ tag: normalizedTag })
+            .returning();
+
+          return newHashtagResult[0];
+        }),
+      );
+
+      // Link hashtags to post
+      const hashtagLinks = hashtagRecords
+        .filter(
+          (h): h is NonNullable<typeof h> => h !== null && h !== undefined,
+        )
+        .map((hashtag) => ({
+          boardPostId: newPost.id,
+          hashtagId: hashtag.id,
+        }));
+
+      if (hashtagLinks.length > 0) {
+        await tx.insert(boardPostHashtagTable).values(hashtagLinks);
+      }
+    }
+
+    return newPost;
+  });
+
+  // Get the created post with all relations
+  return getBoardPost(result.id);
+}
+
+/**
+ * Update a board post
+ */
+export async function updateBoardPost(
+  postId: string,
+  authorId: string,
+  title: string,
+  content: string,
+  imageId: string | null | undefined,
+  communityType: "x" | "oeee_cafe" | "band" | "mastodon" | "commung",
+  hashtags: string[] | undefined,
+) {
+  // Check if post exists
+  const post = await db.query.boardPost.findFirst({
+    where: and(eq(boardPostTable.id, postId), isNull(boardPostTable.deletedAt)),
+  });
+
+  if (!post) {
+    throw new AppException(404, "게시물을 찾을 수 없습니다");
+  }
+
+  // Check if user is the author
+  if (post.authorId !== authorId) {
+    throw new AppException(403, "본인의 게시물만 수정할 수 있습니다");
+  }
+
+  // Validate image if provided
+  if (imageId) {
+    const image = await db.query.image.findFirst({
+      where: and(eq(imageTable.id, imageId), isNull(imageTable.deletedAt)),
+    });
+
+    if (!image) {
+      throw new AppException(400, "유효하지 않은 이미지입니다");
+    }
+  }
+
+  // Update post in a transaction
+  await db.transaction(async (tx) => {
+    // Update the post
+    await tx
+      .update(boardPostTable)
+      .set({
+        title,
+        content,
+        imageId: imageId || null,
+        communityType,
+        updatedAt: sql`NOW()`,
+      })
+      .where(eq(boardPostTable.id, postId));
+
+    // Delete existing hashtags
+    await tx
+      .delete(boardPostHashtagTable)
+      .where(eq(boardPostHashtagTable.boardPostId, postId));
+
+    // Handle new hashtags
+    if (hashtags && hashtags.length > 0) {
+      // Get or create hashtags
+      const hashtagRecords = await Promise.all(
+        hashtags.map(async (tag) => {
+          const normalizedTag = tag.toLowerCase().trim();
+
+          // Try to find existing hashtag
+          const existing = await tx.query.boardHashtag.findFirst({
+            where: eq(boardHashtagTable.tag, normalizedTag),
+          });
+
+          if (existing) {
+            return existing;
+          }
+
+          // Create new hashtag
+          const newHashtagResult = await tx
+            .insert(boardHashtagTable)
+            .values({ tag: normalizedTag })
+            .returning();
+
+          return newHashtagResult[0];
+        }),
+      );
+
+      // Link hashtags to post
+      const hashtagLinks = hashtagRecords
+        .filter(
+          (h): h is NonNullable<typeof h> => h !== null && h !== undefined,
+        )
+        .map((hashtag) => ({
+          boardPostId: postId,
+          hashtagId: hashtag.id,
+        }));
+
+      if (hashtagLinks.length > 0) {
+        await tx.insert(boardPostHashtagTable).values(hashtagLinks);
+      }
+    }
+  });
+
+  // Get the updated post
+  return getBoardPost(postId);
+}
+
+/**
+ * Delete a board post
+ */
+export async function deleteBoardPost(postId: string, userId: string) {
+  const post = await db.query.boardPost.findFirst({
+    where: and(eq(boardPostTable.id, postId), isNull(boardPostTable.deletedAt)),
+  });
+
+  if (!post) {
+    throw new AppException(404, "게시물을 찾을 수 없습니다");
+  }
+
+  // Check if user is the author or admin
+  const user = await db.query.user.findFirst({
+    where: eq(userTable.id, userId),
+  });
+
+  if (!user) {
+    throw new AppException(404, "사용자를 찾을 수 없습니다");
+  }
+
+  // Only author or admin can delete
+  if (post.authorId !== userId && !user.isAdmin) {
+    throw new AppException(
+      403,
+      "본인의 게시물 또는 관리자만 삭제할 수 있습니다",
+    );
+  }
+
+  await db
+    .update(boardPostTable)
+    .set({
+      deletedAt: sql`NOW()`,
+    })
+    .where(eq(boardPostTable.id, postId));
+}

@@ -1,6 +1,10 @@
 import { relations } from "drizzle-orm/relations";
 import {
   applicationAttachment,
+  board,
+  boardHashtag,
+  boardPost,
+  boardPostHashtag,
   community,
   communityApplication,
   communityBannerImage,
@@ -210,6 +214,7 @@ export const userRelations = relations(user, ({ many }) => ({
   createdOwnerships: many(profileOwnership, {
     relationName: "profileOwnership_createdBy_user_id",
   }),
+  boardPosts: many(boardPost),
 }));
 
 export const exchangeTokenRelations = relations(exchangeToken, ({ one }) => ({
@@ -263,6 +268,7 @@ export const imageRelations = relations(image, ({ many }) => ({
   postHistoryImages: many(postHistoryImage),
   groupChatMessageImages: many(groupChatMessageImage),
   directMessageImages: many(directMessageImage),
+  boardPosts: many(boardPost),
 }));
 
 export const communityApplicationRelations = relations(
@@ -550,6 +556,44 @@ export const groupChatMessageImageRelations = relations(
     groupChatMessage: one(groupChatMessage, {
       fields: [groupChatMessageImage.messageId],
       references: [groupChatMessage.id],
+    }),
+  }),
+);
+
+export const boardRelations = relations(board, ({ many }) => ({
+  boardPosts: many(boardPost),
+}));
+
+export const boardPostRelations = relations(boardPost, ({ one, many }) => ({
+  board: one(board, {
+    fields: [boardPost.boardId],
+    references: [board.id],
+  }),
+  user: one(user, {
+    fields: [boardPost.authorId],
+    references: [user.id],
+  }),
+  image: one(image, {
+    fields: [boardPost.imageId],
+    references: [image.id],
+  }),
+  boardPostHashtags: many(boardPostHashtag),
+}));
+
+export const boardHashtagRelations = relations(boardHashtag, ({ many }) => ({
+  boardPostHashtags: many(boardPostHashtag),
+}));
+
+export const boardPostHashtagRelations = relations(
+  boardPostHashtag,
+  ({ one }) => ({
+    boardPost: one(boardPost, {
+      fields: [boardPostHashtag.boardPostId],
+      references: [boardPost.id],
+    }),
+    hashtag: one(boardHashtag, {
+      fields: [boardPostHashtag.hashtagId],
+      references: [boardHashtag.id],
     }),
   }),
 );

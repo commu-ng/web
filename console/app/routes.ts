@@ -30,4 +30,16 @@ export default [
     "routes/communities.$slug.analytics.tsx",
   ),
   route("communities/:slug", "routes/communities.$slug.tsx"),
+  route("boards", "routes/boards.tsx"),
+  route("boards/:boardSlug/create", "routes/boards.$boardSlug.create.tsx"),
+  route(
+    "boards/:boardSlug/posts/:postId/edit",
+    "routes/boards.$boardSlug.posts.$postId.edit.tsx",
+  ),
+  route(
+    "boards/:boardSlug/posts/:postId",
+    "routes/boards.$boardSlug.posts.$postId.tsx",
+  ),
+  route("boards/:boardSlug", "routes/boards.$boardSlug.tsx"),
+  route("admin/boards", "routes/admin.boards.tsx"),
 ] satisfies RouteConfig;
