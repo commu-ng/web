@@ -7,7 +7,7 @@ import {
   UserCog,
   Users,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import { toast } from "sonner";
 import { LoadingState } from "~/components/shared/LoadingState";
@@ -60,6 +60,16 @@ export default function AdminMasquerade() {
   const { isLoading: authLoading, isAuthenticated, user } = useAuth();
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+
+  // Debounce search query to prevent API calls on every keystroke
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   const {
     data: users,
@@ -67,8 +77,8 @@ export default function AdminMasquerade() {
     error,
     refetch,
   } = useQuery({
-    queryKey: ["admin", "masquerade", "users", searchQuery],
-    queryFn: () => fetchUsers(searchQuery),
+    queryKey: ["admin", "masquerade", "users", debouncedSearch],
+    queryFn: () => fetchUsers(debouncedSearch),
     enabled: isAuthenticated,
   });
 

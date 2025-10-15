@@ -1,4 +1,4 @@
-import { and, desc, eq, isNull } from "drizzle-orm";
+import { and, desc, eq, ilike, isNull, ne, or } from "drizzle-orm";
 import { db } from "../db";
 import {
   masqueradeAuditLog as masqueradeAuditLogTable,
@@ -190,7 +190,7 @@ export function isMasqueradeSession(
  */
 export async function listUsersForMasquerade(
   adminUserId: string,
-  limit = 50,
+  limit = 100,
   search?: string,
 ) {
   // Verify admin user
@@ -206,9 +206,27 @@ export async function listUsersForMasquerade(
     throw new AppException(403, "관리자만 사용자 목록을 볼 수 있습니다");
   }
 
-  // Get all non-deleted users except the admin themselves
+  // Build where conditions
+  let whereCondition = and(
+    isNull(userTable.deletedAt),
+    ne(userTable.id, adminUserId), // Exclude the current admin
+  );
+
+  // Add search conditions if provided
+  if (search?.trim()) {
+    const searchPattern = `%${search.trim()}%`;
+    const searchCondition = or(
+      ilike(userTable.loginName, searchPattern),
+      ilike(userTable.email, searchPattern),
+      ilike(userTable.id, searchPattern),
+    );
+
+    whereCondition = and(whereCondition, searchCondition);
+  }
+
+  // Get users with database-level filtering
   const users = await db.query.user.findMany({
-    where: isNull(userTable.deletedAt),
+    where: whereCondition,
     columns: {
       id: true,
       loginName: true,
@@ -220,21 +238,7 @@ export async function listUsersForMasquerade(
     limit,
   });
 
-  // Exclude the current admin
-  let filteredUsers = users.filter((u) => u.id !== adminUserId);
-
-  // Apply search filter if provided
-  if (search?.trim()) {
-    const searchLower = search.trim().toLowerCase();
-    filteredUsers = filteredUsers.filter(
-      (u) =>
-        u.loginName.toLowerCase().includes(searchLower) ||
-        u.email?.toLowerCase().includes(searchLower) ||
-        u.id.toLowerCase().includes(searchLower),
-    );
-  }
-
-  return filteredUsers;
+  return users;
 }
 
 /**
