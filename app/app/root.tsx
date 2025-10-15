@@ -73,7 +73,7 @@ export function meta({ loaderData }: Route.MetaArgs) {
     banner_image_url?: string | null;
   } | null;
 
-  const title = instance?.name || "Commu";
+  const title = instance?.name || "커뮹!";
   const description = "커뮹! 커뮤 플랫폼";
   const imageUrl = instance?.banner_image_url;
 
