@@ -423,6 +423,7 @@ export const masqueradeStartRequestSchema = z.object({
 
 export const masqueradeUserListQuerySchema = z.object({
   limit: z.string().regex(/^\d+$/).transform(Number).optional(),
+  search: z.string().optional(),
 });
 
 export const masqueradeAuditLogQuerySchema = z.object({

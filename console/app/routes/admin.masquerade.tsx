@@ -48,8 +48,10 @@ interface User {
   isAdmin: boolean;
 }
 
-async function fetchUsers(): Promise<User[]> {
-  const res = await api.console.admin.masquerade.users.$get();
+async function fetchUsers(search?: string): Promise<User[]> {
+  const res = await api.console.admin.masquerade.users.$get({
+    query: search ? { search } : {},
+  });
   const data = await res.json();
   return data.users;
 }
@@ -65,8 +67,8 @@ export default function AdminMasquerade() {
     error,
     refetch,
   } = useQuery({
-    queryKey: ["admin", "masquerade", "users"],
-    queryFn: fetchUsers,
+    queryKey: ["admin", "masquerade", "users", searchQuery],
+    queryFn: () => fetchUsers(searchQuery),
     enabled: isAuthenticated,
   });
 
@@ -107,12 +109,6 @@ export default function AdminMasquerade() {
       startMasqueradeMutation.mutate(targetUser.id);
     }
   };
-
-  const filteredUsers = users?.filter(
-    (u) =>
-      u.loginName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      u.email?.toLowerCase().includes(searchQuery.toLowerCase()),
-  );
 
   if (authLoading || isLoading) {
     return <LoadingState message="사용자 목록을 불러오는 중..." />;
@@ -210,13 +206,13 @@ export default function AdminMasquerade() {
           <CardTitle className="flex items-center justify-between">
             <span className="flex items-center gap-2">
               <Users className="h-5 w-5" />
-              전체 사용자 ({filteredUsers?.length || 0}명)
+              전체 사용자 ({users?.length || 0}명)
             </span>
           </CardTitle>
           <div className="mt-4">
             <Input
               type="text"
-              placeholder="사용자 검색 (로그인 이름 또는 이메일)"
+              placeholder="사용자 검색 (로그인 이름, 이메일, 또는 UUID)"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="max-w-md"
@@ -224,7 +220,7 @@ export default function AdminMasquerade() {
           </div>
         </CardHeader>
         <CardContent>
-          {!filteredUsers || filteredUsers.length === 0 ? (
+          {!users || users.length === 0 ? (
             <Empty>
               <EmptyHeader>
                 <EmptyMedia variant="icon">
@@ -250,7 +246,7 @@ export default function AdminMasquerade() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredUsers.map((targetUser) => (
+                {users.map((targetUser) => (
                   <TableRow key={targetUser.id}>
                     <TableCell className="font-medium">
                       {targetUser.loginName}

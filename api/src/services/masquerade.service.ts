@@ -186,8 +186,13 @@ export function isMasqueradeSession(
 /**
  * List users for admin to masquerade as
  * Excludes deleted users and the current admin
+ * Supports server-side search by loginName, email, or UUID
  */
-export async function listUsersForMasquerade(adminUserId: string, limit = 50) {
+export async function listUsersForMasquerade(
+  adminUserId: string,
+  limit = 50,
+  search?: string,
+) {
   // Verify admin user
   const adminUser = await db.query.user.findFirst({
     where: and(eq(userTable.id, adminUserId), isNull(userTable.deletedAt)),
@@ -216,7 +221,20 @@ export async function listUsersForMasquerade(adminUserId: string, limit = 50) {
   });
 
   // Exclude the current admin
-  return users.filter((u) => u.id !== adminUserId);
+  let filteredUsers = users.filter((u) => u.id !== adminUserId);
+
+  // Apply search filter if provided
+  if (search?.trim()) {
+    const searchLower = search.trim().toLowerCase();
+    filteredUsers = filteredUsers.filter(
+      (u) =>
+        u.loginName.toLowerCase().includes(searchLower) ||
+        u.email?.toLowerCase().includes(searchLower) ||
+        u.id.toLowerCase().includes(searchLower),
+    );
+  }
+
+  return filteredUsers;
 }
 
 /**

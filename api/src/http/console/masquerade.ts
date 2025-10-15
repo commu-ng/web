@@ -108,12 +108,13 @@ export const consoleMasqueradeRouter = new Hono<{ Variables: AuthVariables }>()
     zValidator("query", masqueradeUserListQuerySchema),
     async (c) => {
       const user = c.get("user");
-      const { limit } = c.req.valid("query");
+      const { limit, search } = c.req.valid("query");
 
       try {
         const users = await masqueradeService.listUsersForMasquerade(
           user.id,
           limit,
+          search,
         );
         return c.json({ users });
       } catch (error: unknown) {
