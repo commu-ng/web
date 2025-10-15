@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   AlertCircle,
   ArrowLeft,
+  Loader2,
   LogIn,
   Shield,
   UserCog,
@@ -10,7 +11,6 @@ import {
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import { toast } from "sonner";
-import { LoadingState } from "~/components/shared/LoadingState";
 import { Button } from "~/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import {
@@ -52,12 +52,18 @@ async function fetchUsers(search?: string): Promise<User[]> {
   const res = await api.console.admin.masquerade.users.$get({
     query: search ? { search } : {},
   });
+  if (!res.ok) {
+    throw new Error("Failed to fetch users");
+  }
   const data = await res.json();
-  return data.users;
+  if ("users" in data) {
+    return data.users;
+  }
+  return [];
 }
 
 export default function AdminMasquerade() {
-  const { isLoading: authLoading, isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -73,7 +79,6 @@ export default function AdminMasquerade() {
 
   const {
     data: users,
-    isLoading,
     isFetching,
     error,
     refetch,
@@ -120,11 +125,6 @@ export default function AdminMasquerade() {
       startMasqueradeMutation.mutate(targetUser.id);
     }
   };
-
-  // Only show full loading state on initial load, not during search refetch
-  if (authLoading || (isLoading && !users)) {
-    return <LoadingState message="사용자 목록을 불러오는 중..." />;
-  }
 
   if (!isAuthenticated) {
     return (
@@ -233,7 +233,10 @@ export default function AdminMasquerade() {
         </CardHeader>
         <CardContent>
           {isFetching && (
-            <div className="mb-4 text-sm text-muted-foreground">검색 중...</div>
+            <div className="mb-4 flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              검색 중...
+            </div>
           )}
           {!users || users.length === 0 ? (
             <Empty>
