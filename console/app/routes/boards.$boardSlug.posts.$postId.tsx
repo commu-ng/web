@@ -1,7 +1,19 @@
-import { useQuery } from "@tanstack/react-query";
-import { AlertCircle, ArrowLeft, Pencil } from "lucide-react";
-import { Link } from "react-router";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { AlertCircle, ArrowLeft, Pencil, Trash2 } from "lucide-react";
+import { useState } from "react";
+import { Link, useNavigate } from "react-router";
+import { toast } from "sonner";
 import { LoadingState } from "~/components/shared/LoadingState";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "~/components/ui/alert-dialog";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { Card, CardContent, CardHeader } from "~/components/ui/card";
@@ -13,7 +25,7 @@ import {
   EmptyTitle,
 } from "~/components/ui/empty";
 import { useAuth } from "~/hooks/useAuth";
-import { api } from "~/lib/api-client";
+import { api, getErrorMessage } from "~/lib/api-client";
 import type { Route } from "./+types/boards.$boardSlug.posts.$postId";
 
 export function meta({ params }: Route.MetaArgs) {
@@ -70,6 +82,9 @@ async function fetchBoardPost(
 export default function BoardPostDetail({ params }: Route.ComponentProps) {
   const { boardSlug, postId } = params;
   const { isLoading: authLoading, isAuthenticated, user } = useAuth();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
   const {
     data: post,
@@ -80,6 +95,41 @@ export default function BoardPostDetail({ params }: Route.ComponentProps) {
     queryKey: ["board-post", boardSlug, postId],
     queryFn: () => fetchBoardPost(boardSlug, postId),
   });
+
+  const deleteBoardPostMutation = useMutation({
+    mutationFn: async () => {
+      const res = await api.console.board[":board_slug"].posts[
+        ":board_post_id"
+      ].$delete({
+        param: { board_slug: boardSlug, board_post_id: postId },
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(
+          getErrorMessage(errorData, "게시물 삭제에 실패했습니다"),
+        );
+      }
+
+      return await res.json();
+    },
+    onSuccess: () => {
+      toast.success("게시물이 성공적으로 삭제되었습니다");
+      queryClient.invalidateQueries({ queryKey: ["board-posts", boardSlug] });
+      navigate(`/boards/${boardSlug}`);
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const handleDeleteClick = () => {
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = () => {
+    deleteBoardPostMutation.mutate();
+  };
 
   if (authLoading || isLoading) {
     return <LoadingState message="게시물을 불러오는 중..." />;
@@ -154,12 +204,18 @@ export default function BoardPostDetail({ params }: Route.ComponentProps) {
               )}
             </div>
             {isAuthenticated && user?.id === post.author.id && (
-              <Button variant="outline" asChild>
-                <Link to={`/boards/${boardSlug}/posts/${post.id}/edit`}>
-                  <Pencil className="h-4 w-4 mr-2" />
-                  수정
-                </Link>
-              </Button>
+              <div className="flex gap-2">
+                <Button variant="outline" asChild>
+                  <Link to={`/boards/${boardSlug}/posts/${post.id}/edit`}>
+                    <Pencil className="h-4 w-4 mr-2" />
+                    수정
+                  </Link>
+                </Button>
+                <Button variant="outline" onClick={handleDeleteClick}>
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  삭제
+                </Button>
+              </div>
             )}
           </div>
         </CardHeader>
@@ -184,6 +240,31 @@ export default function BoardPostDetail({ params }: Route.ComponentProps) {
           />
         </CardContent>
       </Card>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog
+        open={isDeleteDialogOpen}
+        onOpenChange={setIsDeleteDialogOpen}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>게시물을 삭제하시겠습니까?</AlertDialogTitle>
+            <AlertDialogDescription>
+              게시물 "{post?.title}"을(를) 삭제합니다. 이 작업은 되돌릴 수
+              없습니다.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>취소</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              disabled={deleteBoardPostMutation.isPending}
+            >
+              {deleteBoardPostMutation.isPending ? "삭제 중..." : "삭제"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
