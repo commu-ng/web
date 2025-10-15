@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ImageIcon, X } from "lucide-react";
-import { useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { toast } from "sonner";
 import { HashtagInput } from "~/components/hashtag-input";
 import { TiptapEditor } from "~/components/TiptapEditor";
@@ -25,19 +25,10 @@ interface BoardPostFormProps {
     content: string;
     imageId: string | null;
     imageUrl: string | null;
-    communityType: CommunityType;
     hashtags: string[];
   };
   onSuccess?: () => void;
 }
-
-type CommunityType =
-  | "twitter"
-  | "oeee_cafe"
-  | "band"
-  | "mastodon"
-  | "commung"
-  | "discord";
 
 export function BoardPostForm({
   boardSlug,
@@ -59,15 +50,43 @@ export function BoardPostForm({
     initialData?.imageUrl || null,
   );
   const [isUploadingImage, setIsUploadingImage] = useState(false);
-  const [communityType, setCommunityType] = useState<CommunityType>(
-    initialData?.communityType || "twitter",
-  );
+  const [communityType, setCommunityType] = useState<string>(() => {
+    // Initialize community type from hashtags if editing
+    if (boardSlug === "promo" && initialData?.hashtags) {
+      // Check if any hashtag matches a Korean community type label
+      const communityTypeLabels = Object.values(COMMUNITY_TYPE_LABELS);
+      const existingCommunityType = initialData.hashtags.find((tag) =>
+        communityTypeLabels.includes(tag),
+      );
+      return existingCommunityType || "";
+    }
+    return "";
+  });
   const [hashtags, setHashtags] = useState<string[]>(
     initialData?.hashtags || [],
   );
   const queryClient = useQueryClient();
 
   const isEditMode = !!postId;
+  const isPromoBoard = boardSlug === "promo";
+
+  // Automatically add/remove community type as hashtag
+  useEffect(() => {
+    if (!isPromoBoard) return;
+
+    // Get all Korean community type labels
+    const communityTypeLabels = Object.values(COMMUNITY_TYPE_LABELS);
+
+    // Remove any existing community type hashtags
+    setHashtags((prev) => {
+      const filtered = prev.filter((tag) => !communityTypeLabels.includes(tag));
+      // Add the selected community type if one is selected
+      if (communityType) {
+        return [...filtered, communityType];
+      }
+      return filtered;
+    });
+  }, [communityType, isPromoBoard]);
 
   const savePostMutation = useMutation({
     mutationFn: async () => {
@@ -81,7 +100,6 @@ export function BoardPostForm({
             title,
             content,
             image_id: uploadedImageId || undefined,
-            community_type: communityType,
             hashtags: hashtags.length > 0 ? hashtags : undefined,
           },
         });
@@ -103,7 +121,6 @@ export function BoardPostForm({
           title,
           content,
           image_id: uploadedImageId || undefined,
-          community_type: communityType,
           hashtags: hashtags.length > 0 ? hashtags : undefined,
         },
       });
@@ -129,7 +146,7 @@ export function BoardPostForm({
         setContent("");
         setUploadedImageId(null);
         setUploadedImageUrl(null);
-        setCommunityType("twitter");
+        setCommunityType("");
         setHashtags([]);
       }
       // Invalidate queries to refetch
@@ -265,25 +282,32 @@ export function BoardPostForm({
         />
       </Field>
 
-      <Field>
-        <FieldLabel htmlFor={communityTypeId}>커뮤니티 유형</FieldLabel>
-        <Select
-          value={communityType}
-          onValueChange={(value) => setCommunityType(value as CommunityType)}
-          disabled={savePostMutation.isPending}
-        >
-          <SelectTrigger id={communityTypeId}>
-            <SelectValue placeholder="커뮤니티 유형 선택" />
-          </SelectTrigger>
-          <SelectContent>
-            {Object.entries(COMMUNITY_TYPE_LABELS).map(([value, label]) => (
-              <SelectItem key={value} value={value}>
-                {label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </Field>
+      {isPromoBoard && (
+        <Field>
+          <FieldLabel htmlFor={communityTypeId}>
+            커뮤니티 유형 (선택)
+          </FieldLabel>
+          <Select
+            value={communityType || undefined}
+            onValueChange={setCommunityType}
+            disabled={savePostMutation.isPending}
+          >
+            <SelectTrigger id={communityTypeId}>
+              <SelectValue placeholder="선택하지 않음" />
+            </SelectTrigger>
+            <SelectContent>
+              {Object.entries(COMMUNITY_TYPE_LABELS).map(([key, label]) => (
+                <SelectItem key={key} value={label}>
+                  {label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <FieldDescription>
+            선택한 커뮤니티 유형은 자동으로 해시태그로 추가됩니다
+          </FieldDescription>
+        </Field>
+      )}
 
       <div>
         <HashtagInput

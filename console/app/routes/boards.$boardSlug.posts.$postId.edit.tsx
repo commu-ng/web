@@ -39,7 +39,6 @@ interface BoardPost {
     height: number;
     filename: string;
   } | null;
-  community_type: string;
   hashtags: {
     id: string;
     tag: string;
@@ -189,12 +188,6 @@ export default function EditBoardPost({ params }: Route.ComponentProps) {
               content: post.content,
               imageId: post.image?.id || null,
               imageUrl: post.image?.url || null,
-              communityType: post.community_type as
-                | "x"
-                | "oeee_cafe"
-                | "band"
-                | "mastodon"
-                | "commung",
               hashtags: post.hashtags.map((h) => h.tag),
             }}
             onSuccess={handleSuccess}

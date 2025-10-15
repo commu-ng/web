@@ -26,10 +26,10 @@ import {
 } from "~/components/ui/empty";
 import { useAuth } from "~/hooks/useAuth";
 import { api } from "~/lib/api-client";
-import { COMMUNITY_TYPE_LABELS } from "~/lib/constants";
 
 interface BoardPostListProps {
   boardSlug: string;
+  hashtags?: string[];
 }
 
 interface BoardPost {
@@ -48,7 +48,6 @@ interface BoardPost {
     height: number;
     filename: string;
   } | null;
-  community_type: string;
   hashtags: {
     id: string;
     tag: string;
@@ -70,12 +69,16 @@ interface BoardPostsResponse {
 async function fetchBoardPosts(
   boardSlug: string,
   cursor?: string,
+  hashtags?: string[],
 ): Promise<BoardPostsResponse> {
   const res = await api.console.board[":board_slug"].posts.$get({
     param: { board_slug: boardSlug },
     query: {
       limit: "20",
       ...(cursor ? { cursor } : {}),
+      ...(hashtags && hashtags.length > 0
+        ? { hashtags: hashtags.join(",") }
+        : {}),
     },
   });
   if (!res.ok) {
@@ -84,7 +87,7 @@ async function fetchBoardPosts(
   return await res.json();
 }
 
-export function BoardPostList({ boardSlug }: BoardPostListProps) {
+export function BoardPostList({ boardSlug, hashtags }: BoardPostListProps) {
   const { user, isAuthenticated } = useAuth();
   const loadMoreRef = useRef<HTMLDivElement>(null);
 
@@ -97,8 +100,8 @@ export function BoardPostList({ boardSlug }: BoardPostListProps) {
     isFetchingNextPage,
     refetch,
   } = useInfiniteQuery({
-    queryKey: ["board-posts", boardSlug],
-    queryFn: ({ pageParam }) => fetchBoardPosts(boardSlug, pageParam),
+    queryKey: ["board-posts", boardSlug, hashtags],
+    queryFn: ({ pageParam }) => fetchBoardPosts(boardSlug, pageParam, hashtags),
     getNextPageParam: (lastPage) =>
       lastPage.hasMore ? lastPage.nextCursor : undefined,
     initialPageParam: undefined as string | undefined,
@@ -237,13 +240,6 @@ export function BoardPostList({ boardSlug }: BoardPostListProps) {
                     </span>
                   </CardDescription>
                   <div className="flex flex-wrap gap-1 items-center mt-1.5">
-                    <Badge
-                      variant="secondary"
-                      className="text-xs h-4 px-1 py-0"
-                    >
-                      {COMMUNITY_TYPE_LABELS[post.community_type] ||
-                        post.community_type}
-                    </Badge>
                     {post.hashtags.map((hashtag) => (
                       <Badge
                         key={hashtag.id}

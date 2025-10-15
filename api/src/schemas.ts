@@ -395,7 +395,6 @@ export const boardPostCreateRequestSchema = z.object({
   title: z.string().min(1, "Title cannot be empty").max(200),
   content: z.string().min(1, "Content cannot be empty").max(50000),
   image_id: z.uuid().nullable().optional(),
-  community_type: z.enum(["x", "oeee_cafe", "band", "mastodon", "commung"]),
   hashtags: z.array(z.string()).optional(),
 });
 
@@ -403,7 +402,6 @@ export const boardPostUpdateRequestSchema = z.object({
   title: z.string().min(1, "Title cannot be empty").max(200),
   content: z.string().min(1, "Content cannot be empty").max(50000),
   image_id: z.uuid().nullable().optional(),
-  community_type: z.enum(["x", "oeee_cafe", "band", "mastodon", "commung"]),
   hashtags: z.array(z.string()).optional(),
 });
 
@@ -414,6 +412,7 @@ export const boardPostIdParamSchema = z.object({
 export const boardPostQuerySchema = z.object({
   limit: z.string().regex(/^\d+$/).transform(Number).optional(),
   cursor: z.string().optional(),
+  hashtags: z.string().optional(), // Comma-separated hashtags
 });
 
 // Masquerade schemas

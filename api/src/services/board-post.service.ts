@@ -197,6 +197,7 @@ export async function getBoardPosts(
   boardId: string | undefined,
   limit: number = 20,
   cursor?: string,
+  hashtags?: string[],
 ) {
   const conditions = [isNull(boardPostTable.deletedAt)];
 
@@ -206,6 +207,25 @@ export async function getBoardPosts(
 
   if (cursor) {
     conditions.push(sql`${boardPostTable.id} < ${cursor}`);
+  }
+
+  // If hashtags filter is provided, filter posts that have ALL of the hashtags (AND logic)
+  if (hashtags && hashtags.length > 0) {
+    const normalizedHashtags = hashtags.map((tag) => tag.toLowerCase().trim());
+    const postIdsWithAllHashtags = db
+      .select({ postId: boardPostHashtagTable.boardPostId })
+      .from(boardPostHashtagTable)
+      .innerJoin(
+        boardHashtagTable,
+        eq(boardPostHashtagTable.hashtagId, boardHashtagTable.id),
+      )
+      .where(inArray(boardHashtagTable.tag, normalizedHashtags))
+      .groupBy(boardPostHashtagTable.boardPostId)
+      .having(
+        sql`COUNT(DISTINCT ${boardHashtagTable.id}) = ${normalizedHashtags.length}`,
+      );
+
+    conditions.push(inArray(boardPostTable.id, postIdsWithAllHashtags));
   }
 
   const posts = await db
@@ -293,7 +313,6 @@ export async function getBoardPosts(
               filename: image.filename,
             }
           : null,
-        community_type: post.communityType,
         hashtags: hashtags.map((h) => ({
           id: h.hashtag.id,
           tag: h.hashtag.tag,
@@ -358,7 +377,6 @@ export async function getBoardPost(postId: string) {
           filename: post.image.filename,
         }
       : null,
-    community_type: post.communityType,
     hashtags: hashtags.map((h) => ({
       id: h.hashtag.id,
       tag: h.hashtag.tag,
@@ -381,7 +399,6 @@ export async function createBoardPost(
   title: string,
   content: string,
   imageId: string | null | undefined,
-  communityType: "x" | "oeee_cafe" | "band" | "mastodon" | "commung",
   hashtags: string[] | undefined,
 ) {
   // Validate board exists
@@ -424,7 +441,6 @@ export async function createBoardPost(
         title,
         content,
         imageId: imageId || null,
-        communityType,
       })
       .returning();
 
@@ -490,7 +506,6 @@ export async function updateBoardPost(
   title: string,
   content: string,
   imageId: string | null | undefined,
-  communityType: "x" | "oeee_cafe" | "band" | "mastodon" | "commung",
   hashtags: string[] | undefined,
 ) {
   // Check if post exists
@@ -527,7 +542,6 @@ export async function updateBoardPost(
         title,
         content,
         imageId: imageId || null,
-        communityType,
         updatedAt: sql`NOW()`,
       })
       .where(eq(boardPostTable.id, postId));
@@ -618,4 +632,37 @@ export async function deleteBoardPost(postId: string, userId: string) {
       deletedAt: sql`NOW()`,
     })
     .where(eq(boardPostTable.id, postId));
+}
+
+/**
+ * Get top hashtags for a board
+ */
+export async function getBoardHashtags(boardId: string, limit: number = 30) {
+  // Get all hashtags used in non-deleted posts for this board
+  const hashtags = await db
+    .select({
+      tag: boardHashtagTable.tag,
+      count:
+        sql<number>`count(distinct ${boardPostHashtagTable.boardPostId})`.as(
+          "count",
+        ),
+    })
+    .from(boardHashtagTable)
+    .innerJoin(
+      boardPostHashtagTable,
+      eq(boardHashtagTable.id, boardPostHashtagTable.hashtagId),
+    )
+    .innerJoin(
+      boardPostTable,
+      and(
+        eq(boardPostHashtagTable.boardPostId, boardPostTable.id),
+        eq(boardPostTable.boardId, boardId),
+        isNull(boardPostTable.deletedAt),
+      ),
+    )
+    .groupBy(boardHashtagTable.id, boardHashtagTable.tag)
+    .orderBy(desc(sql`count`))
+    .limit(limit);
+
+  return hashtags.map((h) => h.tag);
 }

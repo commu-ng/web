@@ -51,7 +51,6 @@ interface BoardPost {
     height: number;
     filename: string;
   } | null;
-  community_type: string;
   hashtags: {
     id: string;
     tag: string;

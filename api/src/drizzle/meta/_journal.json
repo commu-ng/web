@@ -50,6 +50,13 @@
       "when": 1760533097933,
       "tag": "0006_spicy_kingpin",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1760537714749,
+      "tag": "0007_ancient_prism",
+      "breakpoints": true
     }
   ]
 }

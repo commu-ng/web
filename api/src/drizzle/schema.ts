@@ -50,14 +50,6 @@ export const exportStatusEnum = pgEnum("export_status", [
   "failed",
 ]);
 
-export const boardCommunityTypeEnum = pgEnum("board_community_type", [
-  "x",
-  "oeee_cafe",
-  "band",
-  "mastodon",
-  "commung",
-]);
-
 export const groupChat = pgTable(
   "group_chat",
   {
@@ -1387,7 +1379,6 @@ export const boardPost = pgTable(
     title: text().notNull(),
     content: text().notNull(),
     imageId: uuid("image_id"),
-    communityType: boardCommunityTypeEnum("community_type").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
       .notNull()
       .defaultNow(),

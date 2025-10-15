@@ -92,6 +92,26 @@ export const consoleBoardsRouter = new Hono<{ Variables: AuthVariables }>()
     },
   )
 
+  // Get hashtags for a board (public)
+  .get(
+    "/board/:board_slug/hashtags",
+    zValidator("param", boardSlugParamSchema),
+    async (c) => {
+      const { board_slug: boardSlug } = c.req.valid("param");
+
+      try {
+        const board = await boardPostService.getBoardBySlug(boardSlug);
+        const hashtags = await boardPostService.getBoardHashtags(board.id);
+        return c.json(hashtags);
+      } catch (error: unknown) {
+        if (error instanceof AppException) {
+          return c.json({ error: error.message }, error.statusCode);
+        }
+        throw error;
+      }
+    },
+  )
+
   // Update a board (admin only)
   .patch(
     "/boards/:board_id",
@@ -158,14 +178,21 @@ export const consoleBoardsRouter = new Hono<{ Variables: AuthVariables }>()
     zValidator("query", boardPostQuerySchema),
     async (c) => {
       const { board_slug: boardSlug } = c.req.valid("param");
-      const { limit = 20, cursor } = c.req.valid("query");
+      const { limit = 20, cursor, hashtags } = c.req.valid("query");
 
       try {
         const board = await boardPostService.getBoardBySlug(boardSlug);
+        const hashtagsArray = hashtags
+          ? hashtags
+              .split(",")
+              .map((tag) => tag.trim())
+              .filter((tag) => tag.length > 0)
+          : undefined;
         const result = await boardPostService.getBoardPosts(
           board.id,
           limit,
           cursor,
+          hashtagsArray,
         );
         return c.json(result);
       } catch (error: unknown) {
@@ -190,7 +217,6 @@ export const consoleBoardsRouter = new Hono<{ Variables: AuthVariables }>()
         title,
         content,
         image_id: imageId,
-        community_type: communityType,
         hashtags,
       } = c.req.valid("json");
 
@@ -202,7 +228,6 @@ export const consoleBoardsRouter = new Hono<{ Variables: AuthVariables }>()
           title,
           content,
           imageId,
-          communityType,
           hashtags,
         );
         return c.json(post, 201);
@@ -249,7 +274,6 @@ export const consoleBoardsRouter = new Hono<{ Variables: AuthVariables }>()
         title,
         content,
         image_id: imageId,
-        community_type: communityType,
         hashtags,
       } = c.req.valid("json");
 
@@ -260,7 +284,6 @@ export const consoleBoardsRouter = new Hono<{ Variables: AuthVariables }>()
           title,
           content,
           imageId,
-          communityType,
           hashtags,
         );
         return c.json(post);

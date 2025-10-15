@@ -1,7 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { AlertCircle, ArrowLeft, Plus } from "lucide-react";
+import { useState } from "react";
 import { Link } from "react-router";
 import { BoardPostList } from "~/components/BoardPostList";
+import { HashtagFilter } from "~/components/HashtagFilter";
 import { LoadingState } from "~/components/shared/LoadingState";
 import { Button } from "~/components/ui/button";
 import {
@@ -41,9 +43,20 @@ async function fetchBoard(boardSlug: string): Promise<Board> {
   return await res.json();
 }
 
+async function fetchBoardHashtags(boardSlug: string): Promise<string[]> {
+  const res = await api.console.board[":board_slug"].hashtags.$get({
+    param: { board_slug: boardSlug },
+  });
+  if (!res.ok) {
+    throw new Error("Failed to fetch board hashtags");
+  }
+  return await res.json();
+}
+
 export default function BoardDetail({ params }: Route.ComponentProps) {
   const { boardSlug } = params;
   const { isLoading: authLoading, isAuthenticated } = useAuth();
+  const [selectedHashtags, setSelectedHashtags] = useState<string[]>([]);
 
   const {
     data: board,
@@ -54,6 +67,19 @@ export default function BoardDetail({ params }: Route.ComponentProps) {
     queryKey: ["board", boardSlug],
     queryFn: () => fetchBoard(boardSlug),
   });
+
+  const { data: allHashtags = [] } = useQuery({
+    queryKey: ["board-hashtags", boardSlug],
+    queryFn: () => fetchBoardHashtags(boardSlug),
+  });
+
+  const toggleHashtag = (hashtag: string) => {
+    setSelectedHashtags((prev) =>
+      prev.includes(hashtag)
+        ? prev.filter((h) => h !== hashtag)
+        : [...prev, hashtag],
+    );
+  };
 
   if (authLoading || isLoading) {
     return <LoadingState message="게시판을 불러오는 중..." />;
@@ -115,9 +141,19 @@ export default function BoardDetail({ params }: Route.ComponentProps) {
         </div>
       </div>
 
+      <HashtagFilter
+        allHashtags={allHashtags}
+        selectedHashtags={selectedHashtags}
+        onToggleHashtag={toggleHashtag}
+        onClearFilters={() => setSelectedHashtags([])}
+      />
+
       <div>
         <h2 className="text-2xl font-bold mb-4">게시물</h2>
-        <BoardPostList boardSlug={boardSlug} />
+        <BoardPostList
+          boardSlug={boardSlug}
+          hashtags={selectedHashtags.length > 0 ? selectedHashtags : undefined}
+        />
       </div>
     </div>
   );
