@@ -1,6 +1,6 @@
 import { ArrowLeft, CornerDownRight, MessageCircle } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router";
+import { useNavigate, useParams } from "react-router";
 import { PostCard } from "~/components/post-card";
 import { Spinner } from "~/components/ui/spinner";
 import { useAuth } from "~/hooks/useAuth";
@@ -188,35 +188,27 @@ export default function PostDetail() {
         <div className="max-w-2xl mx-auto">
           {/* Parent thread - show if this is a reply */}
           {parentThread.length > 0 && (
-            <div className="mb-4 space-y-2">
+            <div className="mb-4 space-y-4">
               <div className="text-sm text-muted-foreground mb-3 flex items-center gap-2">
                 <CornerDownRight className="h-4 w-4" />
                 <span>답글 스레드 ({parentThread.length}개의 상위 게시물)</span>
               </div>
-              {parentThread.map((parentPost, index) => (
-                <Link
-                  key={parentPost.id}
-                  to={`/@${parentPost.author.username}/${parentPost.id}`}
-                  className="flex items-start gap-3 p-4 bg-card border border-border rounded-lg hover:bg-accent transition-colors group"
-                >
-                  <div className="flex-shrink-0 w-10 h-10 bg-muted rounded-full flex items-center justify-center text-xs font-medium text-muted-foreground">
-                    {index + 1}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="font-semibold text-foreground group-hover:text-primary transition-colors">
-                        {parentPost.author.name}
-                      </span>
-                      <span className="text-sm text-muted-foreground">
-                        @{parentPost.author.username}
-                      </span>
-                    </div>
-                    <p className="text-sm text-muted-foreground line-clamp-2">
-                      {parentPost.content}
-                    </p>
-                  </div>
-                </Link>
-              ))}
+              <div className="space-y-4">
+                {parentThread.map((parentPost) => (
+                  <PostCard
+                    key={parentPost.id}
+                    post={{
+                      ...parentPost,
+                      replies: [],
+                      threaded_replies: [],
+                    }}
+                    currentProfileId={currentProfile?.id}
+                    onDelete={handleRefresh}
+                    onRefresh={handleRefresh}
+                    isCommunityOwner={isCommunityOwner}
+                  />
+                ))}
+              </div>
             </div>
           )}
 
