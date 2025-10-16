@@ -136,7 +136,7 @@ export default function BoardPostDetail({ params }: Route.ComponentProps) {
 
   if (error) {
     return (
-      <div className="container mx-auto py-8 px-4 max-w-4xl">
+      <div className="container mx-auto py-4 sm:py-8 px-3 sm:px-4 max-w-4xl">
         <Empty>
           <EmptyHeader>
             <EmptyMedia variant="icon">
@@ -145,9 +145,11 @@ export default function BoardPostDetail({ params }: Route.ComponentProps) {
             <EmptyTitle>오류 발생</EmptyTitle>
             <EmptyDescription>게시물을 불러올 수 없습니다</EmptyDescription>
           </EmptyHeader>
-          <div className="flex gap-2">
-            <Button onClick={() => refetch()}>다시 시도</Button>
-            <Button variant="outline" asChild>
+          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+            <Button onClick={() => refetch()} className="w-full sm:w-auto">
+              다시 시도
+            </Button>
+            <Button variant="outline" asChild className="w-full sm:w-auto">
               <Link to={`/boards/${boardSlug}`}>
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 게시판으로 돌아가기
@@ -164,22 +166,27 @@ export default function BoardPostDetail({ params }: Route.ComponentProps) {
   }
 
   return (
-    <div className="container mx-auto py-8 px-4 max-w-4xl">
-      <div className="mb-6">
-        <Button variant="ghost" asChild className="mb-4">
+    <div className="container mx-auto py-4 sm:py-8 px-3 sm:px-4 max-w-4xl">
+      <div className="mb-4 sm:mb-6">
+        <Button variant="ghost" asChild className="mb-2 sm:mb-4 -ml-2">
           <Link to={`/boards/${boardSlug}`}>
             <ArrowLeft className="mr-2 h-4 w-4" />
-            {post.board.name}로 돌아가기
+            <span className="hidden sm:inline">
+              {post.board.name}로 돌아가기
+            </span>
+            <span className="sm:hidden">돌아가기</span>
           </Link>
         </Button>
       </div>
 
       <Card>
-        <CardHeader>
-          <div className="flex items-start justify-between gap-4">
+        <CardHeader className="px-4 sm:px-6 py-4 sm:py-6">
+          <div className="flex flex-col gap-4">
             <div className="flex-1">
-              <h1 className="text-3xl font-bold mb-4">{post.title}</h1>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
+              <h1 className="text-2xl sm:text-3xl font-bold mb-3 sm:mb-4 break-words">
+                {post.title}
+              </h1>
+              <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground mb-3 sm:mb-4 flex-wrap">
                 <span className="font-medium">{post.author.login_name}</span>
                 <span>•</span>
                 <span>
@@ -193,9 +200,13 @@ export default function BoardPostDetail({ params }: Route.ComponentProps) {
                 </span>
               </div>
               {post.hashtags.length > 0 && (
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-1.5 sm:gap-2">
                   {post.hashtags.map((hashtag) => (
-                    <Badge key={hashtag.id} variant="outline">
+                    <Badge
+                      key={hashtag.id}
+                      variant="outline"
+                      className="text-xs"
+                    >
                       #{hashtag.tag}
                     </Badge>
                   ))}
@@ -203,14 +214,24 @@ export default function BoardPostDetail({ params }: Route.ComponentProps) {
               )}
             </div>
             {isAuthenticated && user?.id === post.author.id && (
-              <div className="flex gap-2">
-                <Button variant="outline" asChild>
+              <div className="flex gap-2 pt-2 border-t sm:border-t-0 sm:pt-0">
+                <Button
+                  variant="outline"
+                  asChild
+                  size="sm"
+                  className="flex-1 sm:flex-none"
+                >
                   <Link to={`/boards/${boardSlug}/posts/${post.id}/edit`}>
                     <Pencil className="h-4 w-4 mr-2" />
                     수정
                   </Link>
                 </Button>
-                <Button variant="outline" onClick={handleDeleteClick}>
+                <Button
+                  variant="outline"
+                  onClick={handleDeleteClick}
+                  size="sm"
+                  className="flex-1 sm:flex-none"
+                >
                   <Trash2 className="h-4 w-4 mr-2" />
                   삭제
                 </Button>
@@ -218,22 +239,22 @@ export default function BoardPostDetail({ params }: Route.ComponentProps) {
             )}
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-4 sm:px-6 py-4 sm:py-6">
           {post.image && (
-            <div className="mb-6">
+            <div className="mb-4 sm:mb-6 -mx-4 sm:mx-0">
               <img
                 src={post.image.url}
                 alt=""
-                className="rounded-lg max-w-full h-auto"
+                className="w-full h-auto sm:rounded-lg"
                 style={{
-                  maxHeight: "600px",
+                  maxHeight: "400px",
                   objectFit: "contain",
                 }}
               />
             </div>
           )}
           <div
-            className="prose prose-sm dark:prose-invert max-w-none"
+            className="prose prose-sm dark:prose-invert max-w-none break-words"
             // biome-ignore lint/security/noDangerouslySetInnerHtml: Content is sanitized by the backend
             dangerouslySetInnerHTML={{ __html: post.content }}
           />
