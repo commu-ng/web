@@ -13,7 +13,7 @@ export default function PostDetail() {
   const { user, currentProfile } = useAuth();
 
   const [post, setPost] = useState<Post | null>(null);
-  const [parentPost, setParentPost] = useState<Post | null>(null);
+  const [parentThread, setParentThread] = useState<Post[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -89,6 +89,13 @@ export default function PostDetail() {
           replies: adjustReplyDepths(postData.replies || [], mainPostDepth),
         };
         setPost(convertedPost);
+
+        // Set parent thread from API response
+        if (postData.parent_thread && Array.isArray(postData.parent_thread)) {
+          setParentThread(postData.parent_thread);
+        } else {
+          setParentThread([]);
+        }
       } else if (response.status === 404) {
         setError("게시물을 찾을 수 없습니다");
       } else {
@@ -117,35 +124,6 @@ export default function PostDetail() {
     // Refresh the post data to show new replies or after reply deletion
     fetchPost();
   }, [fetchPost]);
-
-  // Fetch parent post if this is a reply
-  const fetchParentPost = useCallback(
-    async (parentPostId: string) => {
-      try {
-        const response = await client.app.posts[":post_id"].$get({
-          param: { post_id: parentPostId },
-          query: { profile_id: currentProfile?.id },
-        });
-
-        if (response.ok) {
-          const postData = await response.json();
-          setParentPost(postData);
-        }
-      } catch (error) {
-        console.error("Failed to fetch parent post:", error);
-      }
-    },
-    [currentProfile?.id],
-  );
-
-  // Fetch parent post when post has in_reply_to_id
-  useEffect(() => {
-    if (post?.in_reply_to_id) {
-      fetchParentPost(post.in_reply_to_id);
-    } else {
-      setParentPost(null);
-    }
-  }, [post?.in_reply_to_id, fetchParentPost]);
 
   if (isLoading) {
     return (
@@ -208,31 +186,37 @@ export default function PostDetail() {
       {/* Main Content */}
       <main className="max-w-4xl mx-auto px-4 py-8">
         <div className="max-w-2xl mx-auto">
-          {/* Parent post link - show if this is a reply */}
-          {parentPost && (
-            <div className="mb-4">
-              <Link
-                to={`/@${parentPost.author.username}/${parentPost.id}`}
-                className="flex items-center gap-2 p-4 bg-card border border-border rounded-lg hover:bg-accent transition-colors group"
-              >
-                <CornerDownRight className="h-4 w-4 text-muted-foreground" />
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm text-muted-foreground mb-1">
-                    답글 대상
+          {/* Parent thread - show if this is a reply */}
+          {parentThread.length > 0 && (
+            <div className="mb-4 space-y-2">
+              <div className="text-sm text-muted-foreground mb-3 flex items-center gap-2">
+                <CornerDownRight className="h-4 w-4" />
+                <span>답글 스레드 ({parentThread.length}개의 상위 게시물)</span>
+              </div>
+              {parentThread.map((parentPost, index) => (
+                <Link
+                  key={parentPost.id}
+                  to={`/@${parentPost.author.username}/${parentPost.id}`}
+                  className="flex items-start gap-3 p-4 bg-card border border-border rounded-lg hover:bg-accent transition-colors group"
+                >
+                  <div className="flex-shrink-0 w-10 h-10 bg-muted rounded-full flex items-center justify-center text-xs font-medium text-muted-foreground">
+                    {index + 1}
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold text-foreground group-hover:text-primary transition-colors">
-                      {parentPost.author.name}
-                    </span>
-                    <span className="text-muted-foreground">
-                      @{parentPost.author.username}
-                    </span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="font-semibold text-foreground group-hover:text-primary transition-colors">
+                        {parentPost.author.name}
+                      </span>
+                      <span className="text-sm text-muted-foreground">
+                        @{parentPost.author.username}
+                      </span>
+                    </div>
+                    <p className="text-sm text-muted-foreground line-clamp-2">
+                      {parentPost.content}
+                    </p>
                   </div>
-                  <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-                    {parentPost.content}
-                  </p>
-                </div>
-              </Link>
+                </Link>
+              ))}
             </div>
           )}
 

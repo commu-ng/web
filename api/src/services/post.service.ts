@@ -1414,6 +1414,180 @@ async function buildThreadedRepliesForMultiplePosts(
 }
 
 /**
+ * Get parent thread (all ancestor posts) for a given post
+ * Returns posts ordered from root to immediate parent
+ */
+async function getParentThread(
+  postId: string,
+  communityId: string,
+  profileId?: string,
+): Promise<ReplyData[]> {
+  // Use PostgreSQL's recursive CTE to get all parent posts
+  const result = await db.execute(sql`
+    WITH RECURSIVE parent_thread AS (
+      -- Base case: get the immediate parent
+      SELECT
+        p.id, p.content, p.created_at, p.updated_at, p.deleted_at, p.announcement, p.content_warning,
+        p.author_id, p.in_reply_to_id, p.depth, p.root_post_id,
+        1 as level
+      FROM post p
+      JOIN profile a ON p.author_id = a.id
+      WHERE p.id = (SELECT in_reply_to_id FROM post WHERE id = ${postId})
+        AND p.deleted_at IS NULL
+        AND p.published_at IS NOT NULL
+        AND p.community_id = ${communityId}
+        AND a.community_id = ${communityId}
+
+      UNION ALL
+
+      -- Recursive case: get parent of parent
+      SELECT
+        p.id, p.content, p.created_at, p.updated_at, p.deleted_at, p.announcement, p.content_warning,
+        p.author_id, p.in_reply_to_id, p.depth, p.root_post_id,
+        pt.level + 1
+      FROM post p
+      JOIN profile a ON p.author_id = a.id
+      JOIN parent_thread pt ON p.id = pt.in_reply_to_id
+      WHERE p.deleted_at IS NULL
+        AND p.published_at IS NOT NULL
+        AND p.community_id = ${communityId}
+        AND a.community_id = ${communityId}
+    )
+    SELECT * FROM parent_thread
+    ORDER BY depth ASC
+  `);
+
+  const rows = result.rows as {
+    id: string;
+    content: string;
+    created_at: string;
+    updated_at: string;
+    deleted_at: string | null;
+    announcement: boolean;
+    content_warning: string | null;
+    author_id: string;
+    in_reply_to_id: string | null;
+    depth: number;
+    root_post_id: string | null;
+    level: number;
+  }[];
+
+  if (rows.length === 0) {
+    return [];
+  }
+
+  // Collect all IDs for batch loading
+  const profileIds = new Set<string>();
+  const postIds: string[] = [];
+
+  rows.forEach((row) => {
+    profileIds.add(row.author_id);
+    postIds.push(row.id);
+  });
+
+  // Batch load all data
+  const [
+    profiles,
+    profilePictureMap,
+    allPostImages,
+    allBookmarks,
+    allReactions,
+  ] = await Promise.all([
+    db.query.profile.findMany({
+      where: inArray(profileTable.id, Array.from(profileIds)),
+    }),
+    batchLoadProfilePictures(Array.from(profileIds)),
+    db.query.postImage.findMany({
+      where: inArray(postImageTable.postId, postIds),
+      with: { image: true },
+    }),
+    profileId
+      ? db.query.postBookmark.findMany({
+          where: and(
+            eq(postBookmarkTable.profileId, profileId),
+            inArray(postBookmarkTable.postId, postIds),
+          ),
+        })
+      : Promise.resolve([]),
+    db.query.postReaction.findMany({
+      where: inArray(postReactionTable.postId, postIds),
+      with: { profile: true },
+    }),
+  ]);
+
+  // Create lookup maps
+  const profileMap = new Map(profiles.map((p) => [p.id, p]));
+  const imagesByPostId = new Map<string, typeof allPostImages>();
+  const bookmarkedPostIds = new Set(allBookmarks.map((b) => b.postId));
+  const reactionsByPostId = new Map<string, typeof allReactions>();
+
+  allPostImages.forEach((pi) => {
+    if (!imagesByPostId.has(pi.postId)) {
+      imagesByPostId.set(pi.postId, []);
+    }
+    imagesByPostId.get(pi.postId)?.push(pi);
+  });
+
+  allReactions.forEach((reaction) => {
+    if (!reactionsByPostId.has(reaction.postId)) {
+      reactionsByPostId.set(reaction.postId, []);
+    }
+    reactionsByPostId.get(reaction.postId)?.push(reaction);
+  });
+
+  // Build thread data
+  const parentThread: ReplyData[] = [];
+  for (const row of rows) {
+    const profile = profileMap.get(row.author_id);
+    if (!profile) continue;
+
+    const postImages = imagesByPostId.get(row.id) || [];
+    const images = postImages
+      .filter((pi) => pi.image && !pi.image.deletedAt)
+      .map((pi) => ({
+        id: pi.image.id,
+        url: addImageUrl(pi.image).url,
+        width: pi.image.width,
+        height: pi.image.height,
+        filename: pi.image.filename,
+      }));
+
+    const reactions = reactionsByPostId.get(row.id) || [];
+
+    parentThread.push({
+      id: row.id,
+      content: row.content,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+      announcement: row.announcement,
+      content_warning: row.content_warning,
+      author: {
+        id: profile.id,
+        name: profile.name,
+        username: profile.username,
+        profile_picture_url: profilePictureMap.get(profile.id) || null,
+      },
+      images,
+      in_reply_to_id: row.in_reply_to_id,
+      depth: row.depth,
+      root_post_id: row.root_post_id,
+      is_bookmarked: bookmarkedPostIds.has(row.id),
+      replies: [],
+      reactions: reactions.map((reaction) => ({
+        emoji: reaction.emoji,
+        user: {
+          id: reaction.profile.id,
+          username: reaction.profile.username,
+          name: reaction.profile.name,
+        },
+      })),
+    });
+  }
+
+  return parentThread;
+}
+
+/**
  * Get a single post with its replies
  */
 export async function getPost(
@@ -1500,6 +1674,11 @@ export async function getPost(
   );
   const replies = repliesMap.get(post.id) || [];
 
+  // Get parent thread if this is a reply
+  const parent_thread = post.inReplyToId
+    ? await getParentThread(post.id, communityId, profileId)
+    : [];
+
   return {
     id: post.id,
     content: post.content,
@@ -1518,6 +1697,7 @@ export async function getPost(
     depth: post.depth,
     root_post_id: post.rootPostId,
     replies,
+    parent_thread,
     is_bookmarked,
     reactions:
       post.postReactions?.map((reaction) => ({
