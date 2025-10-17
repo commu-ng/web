@@ -46,6 +46,10 @@ export const consoleMasqueradeRouter = new Hono<{ Variables: AuthVariables }>()
           target_user_id,
         );
 
+        if (!result.session) {
+          return c.json({ error: "세션 생성에 실패했습니다" }, 500);
+        }
+
         // Set the new session cookie
         setCookie(c, "session_token", result.session.token, {
           httpOnly: true,

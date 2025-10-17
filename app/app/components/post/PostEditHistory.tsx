@@ -12,6 +12,7 @@ import {
 } from "~/components/ui/dialog";
 import { client } from "~/lib/api-client";
 import type { PostHistoryEntry } from "~/types/post";
+import { ImageModal } from "./ImageModal";
 import { PostCardContent } from "./PostCardContent";
 import { PostCardImages } from "./PostCardImages";
 
@@ -30,6 +31,10 @@ export function PostEditHistory({ postId }: PostEditHistoryProps) {
   const [history, setHistory] = useState<PostHistoryEntry[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<{
+    url: string;
+    filename: string;
+  } | null>(null);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -122,7 +127,10 @@ export function PostEditHistory({ postId }: PostEditHistoryProps) {
 
                 {entry.images.length > 0 && (
                   <div className="mt-2">
-                    <PostCardImages images={entry.images} />
+                    <PostCardImages
+                      images={entry.images}
+                      onImageClick={setSelectedImage}
+                    />
                   </div>
                 )}
               </div>
@@ -130,6 +138,10 @@ export function PostEditHistory({ postId }: PostEditHistoryProps) {
           )}
         </div>
       </DialogContent>
+      <ImageModal
+        image={selectedImage}
+        onClose={() => setSelectedImage(null)}
+      />
     </Dialog>
   );
 }

@@ -4,7 +4,7 @@ import { uploadImage as uploadImageToServer } from "~/lib/upload-image";
 
 export interface ImageUpload {
   id: string;
-  file: File;
+  file: File | null;
   preview: string;
   uploadedId?: string;
 }
@@ -45,6 +45,10 @@ interface UseImageUploadReturn {
    * Clear all images
    */
   clearImages: () => void;
+  /**
+   * Initialize with existing images
+   */
+  initializeWithExisting: (existingImages: ImageUpload[]) => void;
 }
 
 const ALLOWED_TYPES = [
@@ -69,10 +73,12 @@ export function useImageUpload(
   const uploadImages = async (imageObjects: ImageUpload[]) => {
     setIsUploadingImages(true);
     try {
-      const uploadPromises = imageObjects.map(async (imageObj) => {
-        const uploadedId = await uploadImageToServer(imageObj.file);
-        return { id: imageObj.id, uploadedId };
-      });
+      const uploadPromises = imageObjects
+        .filter((imageObj) => imageObj.file !== null)
+        .map(async (imageObj) => {
+          const uploadedId = await uploadImageToServer(imageObj.file as File);
+          return { id: imageObj.id, uploadedId };
+        });
 
       const uploadResults = await Promise.all(uploadPromises);
 
@@ -141,6 +147,8 @@ export function useImageUpload(
 
     // Create previews asynchronously
     newImageObjects.forEach((imageObj) => {
+      if (!imageObj.file) return;
+
       const reader = new FileReader();
       reader.onload = (e) => {
         const result = e.target?.result;
@@ -167,6 +175,10 @@ export function useImageUpload(
     setImages([]);
   };
 
+  const initializeWithExisting = (existingImages: ImageUpload[]) => {
+    setImages(existingImages);
+  };
+
   // Backward compatibility getters
   const imagePreviews = images.map((img) => img.preview);
   const uploadedImageIds = images
@@ -181,5 +193,6 @@ export function useImageUpload(
     handleImageSelect,
     removeImage,
     clearImages,
+    initializeWithExisting,
   };
 }

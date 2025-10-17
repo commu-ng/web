@@ -72,7 +72,7 @@ async function fetchAllApplications(communityId: string) {
 
   // Handle error response
   if (!Array.isArray(data)) {
-    if ("message" in data) {
+    if ("message" in data && typeof data.message === "string") {
       throw new Error(data.message);
     }
     throw new Error("Failed to fetch applications");

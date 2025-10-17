@@ -121,8 +121,12 @@ export default function ApplicationView() {
       if (!res.ok) {
         const errorData = await res.json();
         const errorMessage =
-          ("error" in errorData && errorData.error) ||
-          ("message" in errorData && errorData.message) ||
+          ("error" in errorData && typeof errorData.error === "string"
+            ? errorData.error
+            : null) ||
+          ("message" in errorData && typeof errorData.message === "string"
+            ? errorData.message
+            : null) ||
           "승인에 실패했습니다";
         throw new Error(errorMessage);
       }
@@ -161,8 +165,12 @@ export default function ApplicationView() {
       if (!res.ok) {
         const errorData = await res.json();
         const errorMessage =
-          ("error" in errorData && errorData.error) ||
-          ("message" in errorData && errorData.message) ||
+          ("error" in errorData && typeof errorData.error === "string"
+            ? errorData.error
+            : null) ||
+          ("message" in errorData && typeof errorData.message === "string"
+            ? errorData.message
+            : null) ||
           "거절에 실패했습니다";
         throw new Error(errorMessage);
       }

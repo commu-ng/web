@@ -255,21 +255,22 @@ export async function getBoardPosts(
     .filter((id): id is string => id !== undefined && id !== null);
 
   // Batch load hashtags and images
-  const [allHashtags, allImages] = await Promise.all([
+  const allHashtags =
     postIds.length > 0
-      ? db.query.boardPostHashtag.findMany({
+      ? await db.query.boardPostHashtag.findMany({
           where: inArray(boardPostHashtagTable.boardPostId, postIds),
           with: {
             hashtag: true,
           },
         })
-      : Promise.resolve([]),
+      : [];
+
+  const allImages =
     imageIds.length > 0
-      ? db.query.image.findMany({
+      ? await db.query.image.findMany({
           where: inArray(imageTable.id, imageIds),
         })
-      : Promise.resolve([]),
-  ]);
+      : [];
 
   // Group hashtags by post ID
   const hashtagsByPostId = new Map<string, typeof allHashtags>();
