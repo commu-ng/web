@@ -267,7 +267,7 @@ export default function ProfileProfile() {
               <div className="flex items-center gap-2 text-muted-foreground">
                 <MessageCircle className="h-4 w-4" />
                 <span className="text-sm font-medium">
-                  게시물 {posts.length}개
+                  게시물 {profile.post_count ?? 0}개
                 </span>
               </div>
             </div>

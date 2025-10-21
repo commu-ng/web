@@ -548,6 +548,9 @@ export async function getProfileProfile(username: string, communityId: string) {
     throw new AppException(404, "프로필을 찾을 수 없습니다");
   }
 
+  // Get post count for this profile
+  const postCount = await getProfilePostCount(profile.id);
+
   return {
     id: profile.id,
     username: profile.username,
@@ -556,6 +559,7 @@ export async function getProfileProfile(username: string, communityId: string) {
     profile_picture_url: getProfilePictureUrl(profile.profilePictures),
     createdAt: profile.createdAt,
     updatedAt: profile.updatedAt,
+    post_count: postCount,
   };
 }
 

@@ -11,6 +11,7 @@ export interface Profile {
   is_active?: boolean;
   is_primary?: boolean;
   user_group?: string;
+  post_count?: number;
   // Online status fields
   onlineStatusVisible?: boolean;
   lastActiveAt?: string | null;
