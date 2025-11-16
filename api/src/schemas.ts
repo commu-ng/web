@@ -33,12 +33,12 @@ export const communityRoleUpdateRequestSchema = z.object({
 });
 
 export const userSignupSchema = z.object({
-  loginName: z.string().min(1, "Login name cannot be empty"),
+  login_name: z.string().min(1, "Login name cannot be empty"),
   password: z.string().min(8, "Password must be at least 8 characters long"),
 });
 
 export const userLoginSchema = z.object({
-  loginName: z.string().min(1, "Login name cannot be empty"),
+  login_name: z.string().min(1, "Login name cannot be empty"),
   password: z.string().min(1, "Password cannot be empty"),
 });
 

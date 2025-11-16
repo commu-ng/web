@@ -63,7 +63,7 @@ export default function Login() {
     try {
       const response = await api.console.login.$post({
         json: {
-          loginName: formData.login_name,
+          login_name: formData.login_name,
           password: formData.password,
         },
       });

@@ -250,7 +250,7 @@ export default function AdminBoards() {
     );
   }
 
-  if (!user?.admin) {
+  if (!user?.is_admin) {
     return (
       <div className="container mx-auto py-8 px-4 max-w-4xl">
         <Empty>

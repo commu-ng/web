@@ -42,10 +42,10 @@ export function meta(_args: Route.MetaArgs) {
 
 interface User {
   id: string;
-  loginName: string;
+  login_name: string;
   email: string | null;
-  createdAt: string;
-  isAdmin: boolean;
+  created_at: string;
+  is_admin: boolean;
 }
 
 async function fetchUsers(search?: string): Promise<User[]> {
@@ -104,7 +104,7 @@ export default function AdminMasquerade() {
       return await res.json();
     },
     onSuccess: (data) => {
-      toast.success(`${data.targetUser.loginName} 사용자로 전환되었습니다`);
+      toast.success(`${data.targetUser.login_name} 사용자로 전환되었습니다`);
       // Invalidate queries and reload
       queryClient.invalidateQueries({ queryKey: ["auth"] });
       queryClient.invalidateQueries({ queryKey: ["masquerade"] });
@@ -119,7 +119,7 @@ export default function AdminMasquerade() {
   const handleMasquerade = (targetUser: User) => {
     if (
       window.confirm(
-        `${targetUser.loginName} 사용자로 전환하시겠습니까?\n\n전환 중에는 비밀번호 변경, 이메일 변경, 계정 삭제와 같은 민감한 작업이 제한됩니다.`,
+        `${targetUser.login_name} 사용자로 전환하시겠습니까?\n\n전환 중에는 비밀번호 변경, 이메일 변경, 계정 삭제와 같은 민감한 작업이 제한됩니다.`,
       )
     ) {
       startMasqueradeMutation.mutate(targetUser.id);
@@ -144,7 +144,7 @@ export default function AdminMasquerade() {
     );
   }
 
-  if (!user?.admin) {
+  if (!user?.is_admin) {
     return (
       <div className="container mx-auto py-8 px-4 max-w-4xl">
         <Empty>
@@ -267,11 +267,11 @@ export default function AdminMasquerade() {
                 {users.map((targetUser) => (
                   <TableRow key={targetUser.id}>
                     <TableCell className="font-medium">
-                      {targetUser.loginName}
+                      {targetUser.login_name}
                     </TableCell>
                     <TableCell>{targetUser.email || "-"}</TableCell>
                     <TableCell>
-                      {targetUser.isAdmin ? (
+                      {targetUser.is_admin ? (
                         <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-700 dark:text-amber-400 bg-amber-100 dark:bg-amber-950/50 px-2 py-1 rounded">
                           <Shield className="h-3 w-3" />
                           관리자
@@ -283,7 +283,7 @@ export default function AdminMasquerade() {
                       )}
                     </TableCell>
                     <TableCell>
-                      {new Date(targetUser.createdAt).toLocaleDateString(
+                      {new Date(targetUser.created_at).toLocaleDateString(
                         "ko-KR",
                       )}
                     </TableCell>

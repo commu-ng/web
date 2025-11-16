@@ -29,7 +29,7 @@ export default function ConfirmDeleteAccount() {
   >("idle");
   const [message, setMessage] = useState("");
   const [userInfo, setUserInfo] = useState<{
-    loginName: string | null;
+    login_name: string | null;
     email: string | null;
   } | null>(null);
   const [isLoadingUserInfo, setIsLoadingUserInfo] = useState(true);
@@ -132,7 +132,7 @@ export default function ConfirmDeleteAccount() {
                 {userInfo && (
                   <div className="text-yellow-800 text-xs mb-2 space-y-1">
                     <p>
-                      <strong>아이디:</strong> {userInfo.loginName}
+                      <strong>아이디:</strong> {userInfo.login_name}
                     </p>
                     <p>
                       <strong>이메일:</strong> {userInfo.email}

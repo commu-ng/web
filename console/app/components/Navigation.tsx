@@ -73,7 +73,7 @@ export function Navigation() {
           타임라인 기반 커뮤 플랫폼
         </p>
 
-        {isAuthenticated && user && !user.emailVerified && (
+        {isAuthenticated && user && !user.email_verified && (
           <Alert variant="destructive" className="max-w-2xl">
             <AlertCircle className="h-4 w-4" />
             <AlertTitle>이메일 인증이 필요합니다</AlertTitle>
@@ -200,7 +200,7 @@ export function Navigation() {
         </div>
 
         {/* Administrator Navigation */}
-        {isAuthenticated && user?.admin && <AdministratorNavigation />}
+        {isAuthenticated && user?.is_admin && <AdministratorNavigation />}
       </div>
     </nav>
   );

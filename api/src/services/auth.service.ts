@@ -85,7 +85,11 @@ export async function findCommunityByDomain(
   });
 
   if (!community) {
-    throw new AppException(403, GENERAL_ERROR_CODE, "허용되지 않는 도메인입니다");
+    throw new AppException(
+      403,
+      GENERAL_ERROR_CODE,
+      "허용되지 않는 도메인입니다",
+    );
   }
 
   return community;
@@ -133,7 +137,11 @@ export async function exchangeTokenForSession(token: string, domain: string) {
     });
 
     if (!exchangeToken) {
-      throw new AppException(401, GENERAL_ERROR_CODE, "잘못된 또는 만료된 토큰입니다");
+      throw new AppException(
+        401,
+        GENERAL_ERROR_CODE,
+        "잘못된 또는 만료된 토큰입니다",
+      );
     }
 
     // Look up the community by domain to get its ID for session scoping
@@ -210,10 +218,18 @@ async function getDummyHash(): Promise<string> {
 export async function loginUser(loginName: string, password: string) {
   // Input validation
   if (!loginName || loginName.length < 1 || loginName.length > 100) {
-    throw new AppException(400, GENERAL_ERROR_CODE, "유효하지 않은 로그인 이름입니다");
+    throw new AppException(
+      400,
+      GENERAL_ERROR_CODE,
+      "유효하지 않은 로그인 이름입니다",
+    );
   }
   if (!password || password.length < 8) {
-    throw new AppException(400, GENERAL_ERROR_CODE, "비밀번호는 최소 8자 이상이어야 합니다");
+    throw new AppException(
+      400,
+      GENERAL_ERROR_CODE,
+      "비밀번호는 최소 8자 이상이어야 합니다",
+    );
   }
 
   // Find user by login_name
@@ -237,8 +253,12 @@ export async function loginUser(loginName: string, password: string) {
     session,
     user: {
       id: user.id,
-      loginName: user.loginName,
-      createdAt: user.createdAt,
+      login_name: user.loginName,
+      email: user.email,
+      email_verified_at: user.emailVerifiedAt,
+      created_at: user.createdAt,
+      is_admin: user.isAdmin,
+      avatar_url: null,
     },
   };
 }
@@ -249,10 +269,18 @@ export async function loginUser(loginName: string, password: string) {
 export async function signupUser(loginName: string, password: string) {
   // Input validation
   if (!loginName || loginName.length < 1 || loginName.length > 100) {
-    throw new AppException(400, GENERAL_ERROR_CODE, "유효하지 않은 로그인 이름입니다");
+    throw new AppException(
+      400,
+      GENERAL_ERROR_CODE,
+      "유효하지 않은 로그인 이름입니다",
+    );
   }
   if (!password || password.length < 8) {
-    throw new AppException(400, GENERAL_ERROR_CODE, "비밀번호는 최소 8자 이상이어야 합니다");
+    throw new AppException(
+      400,
+      GENERAL_ERROR_CODE,
+      "비밀번호는 최소 8자 이상이어야 합니다",
+    );
   }
 
   // Check if login_name already exists
@@ -261,7 +289,11 @@ export async function signupUser(loginName: string, password: string) {
   });
 
   if (existingUser) {
-    throw new AppException(400, GENERAL_ERROR_CODE, "이미 사용 중인 로그인 이름입니다");
+    throw new AppException(
+      400,
+      GENERAL_ERROR_CODE,
+      "이미 사용 중인 로그인 이름입니다",
+    );
   }
 
   const hashedPassword = await bcrypt.hash(password, 10);
@@ -283,7 +315,11 @@ export async function signupUser(loginName: string, password: string) {
     newUser = insertedUser;
   } catch (error: unknown) {
     if (error instanceof Error && error.message.includes("unique_login_name")) {
-      throw new AppException(400, GENERAL_ERROR_CODE, "이미 사용 중인 로그인 이름입니다");
+      throw new AppException(
+        400,
+        GENERAL_ERROR_CODE,
+        "이미 사용 중인 로그인 이름입니다",
+      );
     }
     throw new Error("사용자 생성에 실패했습니다");
   }
@@ -299,8 +335,12 @@ export async function signupUser(loginName: string, password: string) {
     session,
     user: {
       id: newUser.id,
-      loginName: newUser.loginName,
-      createdAt: newUser.createdAt,
+      login_name: newUser.loginName,
+      email: newUser.email,
+      email_verified_at: newUser.emailVerifiedAt,
+      created_at: newUser.createdAt,
+      is_admin: newUser.isAdmin,
+      avatar_url: null,
     },
   };
 }
@@ -312,7 +352,11 @@ export async function signupUser(loginName: string, password: string) {
 export async function resetPassword(token: string, newPassword: string) {
   // Input validation
   if (!newPassword || newPassword.length < 8) {
-    throw new AppException(400, GENERAL_ERROR_CODE, "비밀번호는 최소 8자 이상이어야 합니다");
+    throw new AppException(
+      400,
+      GENERAL_ERROR_CODE,
+      "비밀번호는 최소 8자 이상이어야 합니다",
+    );
   }
 
   // Verify token and get user ID

@@ -81,9 +81,9 @@ export async function getCurrentUser(userId: string) {
 
   return {
     id: user.id,
-    loginName: user.loginName,
-    createdAt: user.createdAt,
-    admin: user.isAdmin,
+    login_name: user.loginName,
+    created_at: user.createdAt,
+    is_admin: user.isAdmin,
     instances: communitiesWithRoles,
   };
 }

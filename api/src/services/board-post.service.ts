@@ -1039,9 +1039,6 @@ export async function updateBoardPostReply(
       eq(boardPostReplyTable.id, replyId),
       isNull(boardPostReplyTable.deletedAt),
     ),
-    with: {
-      user: true,
-    },
   });
 
   if (!reply) {
@@ -1076,14 +1073,23 @@ export async function updateBoardPostReply(
     throw new Error("Failed to update reply");
   }
 
+  // Get author info
+  const author = await db.query.user.findFirst({
+    where: eq(userTable.id, reply.authorId),
+  });
+
+  if (!author) {
+    throw new Error("Reply author not found");
+  }
+
   return {
     id: updatedReply.id,
     content: updatedReply.content,
     depth: updatedReply.depth,
     in_reply_to_id: updatedReply.inReplyToId,
     author: {
-      id: reply.user.id,
-      login_name: reply.user.loginName,
+      id: author.id,
+      login_name: author.loginName,
     },
     created_at: updatedReply.createdAt,
     updated_at: updatedReply.updatedAt,

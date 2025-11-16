@@ -217,7 +217,7 @@ export default function Account() {
             <div>
               <Label>아이디</Label>
               <div className="text-sm text-muted-foreground mt-1">
-                {user.loginName}
+                {user.login_name}
               </div>
             </div>
             <div>
@@ -226,7 +226,7 @@ export default function Account() {
                 {user.email ? (
                   <div className="flex items-center gap-2">
                     <span>{user.email}</span>
-                    {user.emailVerified ? (
+                    {user.email_verified ? (
                       <span className="text-xs bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 px-2 py-0.5 rounded">
                         인증됨
                       </span>
@@ -244,9 +244,9 @@ export default function Account() {
             <div>
               <Label>가입일</Label>
               <div className="text-sm text-muted-foreground mt-1">
-                {user.createdAt &&
-                !Number.isNaN(new Date(user.createdAt).getTime())
-                  ? format(new Date(user.createdAt), "yyyy년 MM월 dd일", {
+                {user.created_at &&
+                !Number.isNaN(new Date(user.created_at).getTime())
+                  ? format(new Date(user.created_at), "yyyy년 MM월 dd일", {
                       locale: ko,
                     })
                   : "알 수 없음"}
@@ -457,7 +457,7 @@ export default function Account() {
                       {deleteError && <FieldError>{deleteError}</FieldError>}
                     </FieldGroup>
 
-                    {user?.emailVerified && user?.email && (
+                    {user?.email_verified && user?.email && (
                       <div className="text-sm text-muted-foreground bg-blue-50 dark:bg-blue-900/20 p-3 rounded">
                         <p>
                           인증된 이메일 주소로 확인 링크가 전송됩니다:{" "}
@@ -491,10 +491,10 @@ export default function Account() {
                       >
                         {isDeletingAccount && <Spinner />}
                         {isDeletingAccount
-                          ? user?.emailVerified
+                          ? user?.email_verified
                             ? "이메일 전송 중..."
                             : "삭제 중..."
-                          : user?.emailVerified
+                          : user?.email_verified
                             ? "확인 이메일 전송"
                             : "계정 삭제"}
                       </Button>

@@ -247,7 +247,7 @@ export default function ProfileProfile() {
                       에 가입
                     </span>
                   </div>
-                  {user && profile.username !== user.loginName && (
+                  {user && profile.username !== user.login_name && (
                     <div className="mt-4">
                       <Link
                         to={`/messages/${profile.username}`}

@@ -71,7 +71,7 @@ export default function Signup() {
     try {
       const response = await api.console.signup.$post({
         json: {
-          loginName: formData.login_name,
+          login_name: formData.login_name,
           password: formData.password,
         },
       });

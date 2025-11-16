@@ -4,10 +4,10 @@
 
 export interface User {
   id: string;
-  loginName: string | null;
+  login_name: string | null;
   email?: string | null;
-  createdAt: string;
-  admin: boolean;
+  created_at: string;
+  is_admin: boolean;
   instances?: Array<{
     id: string;
     name: string;

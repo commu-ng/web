@@ -71,7 +71,7 @@ export async function startMasquerade(
     session: updatedSession,
     targetUser: {
       id: targetUser.id,
-      loginName: targetUser.loginName,
+      login_name: targetUser.loginName,
     },
   };
 }
@@ -166,11 +166,11 @@ export async function getMasqueradeStatus(sessionToken: string) {
     isMasquerading: true,
     adminUser: {
       id: adminUser.id,
-      loginName: adminUser.loginName,
+      login_name: adminUser.loginName,
     },
     targetUser: {
       id: user.id,
-      loginName: user.loginName,
+      login_name: user.loginName,
     },
   };
 }
@@ -239,7 +239,13 @@ export async function listUsersForMasquerade(
     limit,
   });
 
-  return users;
+  return users.map((user) => ({
+    id: user.id,
+    login_name: user.loginName,
+    email: user.email,
+    created_at: user.createdAt,
+    is_admin: user.isAdmin,
+  }));
 }
 
 /**

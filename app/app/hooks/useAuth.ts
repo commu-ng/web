@@ -22,9 +22,9 @@ interface Instance {
 
 interface User {
   id: string;
-  loginName: string | null;
-  createdAt: string;
-  admin: boolean;
+  login_name: string | null;
+  created_at: string;
+  is_admin: boolean;
   instances: Instance[];
 }
 

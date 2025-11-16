@@ -3,12 +3,12 @@ import { api } from "~/lib/api-client";
 
 interface User {
   id: string;
-  loginName: string | null;
+  login_name: string | null;
   email: string | null;
-  emailVerified: boolean;
-  emailVerifiedAt: string | null;
-  createdAt: string;
-  admin: boolean;
+  email_verified: boolean;
+  email_verified_at: string | null;
+  created_at: string;
+  is_admin: boolean;
 }
 
 interface AuthState {

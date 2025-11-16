@@ -35,8 +35,8 @@ export const consoleAccountRouter = new Hono()
     return c.json({
       ...currentUser,
       email: user.email,
-      emailVerified: user.emailVerifiedAt !== null,
-      emailVerifiedAt: user.emailVerifiedAt,
+      email_verified: user.emailVerifiedAt !== null,
+      email_verified_at: user.emailVerifiedAt,
     });
   })
   .post(
@@ -125,7 +125,7 @@ export const consoleAccountRouter = new Hono()
     },
   )
   .post("/login", zValidator("json", userLoginSchema), async (c) => {
-    const { loginName, password } = c.req.valid("json");
+    const { login_name: loginName, password } = c.req.valid("json");
     try {
       const { session, user } = await authService.loginUser(
         loginName,
@@ -149,7 +149,7 @@ export const consoleAccountRouter = new Hono()
     }
   })
   .post("/signup", zValidator("json", userSignupSchema), async (c) => {
-    const { loginName, password } = c.req.valid("json");
+    const { login_name: loginName, password } = c.req.valid("json");
     const { session, user } = await authService.signupUser(loginName, password);
 
     // Set session cookie
@@ -215,7 +215,7 @@ export const consoleAccountRouter = new Hono()
         const user = await userService.getUserById(userId);
 
         return c.json({
-          loginName: user.loginName,
+          login_name: user.loginName,
           email: user.email || "",
         });
       } catch (error: unknown) {
