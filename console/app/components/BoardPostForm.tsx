@@ -3,7 +3,7 @@ import { ImageIcon, X } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
 import { toast } from "sonner";
 import { HashtagInput } from "~/components/hashtag-input";
-import { TiptapEditor } from "~/components/TiptapEditor";
+import { MarkdownEditor } from "~/components/MarkdownEditor";
 import { Button } from "~/components/ui/button";
 import { Field, FieldDescription, FieldLabel } from "~/components/ui/field";
 import { Input } from "~/components/ui/input";
@@ -272,15 +272,16 @@ export function BoardPostForm({
         )}
       </Field>
 
-      <Field>
-        <FieldLabel htmlFor="content">내용</FieldLabel>
-        <TiptapEditor
-          content={content}
-          onChange={setContent}
-          placeholder="게시물 내용을 입력하세요..."
-          disabled={savePostMutation.isPending}
-        />
-      </Field>
+      <MarkdownEditor
+        value={content}
+        onChange={setContent}
+        onImageUpload={async (file) => {
+          const result = await uploadImage(file);
+          return { url: result.url };
+        }}
+        placeholder="게시물 내용을 입력하세요..."
+        disabled={savePostMutation.isPending}
+      />
 
       {isPromoBoard && (
         <Field>

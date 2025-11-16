@@ -7,6 +7,7 @@ import {
   Reply,
   Trash2,
 } from "lucide-react";
+import MarkdownIt from "markdown-it";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { toast } from "sonner";
@@ -35,6 +36,8 @@ import { Textarea } from "~/components/ui/textarea";
 import { useAuth } from "~/hooks/useAuth";
 import { api, getErrorMessage } from "~/lib/api-client";
 import type { Route } from "./+types/boards.$boardSlug.posts.$postId";
+
+const md = new MarkdownIt({ linkify: true, breaks: true });
 
 export function meta({ params }: Route.MetaArgs) {
   return [
@@ -628,8 +631,8 @@ export default function BoardPostDetail({ params }: Route.ComponentProps) {
           )}
           <div
             className="prose prose-sm dark:prose-invert max-w-none break-words"
-            // biome-ignore lint/security/noDangerouslySetInnerHtml: Content is sanitized by the backend
-            dangerouslySetInnerHTML={{ __html: post.content }}
+            // biome-ignore lint/security/noDangerouslySetInnerHtml: markdown is sanitized by markdown-it
+            dangerouslySetInnerHTML={{ __html: md.render(post.content) }}
           />
         </CardContent>
       </Card>
