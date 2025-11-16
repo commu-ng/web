@@ -4,18 +4,30 @@ import { Hono } from "hono";
 import { deleteCookie, getCookie } from "hono/cookie";
 import { env } from "../config/env";
 import { AppException } from "../exception";
-import { authMiddleware, optionalAuthMiddleware } from "../middleware/auth";
+import { optionalAuthMiddleware } from "../middleware/auth";
 import { ssoQuerySchema, tokenExchangeSchema } from "../schemas";
 import * as authService from "../services/auth.service";
 
 export const auth = new Hono()
-  .post("/logout", authMiddleware, async (c) => {
-    const sessionToken = getCookie(c, "session_token");
+  .post("/logout", async (c) => {
+    // Accept session token from either cookie (web) or Authorization header (mobile)
+    let sessionToken = getCookie(c, "session_token");
+
+    // If no cookie, try Bearer token
+    if (!sessionToken) {
+      const authHeader = c.req.header("Authorization");
+      if (authHeader?.startsWith("Bearer ")) {
+        sessionToken = authHeader.substring(7);
+      }
+    }
+
     if (!sessionToken) {
       return c.json({ error: "세션 토큰이 필요합니다" }, 400);
     }
 
     await authService.logoutUser(sessionToken);
+
+    // Clear cookie if it exists
     deleteCookie(c, "session_token");
 
     return c.json({ message: "성공적으로 로그아웃되었습니다" });

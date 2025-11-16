@@ -139,7 +139,8 @@ export const consoleAccountRouter = new Hono()
         sameSite: "Lax",
       });
 
-      return c.json(user);
+      // Return user data with session token (for mobile clients)
+      return c.json({ ...user, sessionToken: session.token });
     } catch (error: unknown) {
       if (error instanceof AppException) {
         return c.json({ error: error.message }, error.statusCode);
@@ -158,7 +159,8 @@ export const consoleAccountRouter = new Hono()
       sameSite: "Lax",
     });
 
-    return c.json(user, 201);
+    // Return user data with session token (for mobile clients)
+    return c.json({ ...user, sessionToken: session.token }, 201);
   })
   .delete("/users/me", authMiddleware, async (c) => {
     const user = c.get("user");
@@ -327,9 +329,19 @@ export const consoleAccountRouter = new Hono()
       const { token, new_password } = c.req.valid("json");
 
       try {
-        await authService.resetPassword(token, new_password);
+        const result = await authService.resetPassword(token, new_password);
+
+        // Set session cookie for web clients
+        setCookie(c, "session_token", result.session.token, {
+          maxAge: 30 * 24 * 60 * 60, // 30 days in seconds
+          httpOnly: true,
+          sameSite: "Lax",
+        });
+
+        // Return success message with session token (for mobile clients)
         return c.json({
           message: "비밀번호가 성공적으로 재설정되었습니다.",
+          sessionToken: result.session.token,
         });
       } catch (error: unknown) {
         const message =

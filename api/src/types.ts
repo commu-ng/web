@@ -8,6 +8,8 @@ export type AuthVariables = {
   user?: typeof userTable.$inferSelect;
   community?: typeof communityTable.$inferSelect;
   membership?: typeof membershipTable.$inferSelect;
+  isMasquerading?: boolean;
+  originalUserId?: string;
 };
 
 export interface ProfilePicture {

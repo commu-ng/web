@@ -306,6 +306,7 @@ export async function signupUser(loginName: string, password: string) {
 
 /**
  * Reset password using token from email
+ * Returns a new session for immediate login
  */
 export async function resetPassword(token: string, newPassword: string) {
   // Input validation
@@ -331,5 +332,8 @@ export async function resetPassword(token: string, newPassword: string) {
   // Invalidate all existing sessions for security
   await db.delete(sessionTable).where(eq(sessionTable.userId, userId));
 
-  return { success: true };
+  // Create new console session for immediate login
+  const session = await createSession(userId, null);
+
+  return { success: true, session };
 }
