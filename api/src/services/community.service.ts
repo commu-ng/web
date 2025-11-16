@@ -194,7 +194,11 @@ export async function createCommunity(
   } catch (error: unknown) {
     logger.service.error("Error creating community", { error });
     if (error instanceof Error && error.message.includes("unique_slug")) {
-      throw new AppException(409, GENERAL_ERROR_CODE, "이미 존재하는 커뮤 ID입니다");
+      throw new AppException(
+        409,
+        GENERAL_ERROR_CODE,
+        "이미 존재하는 커뮤 ID입니다",
+      );
     }
     throw new AppException(400, GENERAL_ERROR_CODE, "커뮤 생성에 실패했습니다");
   }
@@ -288,13 +292,13 @@ export async function updateCommunity(
             isNull(imageTable.deletedAt),
           ),
         });
-				if (!image) {
-					throw new AppException(
-						400,
-						GENERAL_ERROR_CODE,
-						`잘못된 이미지 ID입니다: ${data.imageId}`,
-					);
-				}
+        if (!image) {
+          throw new AppException(
+            400,
+            GENERAL_ERROR_CODE,
+            `잘못된 이미지 ID입니다: ${data.imageId}`,
+          );
+        }
 
         // Create new banner image association
         await tx.insert(communityBannerImageTable).values({
@@ -350,11 +354,11 @@ export async function updateCommunity(
             const invalidIds = newImageIdsToAdd.filter(
               (id) => !validImageIds.has(id),
             );
-						throw new AppException(
-							400,
-							GENERAL_ERROR_CODE,
-							`잘못된 이미지 ID입니다: ${invalidIds.join(", ")}`,
-						);
+            throw new AppException(
+              400,
+              GENERAL_ERROR_CODE,
+              `잘못된 이미지 ID입니다: ${invalidIds.join(", ")}`,
+            );
           }
 
           // Batch insert all new associations
@@ -396,9 +400,17 @@ export async function updateCommunity(
     }
     logger.service.error("Error updating community", { error });
     if (error instanceof Error && error.message.includes("unique_slug")) {
-      throw new AppException(409, GENERAL_ERROR_CODE, "이미 존재하는 커뮤 ID입니다");
+      throw new AppException(
+        409,
+        GENERAL_ERROR_CODE,
+        "이미 존재하는 커뮤 ID입니다",
+      );
     }
-    throw new AppException(400, GENERAL_ERROR_CODE, "커뮤 업데이트에 실패했습니다");
+    throw new AppException(
+      400,
+      GENERAL_ERROR_CODE,
+      "커뮤 업데이트에 실패했습니다",
+    );
   }
 }
 
@@ -502,7 +514,11 @@ export async function deleteBannerImage(
   });
 
   if (!bannerImage) {
-    throw new AppException(404, GENERAL_ERROR_CODE, "배너 이미지를 찾을 수 없습니다");
+    throw new AppException(
+      404,
+      GENERAL_ERROR_CODE,
+      "배너 이미지를 찾을 수 없습니다",
+    );
   }
 
   // Soft delete the banner image association

@@ -26,11 +26,18 @@ async function validateModeratorPermissions(
   });
 
   if (!membership) {
-    throw new AppException(403, GENERAL_ERROR_CODE, "이 커뮤의 회원이 아닙니다");
+    throw new AppException(
+      403,
+      GENERAL_ERROR_CODE,
+      "이 커뮤의 회원이 아닙니다",
+    );
   }
 
   if (membership.role !== "owner" && membership.role !== "moderator") {
-    throw new AppException(403, GENERAL_ERROR_CODE, "소유자 또는 모더레이터만 이 작업을 수행할 수 있습니다",
+    throw new AppException(
+      403,
+      GENERAL_ERROR_CODE,
+      "소유자 또는 모더레이터만 이 작업을 수행할 수 있습니다",
     );
   }
 
@@ -51,7 +58,11 @@ async function validateModeratorPermissions(
   );
 
   if (!moderatorProfile?.profile) {
-    throw new AppException(404, GENERAL_ERROR_CODE, "프로필을 찾을 수 없습니다");
+    throw new AppException(
+      404,
+      GENERAL_ERROR_CODE,
+      "프로필을 찾을 수 없습니다",
+    );
   }
 
   return {
@@ -86,17 +97,29 @@ export async function muteProfile(
   });
 
   if (!targetProfile) {
-    throw new AppException(404, GENERAL_ERROR_CODE, "프로필을 찾을 수 없습니다");
+    throw new AppException(
+      404,
+      GENERAL_ERROR_CODE,
+      "프로필을 찾을 수 없습니다",
+    );
   }
 
   // Check if profile is already muted
   if (targetProfile.mutedAt) {
-    throw new AppException(409, GENERAL_ERROR_CODE, "프로필이 이미 음소거되었습니다");
+    throw new AppException(
+      409,
+      GENERAL_ERROR_CODE,
+      "프로필이 이미 음소거되었습니다",
+    );
   }
 
   // Prevent moderators from muting themselves
   if (moderatorProfileId === targetProfileId) {
-    throw new AppException(400, GENERAL_ERROR_CODE, "자신의 프로필을 음소거할 수 없습니다");
+    throw new AppException(
+      400,
+      GENERAL_ERROR_CODE,
+      "자신의 프로필을 음소거할 수 없습니다",
+    );
   }
 
   // Mute the profile and log the action in a transaction
@@ -151,12 +174,20 @@ export async function unmuteProfile(
   });
 
   if (!targetProfile) {
-    throw new AppException(404, GENERAL_ERROR_CODE, "프로필을 찾을 수 없습니다");
+    throw new AppException(
+      404,
+      GENERAL_ERROR_CODE,
+      "프로필을 찾을 수 없습니다",
+    );
   }
 
   // Check if profile is not muted
   if (!targetProfile.mutedAt) {
-    throw new AppException(400, GENERAL_ERROR_CODE, "프로필이 음소거되지 않았습니다");
+    throw new AppException(
+      400,
+      GENERAL_ERROR_CODE,
+      "프로필이 음소거되지 않았습니다",
+    );
   }
 
   // Unmute the profile and log the action in a transaction

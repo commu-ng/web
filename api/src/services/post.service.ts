@@ -257,7 +257,11 @@ export async function uploadImage(
     width = metadata.width ?? 0;
     height = metadata.height ?? 0;
   } catch (_err) {
-    throw new AppException(400, GENERAL_ERROR_CODE, "이미지 크기 가져오기에 실패했습니다");
+    throw new AppException(
+      400,
+      GENERAL_ERROR_CODE,
+      "이미지 크기 가져오기에 실패했습니다",
+    );
   }
 
   const newImageResult = await db
@@ -531,7 +535,11 @@ export async function createBookmark(
   // Validate post belongs to this community
   const hasAccess = await validatePostCommunityAccess(postId, communityId);
   if (!hasAccess) {
-    throw new AppException(404, GENERAL_ERROR_CODE, "게시물을 찾을 수 없습니다");
+    throw new AppException(
+      404,
+      GENERAL_ERROR_CODE,
+      "게시물을 찾을 수 없습니다",
+    );
   }
 
   // Find the post
@@ -548,7 +556,11 @@ export async function createBookmark(
   });
 
   if (!post) {
-    throw new AppException(404, GENERAL_ERROR_CODE, "게시물을 찾을 수 없습니다");
+    throw new AppException(
+      404,
+      GENERAL_ERROR_CODE,
+      "게시물을 찾을 수 없습니다",
+    );
   }
 
   // Check if bookmark already exists
@@ -560,7 +572,11 @@ export async function createBookmark(
   });
 
   if (existingBookmark) {
-    throw new AppException(409, GENERAL_ERROR_CODE, "게시물이 이미 북마크되었습니다");
+    throw new AppException(
+      409,
+      GENERAL_ERROR_CODE,
+      "게시물이 이미 북마크되었습니다",
+    );
   }
 
   // Create the bookmark
@@ -594,7 +610,11 @@ export async function deleteBookmark(
   // Validate post belongs to this community
   const hasAccess = await validatePostCommunityAccess(postId, communityId);
   if (!hasAccess) {
-    throw new AppException(404, GENERAL_ERROR_CODE, "게시물을 찾을 수 없습니다");
+    throw new AppException(
+      404,
+      GENERAL_ERROR_CODE,
+      "게시물을 찾을 수 없습니다",
+    );
   }
 
   // Find the bookmark
@@ -606,7 +626,11 @@ export async function deleteBookmark(
   });
 
   if (!bookmark) {
-    throw new AppException(404, GENERAL_ERROR_CODE, "북마크를 찾을 수 없습니다");
+    throw new AppException(
+      404,
+      GENERAL_ERROR_CODE,
+      "북마크를 찾을 수 없습니다",
+    );
   }
 
   // Delete the bookmark
@@ -639,7 +663,10 @@ export async function createReaction(
   // Validate post belongs to this community
   const hasAccess = await validatePostCommunityAccess(postId, communityId);
   if (!hasAccess) {
-    throw new AppException(404, GENERAL_ERROR_CODE, "게시물을 찾을 수 없거나 접근이 거부되었습니다",
+    throw new AppException(
+      404,
+      GENERAL_ERROR_CODE,
+      "게시물을 찾을 수 없거나 접근이 거부되었습니다",
     );
   }
 
@@ -657,7 +684,10 @@ export async function createReaction(
   });
 
   if (!post) {
-    throw new AppException(404, GENERAL_ERROR_CODE, "게시물을 찾을 수 없거나 접근이 거부되었습니다",
+    throw new AppException(
+      404,
+      GENERAL_ERROR_CODE,
+      "게시물을 찾을 수 없거나 접근이 거부되었습니다",
     );
   }
 
@@ -736,7 +766,10 @@ export async function deleteReaction(
   // Validate post belongs to this community
   const hasAccess = await validatePostCommunityAccess(postId, communityId);
   if (!hasAccess) {
-    throw new AppException(404, GENERAL_ERROR_CODE, "게시물을 찾을 수 없거나 접근이 거부되었습니다",
+    throw new AppException(
+      404,
+      GENERAL_ERROR_CODE,
+      "게시물을 찾을 수 없거나 접근이 거부되었습니다",
     );
   }
 
@@ -754,7 +787,10 @@ export async function deleteReaction(
   });
 
   if (!post) {
-    throw new AppException(404, GENERAL_ERROR_CODE, "게시물을 찾을 수 없거나 접근이 거부되었습니다",
+    throw new AppException(
+      404,
+      GENERAL_ERROR_CODE,
+      "게시물을 찾을 수 없거나 접근이 거부되었습니다",
     );
   }
 
@@ -1591,7 +1627,11 @@ export async function getPost(
   // Validate post belongs to this community
   const hasAccess = await validatePostCommunityAccess(postId, communityId);
   if (!hasAccess) {
-    throw new AppException(404, GENERAL_ERROR_CODE, "게시물을 찾을 수 없습니다");
+    throw new AppException(
+      404,
+      GENERAL_ERROR_CODE,
+      "게시물을 찾을 수 없습니다",
+    );
   }
 
   // Find the post in the same community (exclude deleted posts and unpublished scheduled posts)
@@ -1626,7 +1666,11 @@ export async function getPost(
   });
 
   if (!post) {
-    throw new AppException(404, GENERAL_ERROR_CODE, "게시물을 찾을 수 없습니다");
+    throw new AppException(
+      404,
+      GENERAL_ERROR_CODE,
+      "게시물을 찾을 수 없습니다",
+    );
   }
 
   // Get author's profile picture
@@ -1732,7 +1776,11 @@ export async function createPost(
       communityId,
     );
     if (!hasAccess) {
-      throw new AppException(404, GENERAL_ERROR_CODE, "상위 게시물을 찾을 수 없습니다");
+      throw new AppException(
+        404,
+        GENERAL_ERROR_CODE,
+        "상위 게시물을 찾을 수 없습니다",
+      );
     }
 
     parentPost = await db.query.post.findFirst({
@@ -1747,7 +1795,11 @@ export async function createPost(
     });
 
     if (!parentPost) {
-      throw new AppException(404, GENERAL_ERROR_CODE, "상위 게시물을 찾을 수 없습니다");
+      throw new AppException(
+        404,
+        GENERAL_ERROR_CODE,
+        "상위 게시물을 찾을 수 없습니다",
+      );
     }
 
     depth = parentPost.depth + 1;
@@ -1765,16 +1817,28 @@ export async function createPost(
   });
 
   if (!profile) {
-    throw new AppException(404, GENERAL_ERROR_CODE, "프로필을 찾을 수 없습니다");
+    throw new AppException(
+      404,
+      GENERAL_ERROR_CODE,
+      "프로필을 찾을 수 없습니다",
+    );
   }
 
   if (profile.mutedAt) {
-    throw new AppException(403, GENERAL_ERROR_CODE, "이 프로필은 음소거되어 게시할 수 없습니다");
+    throw new AppException(
+      403,
+      GENERAL_ERROR_CODE,
+      "이 프로필은 음소거되어 게시할 수 없습니다",
+    );
   }
 
   // Validate that at least content or images are provided
   if (!content.trim() && (!imageIds || imageIds.length === 0)) {
-    throw new AppException(400, GENERAL_ERROR_CODE, "게시물 내용 또는 이미지를 제공해야 합니다");
+    throw new AppException(
+      400,
+      GENERAL_ERROR_CODE,
+      "게시물 내용 또는 이미지를 제공해야 합니다",
+    );
   }
 
   // Validate images if provided
@@ -1787,7 +1851,11 @@ export async function createPost(
     });
 
     if (validImages.length !== imageIds.length) {
-      throw new AppException(400, GENERAL_ERROR_CODE, "일부 이미지가 유효하지 않습니다");
+      throw new AppException(
+        400,
+        GENERAL_ERROR_CODE,
+        "일부 이미지가 유효하지 않습니다",
+      );
     }
   }
 
@@ -1797,7 +1865,11 @@ export async function createPost(
   const communityEndsAt = new Date(endsAt);
 
   if (now > communityEndsAt) {
-    throw new AppException(403, GENERAL_ERROR_CODE, "커뮤가 종료되어 게시할 수 없습니다");
+    throw new AppException(
+      403,
+      GENERAL_ERROR_CODE,
+      "커뮤가 종료되어 게시할 수 없습니다",
+    );
   }
 
   // Get user's membership to check role
@@ -1814,7 +1886,11 @@ export async function createPost(
   // Check if community hasn't started yet (only owners and moderators can post)
   if (now < communityStartsAt) {
     if (userRole !== "owner" && userRole !== "moderator") {
-      throw new AppException(403, GENERAL_ERROR_CODE, "커뮤가 아직 시작되지 않았습니다");
+      throw new AppException(
+        403,
+        GENERAL_ERROR_CODE,
+        "커뮤가 아직 시작되지 않았습니다",
+      );
     }
   }
 
@@ -1822,23 +1898,39 @@ export async function createPost(
   if (scheduledAt) {
     // Only owners and moderators can schedule posts
     if (userRole !== "owner" && userRole !== "moderator") {
-      throw new AppException(403, GENERAL_ERROR_CODE, "게시물 예약은 관리자만 가능합니다");
+      throw new AppException(
+        403,
+        GENERAL_ERROR_CODE,
+        "게시물 예약은 관리자만 가능합니다",
+      );
     }
 
     // Cannot schedule replies
     if (inReplyToId) {
-      throw new AppException(400, GENERAL_ERROR_CODE, "답글은 예약할 수 없습니다");
+      throw new AppException(
+        400,
+        GENERAL_ERROR_CODE,
+        "답글은 예약할 수 없습니다",
+      );
     }
 
     // Validate scheduled time is in the future
     const scheduledDate = new Date(scheduledAt);
     if (scheduledDate <= now) {
-      throw new AppException(400, GENERAL_ERROR_CODE, "예약 시간은 현재 시간 이후여야 합니다");
+      throw new AppException(
+        400,
+        GENERAL_ERROR_CODE,
+        "예약 시간은 현재 시간 이후여야 합니다",
+      );
     }
 
     // Validate scheduled time is before community ends
     if (scheduledDate > communityEndsAt) {
-      throw new AppException(400, GENERAL_ERROR_CODE, "커뮤 종료 시간 이전으로 예약해야 합니다");
+      throw new AppException(
+        400,
+        GENERAL_ERROR_CODE,
+        "커뮤 종료 시간 이전으로 예약해야 합니다",
+      );
     }
   }
 
@@ -1846,12 +1938,20 @@ export async function createPost(
   if (announcement) {
     // Only owners can create announcements
     if (userRole !== "owner") {
-      throw new AppException(403, GENERAL_ERROR_CODE, "공지사항은 소유자만 작성할 수 있습니다");
+      throw new AppException(
+        403,
+        GENERAL_ERROR_CODE,
+        "공지사항은 소유자만 작성할 수 있습니다",
+      );
     }
 
     // Cannot make replies announcements
     if (inReplyToId) {
-      throw new AppException(400, GENERAL_ERROR_CODE, "답글은 공지사항으로 작성할 수 없습니다");
+      throw new AppException(
+        400,
+        GENERAL_ERROR_CODE,
+        "답글은 공지사항으로 작성할 수 없습니다",
+      );
     }
   }
 
@@ -2032,7 +2132,11 @@ export async function pinPost(
   // Validate post belongs to this community
   const hasAccess = await validatePostCommunityAccess(postId, communityId);
   if (!hasAccess) {
-    throw new AppException(404, GENERAL_ERROR_CODE, "게시물을 찾을 수 없습니다");
+    throw new AppException(
+      404,
+      GENERAL_ERROR_CODE,
+      "게시물을 찾을 수 없습니다",
+    );
   }
 
   // Find the post
@@ -2045,12 +2149,20 @@ export async function pinPost(
   });
 
   if (!post) {
-    throw new AppException(404, GENERAL_ERROR_CODE, "게시물을 찾을 수 없습니다");
+    throw new AppException(
+      404,
+      GENERAL_ERROR_CODE,
+      "게시물을 찾을 수 없습니다",
+    );
   }
 
   // Validate that the post belongs to the user's profile
   if (post.authorId !== profileId) {
-    throw new AppException(403, GENERAL_ERROR_CODE, "본인의 게시물만 고정할 수 있습니다");
+    throw new AppException(
+      403,
+      GENERAL_ERROR_CODE,
+      "본인의 게시물만 고정할 수 있습니다",
+    );
   }
 
   // Check if already pinned
@@ -2068,7 +2180,10 @@ export async function pinPost(
   });
 
   if (pinnedPosts.length >= 3) {
-    throw new AppException(400, GENERAL_ERROR_CODE, "최대 3개의 게시물만 고정할 수 있습니다. 다른 게시물을 고정 해제하세요.",
+    throw new AppException(
+      400,
+      GENERAL_ERROR_CODE,
+      "최대 3개의 게시물만 고정할 수 있습니다. 다른 게시물을 고정 해제하세요.",
     );
   }
 
@@ -2093,7 +2208,11 @@ export async function unpinPost(
   // Validate post belongs to this community
   const hasAccess = await validatePostCommunityAccess(postId, communityId);
   if (!hasAccess) {
-    throw new AppException(404, GENERAL_ERROR_CODE, "게시물을 찾을 수 없습니다");
+    throw new AppException(
+      404,
+      GENERAL_ERROR_CODE,
+      "게시물을 찾을 수 없습니다",
+    );
   }
 
   // Find the post
@@ -2106,17 +2225,29 @@ export async function unpinPost(
   });
 
   if (!post) {
-    throw new AppException(404, GENERAL_ERROR_CODE, "게시물을 찾을 수 없습니다");
+    throw new AppException(
+      404,
+      GENERAL_ERROR_CODE,
+      "게시물을 찾을 수 없습니다",
+    );
   }
 
   // Validate that the post belongs to the user's profile
   if (post.authorId !== profileId) {
-    throw new AppException(403, GENERAL_ERROR_CODE, "본인의 게시물만 고정 해제할 수 있습니다");
+    throw new AppException(
+      403,
+      GENERAL_ERROR_CODE,
+      "본인의 게시물만 고정 해제할 수 있습니다",
+    );
   }
 
   // Check if not pinned
   if (!post.pinnedAt) {
-    throw new AppException(400, GENERAL_ERROR_CODE, "고정되지 않은 게시물입니다");
+    throw new AppException(
+      400,
+      GENERAL_ERROR_CODE,
+      "고정되지 않은 게시물입니다",
+    );
   }
 
   // Unpin the post
@@ -2143,7 +2274,11 @@ export async function updatePost(
   // Validate post belongs to this community
   const hasAccess = await validatePostCommunityAccess(postId, communityId);
   if (!hasAccess) {
-    throw new AppException(404, GENERAL_ERROR_CODE, "게시물을 찾을 수 없습니다");
+    throw new AppException(
+      404,
+      GENERAL_ERROR_CODE,
+      "게시물을 찾을 수 없습니다",
+    );
   }
 
   // Find the post (exclude deleted posts)
@@ -2161,27 +2296,47 @@ export async function updatePost(
 
   // Check if post exists
   if (!post || post.profile?.communityId !== communityId) {
-    throw new AppException(404, GENERAL_ERROR_CODE, "게시물을 찾을 수 없습니다");
+    throw new AppException(
+      404,
+      GENERAL_ERROR_CODE,
+      "게시물을 찾을 수 없습니다",
+    );
   }
 
   // Only the post author can edit the post
   if (post.authorId !== profileId) {
-    throw new AppException(403, GENERAL_ERROR_CODE, "본인의 게시물만 수정할 수 있습니다");
+    throw new AppException(
+      403,
+      GENERAL_ERROR_CODE,
+      "본인의 게시물만 수정할 수 있습니다",
+    );
   }
 
   // Cannot edit announcements
   if (post.announcement) {
-    throw new AppException(400, GENERAL_ERROR_CODE, "공지사항은 수정할 수 없습니다");
+    throw new AppException(
+      400,
+      GENERAL_ERROR_CODE,
+      "공지사항은 수정할 수 없습니다",
+    );
   }
 
   // Cannot edit scheduled posts
   if (post.scheduledAt) {
-    throw new AppException(400, GENERAL_ERROR_CODE, "예약된 게시물은 수정할 수 없습니다");
+    throw new AppException(
+      400,
+      GENERAL_ERROR_CODE,
+      "예약된 게시물은 수정할 수 없습니다",
+    );
   }
 
   // Validate that at least content or images are provided
   if (!content.trim() && (!imageIds || imageIds.length === 0)) {
-    throw new AppException(400, GENERAL_ERROR_CODE, "게시물 내용 또는 이미지를 제공해야 합니다");
+    throw new AppException(
+      400,
+      GENERAL_ERROR_CODE,
+      "게시물 내용 또는 이미지를 제공해야 합니다",
+    );
   }
 
   // Validate images if provided
@@ -2194,7 +2349,11 @@ export async function updatePost(
     });
 
     if (validImages.length !== imageIds.length) {
-      throw new AppException(400, GENERAL_ERROR_CODE, "일부 이미지가 유효하지 않습니다");
+      throw new AppException(
+        400,
+        GENERAL_ERROR_CODE,
+        "일부 이미지가 유효하지 않습니다",
+      );
     }
   }
 
@@ -2331,7 +2490,11 @@ export async function getPostHistory(postId: string, communityId: string) {
   // Validate post belongs to this community
   const hasAccess = await validatePostCommunityAccess(postId, communityId);
   if (!hasAccess) {
-    throw new AppException(404, GENERAL_ERROR_CODE, "게시물을 찾을 수 없습니다");
+    throw new AppException(
+      404,
+      GENERAL_ERROR_CODE,
+      "게시물을 찾을 수 없습니다",
+    );
   }
 
   // Get all history entries for this post, ordered by most recent first
@@ -2394,7 +2557,11 @@ export async function deletePost(
   // Validate post belongs to this community
   const hasAccess = await validatePostCommunityAccess(postId, communityId);
   if (!hasAccess) {
-    throw new AppException(404, GENERAL_ERROR_CODE, "게시물을 찾을 수 없습니다");
+    throw new AppException(
+      404,
+      GENERAL_ERROR_CODE,
+      "게시물을 찾을 수 없습니다",
+    );
   }
 
   // Find the post (exclude already deleted posts)
@@ -2411,7 +2578,11 @@ export async function deletePost(
 
   // Check if post exists and author is in the same community
   if (!post || post.profile?.communityId !== communityId) {
-    throw new AppException(404, GENERAL_ERROR_CODE, "게시물을 찾을 수 없습니다");
+    throw new AppException(
+      404,
+      GENERAL_ERROR_CODE,
+      "게시물을 찾을 수 없습니다",
+    );
   }
 
   // Check if user has permission to delete this post
@@ -2434,7 +2605,10 @@ export async function deletePost(
   const canDeleteAnyPost = isOwner || isModerator;
 
   if (!(isPostAuthor || canDeleteAnyPost)) {
-    throw new AppException(403, GENERAL_ERROR_CODE, "Only the post author, community owner, or moderator can delete posts",
+    throw new AppException(
+      403,
+      GENERAL_ERROR_CODE,
+      "Only the post author, community owner, or moderator can delete posts",
     );
   }
 

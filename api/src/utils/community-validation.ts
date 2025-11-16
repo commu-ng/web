@@ -14,16 +14,20 @@ export function validateCommunityActive(
   const communityStartsAt = new Date(startsAt);
   const communityEndsAt = new Date(endsAt);
 
-	if (now > communityEndsAt) {
-		throw new AppException(
-			403,
-			GENERAL_ERROR_CODE,
-			`커뮤가 종료되어 ${actionDescription}할 수 없습니다`,
-		);
-	}
+  if (now > communityEndsAt) {
+    throw new AppException(
+      403,
+      GENERAL_ERROR_CODE,
+      `커뮤가 종료되어 ${actionDescription}할 수 없습니다`,
+    );
+  }
 
   if (now < communityStartsAt) {
-    throw new AppException(403, GENERAL_ERROR_CODE, "커뮤가 아직 시작되지 않았습니다");
+    throw new AppException(
+      403,
+      GENERAL_ERROR_CODE,
+      "커뮤가 아직 시작되지 않았습니다",
+    );
   }
 }
 

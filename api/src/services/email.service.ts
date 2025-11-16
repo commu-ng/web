@@ -175,14 +175,22 @@ export async function checkAccountDeletionToken(token: string) {
   });
 
   if (!deletionToken) {
-    throw new AppException(400, GENERAL_ERROR_CODE, "유효하지 않은 삭제 확인 토큰입니다");
+    throw new AppException(
+      400,
+      GENERAL_ERROR_CODE,
+      "유효하지 않은 삭제 확인 토큰입니다",
+    );
   }
 
   // Check if expired
   const now = new Date();
   const expiresAt = new Date(deletionToken.expiresAt);
   if (now > expiresAt) {
-    throw new AppException(400, GENERAL_ERROR_CODE, "만료된 삭제 확인 토큰입니다");
+    throw new AppException(
+      400,
+      GENERAL_ERROR_CODE,
+      "만료된 삭제 확인 토큰입니다",
+    );
   }
 
   return {
@@ -200,7 +208,11 @@ export async function verifyAccountDeletionToken(token: string) {
   });
 
   if (!deletionToken) {
-    throw new AppException(400, GENERAL_ERROR_CODE, "유효하지 않은 삭제 확인 토큰입니다");
+    throw new AppException(
+      400,
+      GENERAL_ERROR_CODE,
+      "유효하지 않은 삭제 확인 토큰입니다",
+    );
   }
 
   // Check if expired
@@ -231,11 +243,19 @@ export async function sendPasswordResetEmail(email: string) {
   });
 
   if (!user) {
-    throw new AppException(404, GENERAL_ERROR_CODE, "해당 이메일로 등록된 계정을 찾을 수 없습니다");
+    throw new AppException(
+      404,
+      GENERAL_ERROR_CODE,
+      "해당 이메일로 등록된 계정을 찾을 수 없습니다",
+    );
   }
 
   if (!user.emailVerifiedAt) {
-    throw new AppException(403, GENERAL_ERROR_CODE, "이메일이 인증되지 않았습니다");
+    throw new AppException(
+      403,
+      GENERAL_ERROR_CODE,
+      "이메일이 인증되지 않았습니다",
+    );
   }
 
   // Create reset token

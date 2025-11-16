@@ -132,7 +132,11 @@ export async function validateMembershipAndProfile(
   });
 
   if (!membership) {
-    throw new AppException(403, GENERAL_ERROR_CODE, "이 커뮤의 회원이 아닙니다");
+    throw new AppException(
+      403,
+      GENERAL_ERROR_CODE,
+      "이 커뮤의 회원이 아닙니다",
+    );
   }
 
   // Check profile ownership separately
@@ -153,7 +157,10 @@ export async function validateMembershipAndProfile(
     profileOwnership.profile.activatedAt === null ||
     profileOwnership.profile.deletedAt !== null
   ) {
-    throw new AppException(404, GENERAL_ERROR_CODE, "프로필을 찾을 수 없거나 귀하의 소유가 아닙니다",
+    throw new AppException(
+      404,
+      GENERAL_ERROR_CODE,
+      "프로필을 찾을 수 없거나 귀하의 소유가 아닙니다",
     );
   }
 
@@ -177,7 +184,11 @@ export async function validateMembershipRole(
   });
 
   if (!membership) {
-    throw new AppException(403, GENERAL_ERROR_CODE, "이 커뮤의 회원이 아닙니다");
+    throw new AppException(
+      403,
+      GENERAL_ERROR_CODE,
+      "이 커뮤의 회원이 아닙니다",
+    );
   }
 
   if (!requiredRoles.includes(membership.role)) {
@@ -348,7 +359,11 @@ export async function removeMember(
   });
 
   if (!userMembership || userMembership.role !== "owner") {
-    throw new AppException(403, GENERAL_ERROR_CODE, "커뮤 소유자만 회원을 제거할 수 있습니다");
+    throw new AppException(
+      403,
+      GENERAL_ERROR_CODE,
+      "커뮤 소유자만 회원을 제거할 수 있습니다",
+    );
   }
 
   // Cannot remove community owner
@@ -357,11 +372,19 @@ export async function removeMember(
   });
 
   if (!targetMembership) {
-    throw new AppException(404, GENERAL_ERROR_CODE, "멤버십을 찾을 수 없습니다");
+    throw new AppException(
+      404,
+      GENERAL_ERROR_CODE,
+      "멤버십을 찾을 수 없습니다",
+    );
   }
 
   if (targetMembership.role === "owner") {
-    throw new AppException(400, GENERAL_ERROR_CODE, "커뮤 소유자는 제거할 수 없습니다");
+    throw new AppException(
+      400,
+      GENERAL_ERROR_CODE,
+      "커뮤 소유자는 제거할 수 없습니다",
+    );
   }
 
   // Remove the member (set inactive)
@@ -389,7 +412,10 @@ export async function updateMemberRole(
   });
 
   if (!userMembership || userMembership.role !== "owner") {
-    throw new AppException(403, GENERAL_ERROR_CODE, "커뮤 소유자만 회원 역할을 업데이트할 수 있습니다",
+    throw new AppException(
+      403,
+      GENERAL_ERROR_CODE,
+      "커뮤 소유자만 회원 역할을 업데이트할 수 있습니다",
     );
   }
 
@@ -399,7 +425,11 @@ export async function updateMemberRole(
   });
 
   if (!targetMembership) {
-    throw new AppException(404, GENERAL_ERROR_CODE, "멤버십을 찾을 수 없습니다");
+    throw new AppException(
+      404,
+      GENERAL_ERROR_CODE,
+      "멤버십을 찾을 수 없습니다",
+    );
   }
 
   // Special handling for owner role changes
@@ -428,7 +458,10 @@ export async function updateMemberRole(
 
   // For non-owner role changes, prevent demoting the current owner
   if (targetMembership.role === "owner") {
-    throw new AppException(400, GENERAL_ERROR_CODE, "소유자의 역할을 변경할 수 없습니다. 소유권을 먼저 이전하세요",
+    throw new AppException(
+      400,
+      GENERAL_ERROR_CODE,
+      "소유자의 역할을 변경할 수 없습니다. 소유권을 먼저 이전하세요",
     );
   }
 
@@ -505,7 +538,10 @@ export async function leaveCommunity(userId: string, communityId: string) {
 
   // Owners cannot leave - they must transfer ownership first
   if (userMembership.role === "owner") {
-    throw new AppException(403, GENERAL_ERROR_CODE, "소유자는 커뮤를 떠날 수 없습니다. 먼저 소유권을 이전하세요",
+    throw new AppException(
+      403,
+      GENERAL_ERROR_CODE,
+      "소유자는 커뮤를 떠날 수 없습니다. 먼저 소유권을 이전하세요",
     );
   }
 
@@ -530,12 +566,20 @@ export async function approveMembershipApplication(
   });
 
   if (!application) {
-    throw new AppException(404, GENERAL_ERROR_CODE, "지원서를 찾을 수 없습니다");
+    throw new AppException(
+      404,
+      GENERAL_ERROR_CODE,
+      "지원서를 찾을 수 없습니다",
+    );
   }
 
   // Can only approve pending applications
   if (application.status !== "pending") {
-    throw new AppException(400, GENERAL_ERROR_CODE, "지원서가 대기 중이 아닙니다");
+    throw new AppException(
+      400,
+      GENERAL_ERROR_CODE,
+      "지원서가 대기 중이 아닙니다",
+    );
   }
 
   const community = application.community;
@@ -701,7 +745,10 @@ export async function approveMembershipApplication(
       } else {
         // Username already taken (either by someone else or by user's old profile)
         // Usernames are permanent and cannot be reused even by the same user
-        throw new AppException(409, GENERAL_ERROR_CODE, "이 사용자명은 이미 다른 사용자가 사용중입니다",
+        throw new AppException(
+          409,
+          GENERAL_ERROR_CODE,
+          "이 사용자명은 이미 다른 사용자가 사용중입니다",
         );
       }
     } else {
@@ -832,12 +879,20 @@ export async function rejectMembershipApplication(
   });
 
   if (!application) {
-    throw new AppException(404, GENERAL_ERROR_CODE, "지원서를 찾을 수 없습니다");
+    throw new AppException(
+      404,
+      GENERAL_ERROR_CODE,
+      "지원서를 찾을 수 없습니다",
+    );
   }
 
   // Can only reject pending applications
   if (application.status !== "pending") {
-    throw new AppException(400, GENERAL_ERROR_CODE, "지원서가 대기 중이 아닙니다");
+    throw new AppException(
+      400,
+      GENERAL_ERROR_CODE,
+      "지원서가 대기 중이 아닙니다",
+    );
   }
 
   // Update application status
@@ -911,12 +966,20 @@ export async function revokeApplicationReview(applicationId: string) {
   });
 
   if (!application) {
-    throw new AppException(404, GENERAL_ERROR_CODE, "지원서를 찾을 수 없습니다");
+    throw new AppException(
+      404,
+      GENERAL_ERROR_CODE,
+      "지원서를 찾을 수 없습니다",
+    );
   }
 
   // Can only revoke reviewed applications (approved or rejected)
   if (application.status === "pending") {
-    throw new AppException(400, GENERAL_ERROR_CODE, "대기 중인 지원서는 취소할 수 없습니다");
+    throw new AppException(
+      400,
+      GENERAL_ERROR_CODE,
+      "대기 중인 지원서는 취소할 수 없습니다",
+    );
   }
 
   // Revoke application in a transaction
@@ -999,7 +1062,11 @@ export async function createApplication(
   });
 
   if (membership) {
-    throw new AppException(400, GENERAL_ERROR_CODE, "이미 이 커뮤의 회원입니다");
+    throw new AppException(
+      400,
+      GENERAL_ERROR_CODE,
+      "이미 이 커뮤의 회원입니다",
+    );
   }
 
   // Check if user has a pending application
@@ -1013,7 +1080,11 @@ export async function createApplication(
     });
 
   if (existingPendingApplication) {
-    throw new AppException(400, GENERAL_ERROR_CODE, "이 커뮤에 이미 대기 중인 지원서가 있습니다");
+    throw new AppException(
+      400,
+      GENERAL_ERROR_CODE,
+      "이 커뮤에 이미 대기 중인 지원서가 있습니다",
+    );
   }
 
   // Check if username is already taken by an existing profile
@@ -1041,7 +1112,10 @@ export async function createApplication(
 
     // Reject if it's someone else's username OR if it's your own active profile
     if (!isOwnProfile || isActive) {
-      throw new AppException(409, GENERAL_ERROR_CODE, "이 사용자명은 이미 사용중입니다. 다른 사용자명을 선택해주세요",
+      throw new AppException(
+        409,
+        GENERAL_ERROR_CODE,
+        "이 사용자명은 이미 사용중입니다. 다른 사용자명을 선택해주세요",
       );
     }
   }
@@ -1058,7 +1132,10 @@ export async function createApplication(
     });
 
   if (pendingApplicationWithUsername) {
-    throw new AppException(409, GENERAL_ERROR_CODE, "이 사용자명은 다른 대기 중인 지원서에서 사용중입니다. 다른 사용자명을 선택해주세요",
+    throw new AppException(
+      409,
+      GENERAL_ERROR_CODE,
+      "이 사용자명은 다른 대기 중인 지원서에서 사용중입니다. 다른 사용자명을 선택해주세요",
     );
   }
 
@@ -1069,7 +1146,11 @@ export async function createApplication(
     });
 
     if (existingImages.length !== data.attachmentIds.length) {
-      throw new AppException(400, GENERAL_ERROR_CODE, "하나 이상의 첨부 이미지를 찾을 수 없습니다");
+      throw new AppException(
+        400,
+        GENERAL_ERROR_CODE,
+        "하나 이상의 첨부 이미지를 찾을 수 없습니다",
+      );
     }
   }
 
@@ -1167,7 +1248,11 @@ export async function createApplication(
     return newApplication;
   } catch (error: unknown) {
     logger.service.error("Error creating application", { error });
-    throw new AppException(400, GENERAL_ERROR_CODE, "지원서 제출에 실패했습니다");
+    throw new AppException(
+      400,
+      GENERAL_ERROR_CODE,
+      "지원서 제출에 실패했습니다",
+    );
   }
 }
 
@@ -1187,12 +1272,20 @@ export async function withdrawApplication(
   });
 
   if (!application) {
-    throw new AppException(404, GENERAL_ERROR_CODE, "지원서를 찾을 수 없습니다");
+    throw new AppException(
+      404,
+      GENERAL_ERROR_CODE,
+      "지원서를 찾을 수 없습니다",
+    );
   }
 
   // Can only withdraw pending applications
   if (application.status !== "pending") {
-    throw new AppException(400, GENERAL_ERROR_CODE, "대기 중인 지원서만 철회할 수 있습니다");
+    throw new AppException(
+      400,
+      GENERAL_ERROR_CODE,
+      "대기 중인 지원서만 철회할 수 있습니다",
+    );
   }
 
   // Delete the application

@@ -24,11 +24,19 @@ export async function startMasquerade(
   });
 
   if (!adminUser) {
-    throw new AppException(404, GENERAL_ERROR_CODE, "관리자 사용자를 찾을 수 없습니다");
+    throw new AppException(
+      404,
+      GENERAL_ERROR_CODE,
+      "관리자 사용자를 찾을 수 없습니다",
+    );
   }
 
   if (!adminUser.isAdmin) {
-    throw new AppException(403, GENERAL_ERROR_CODE, "관리자만 다른 사용자로 전환할 수 있습니다");
+    throw new AppException(
+      403,
+      GENERAL_ERROR_CODE,
+      "관리자만 다른 사용자로 전환할 수 있습니다",
+    );
   }
 
   // Verify target user exists
@@ -37,12 +45,20 @@ export async function startMasquerade(
   });
 
   if (!targetUser) {
-    throw new AppException(404, GENERAL_ERROR_CODE, "대상 사용자를 찾을 수 없습니다");
+    throw new AppException(
+      404,
+      GENERAL_ERROR_CODE,
+      "대상 사용자를 찾을 수 없습니다",
+    );
   }
 
   // Cannot masquerade as yourself
   if (adminUserId === targetUserId) {
-    throw new AppException(400, GENERAL_ERROR_CODE, "자기 자신으로 전환할 수 없습니다");
+    throw new AppException(
+      400,
+      GENERAL_ERROR_CODE,
+      "자기 자신으로 전환할 수 없습니다",
+    );
   }
 
   // Create new session for target user with original user ID tracked
@@ -92,7 +108,11 @@ export async function endMasquerade(sessionToken: string) {
 
   // Check if this is actually a masquerade session
   if (!session.originalUserId) {
-    throw new AppException(400, GENERAL_ERROR_CODE, "이 세션은 전환 세션이 아닙니다");
+    throw new AppException(
+      400,
+      GENERAL_ERROR_CODE,
+      "이 세션은 전환 세션이 아닙니다",
+    );
   }
 
   // Log the masquerade end
@@ -200,11 +220,19 @@ export async function listUsersForMasquerade(
   });
 
   if (!adminUser) {
-    throw new AppException(404, GENERAL_ERROR_CODE, "관리자 사용자를 찾을 수 없습니다");
+    throw new AppException(
+      404,
+      GENERAL_ERROR_CODE,
+      "관리자 사용자를 찾을 수 없습니다",
+    );
   }
 
   if (!adminUser.isAdmin) {
-    throw new AppException(403, GENERAL_ERROR_CODE, "관리자만 사용자 목록을 볼 수 있습니다");
+    throw new AppException(
+      403,
+      GENERAL_ERROR_CODE,
+      "관리자만 사용자 목록을 볼 수 있습니다",
+    );
   }
 
   // Build where conditions
@@ -259,11 +287,19 @@ export async function getMasqueradeAuditLogs(adminUserId: string, limit = 100) {
   });
 
   if (!adminUser) {
-    throw new AppException(404, GENERAL_ERROR_CODE, "관리자 사용자를 찾을 수 없습니다");
+    throw new AppException(
+      404,
+      GENERAL_ERROR_CODE,
+      "관리자 사용자를 찾을 수 없습니다",
+    );
   }
 
   if (!adminUser.isAdmin) {
-    throw new AppException(403, GENERAL_ERROR_CODE, "관리자만 감사 로그를 볼 수 있습니다");
+    throw new AppException(
+      403,
+      GENERAL_ERROR_CODE,
+      "관리자만 감사 로그를 볼 수 있습니다",
+    );
   }
 
   // Get audit logs with user information

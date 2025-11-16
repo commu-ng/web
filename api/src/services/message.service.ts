@@ -80,7 +80,10 @@ export async function sendDirectMessage(
   });
 
   if (!senderProfile) {
-    throw new AppException(403, GENERAL_ERROR_CODE, "발신자 프로필을 찾을 수 없거나 권한이 없습니다",
+    throw new AppException(
+      403,
+      GENERAL_ERROR_CODE,
+      "발신자 프로필을 찾을 수 없거나 권한이 없습니다",
     );
   }
 
@@ -95,17 +98,29 @@ export async function sendDirectMessage(
   });
 
   if (!receiverProfile) {
-    throw new AppException(404, GENERAL_ERROR_CODE, "수신자 프로필을 찾을 수 없습니다");
+    throw new AppException(
+      404,
+      GENERAL_ERROR_CODE,
+      "수신자 프로필을 찾을 수 없습니다",
+    );
   }
 
   // Can't send message to yourself
   if (senderProfileId === receiverProfile.id) {
-    throw new AppException(400, GENERAL_ERROR_CODE, "자신에게 메시지를 보낼 수 없습니다");
+    throw new AppException(
+      400,
+      GENERAL_ERROR_CODE,
+      "자신에게 메시지를 보낼 수 없습니다",
+    );
   }
 
   // Validate that at least content or images are provided
   if (!content.trim() && (!imageIds || imageIds.length === 0)) {
-    throw new AppException(400, GENERAL_ERROR_CODE, "메시지 내용 또는 이미지를 제공해야 합니다");
+    throw new AppException(
+      400,
+      GENERAL_ERROR_CODE,
+      "메시지 내용 또는 이미지를 제공해야 합니다",
+    );
   }
 
   // Validate images if provided
@@ -115,7 +130,11 @@ export async function sendDirectMessage(
     });
 
     if (images.length !== imageIds.length) {
-      throw new AppException(400, GENERAL_ERROR_CODE, "일부 이미지를 찾을 수 없습니다");
+      throw new AppException(
+        400,
+        GENERAL_ERROR_CODE,
+        "일부 이미지를 찾을 수 없습니다",
+      );
     }
   }
 
@@ -196,7 +215,11 @@ export async function deleteDirectMessage(
   });
 
   if (!message) {
-    throw new AppException(404, GENERAL_ERROR_CODE, "메시지를 찾을 수 없거나 삭제 권한이 없습니다");
+    throw new AppException(
+      404,
+      GENERAL_ERROR_CODE,
+      "메시지를 찾을 수 없거나 삭제 권한이 없습니다",
+    );
   }
 
   // Soft delete the message by setting the deleted timestamp
@@ -227,12 +250,20 @@ export async function createDirectMessageReaction(
   });
 
   if (!message) {
-    throw new AppException(404, GENERAL_ERROR_CODE, "메시지를 찾을 수 없습니다");
+    throw new AppException(
+      404,
+      GENERAL_ERROR_CODE,
+      "메시지를 찾을 수 없습니다",
+    );
   }
 
   // Check if profile is part of the conversation
   if (message.senderId !== profileId && message.receiverId !== profileId) {
-    throw new AppException(403, GENERAL_ERROR_CODE, "이 메시지에 접근할 권한이 없습니다");
+    throw new AppException(
+      403,
+      GENERAL_ERROR_CODE,
+      "이 메시지에 접근할 권한이 없습니다",
+    );
   }
 
   // Check if reaction already exists
@@ -289,12 +320,20 @@ export async function deleteDirectMessageReaction(
   });
 
   if (!message) {
-    throw new AppException(404, GENERAL_ERROR_CODE, "메시지를 찾을 수 없습니다");
+    throw new AppException(
+      404,
+      GENERAL_ERROR_CODE,
+      "메시지를 찾을 수 없습니다",
+    );
   }
 
   // Check if profile is part of the conversation
   if (message.senderId !== profileId && message.receiverId !== profileId) {
-    throw new AppException(403, GENERAL_ERROR_CODE, "이 메시지에 접근할 권한이 없습니다");
+    throw new AppException(
+      403,
+      GENERAL_ERROR_CODE,
+      "이 메시지에 접근할 권한이 없습니다",
+    );
   }
 
   // Find the reaction to delete
@@ -457,7 +496,11 @@ export async function getConversationThread(
   });
 
   if (!profile) {
-    throw new AppException(404, GENERAL_ERROR_CODE, "프로필을 찾을 수 없습니다");
+    throw new AppException(
+      404,
+      GENERAL_ERROR_CODE,
+      "프로필을 찾을 수 없습니다",
+    );
   }
 
   // Validate other profile exists in the same community
@@ -477,7 +520,11 @@ export async function getConversationThread(
   });
 
   if (!otherProfile) {
-    throw new AppException(404, GENERAL_ERROR_CODE, "다른 프로필을 찾을 수 없습니다");
+    throw new AppException(
+      404,
+      GENERAL_ERROR_CODE,
+      "다른 프로필을 찾을 수 없습니다",
+    );
   }
 
   // Get conversation messages between these two profiles
@@ -582,7 +629,11 @@ export async function markConversationAsRead(
   });
 
   if (!profile) {
-    throw new AppException(404, GENERAL_ERROR_CODE, "프로필을 찾을 수 없습니다");
+    throw new AppException(
+      404,
+      GENERAL_ERROR_CODE,
+      "프로필을 찾을 수 없습니다",
+    );
   }
 
   // Validate other profile exists in the same community
@@ -595,7 +646,11 @@ export async function markConversationAsRead(
   });
 
   if (!otherProfile) {
-    throw new AppException(404, GENERAL_ERROR_CODE, "다른 프로필을 찾을 수 없습니다");
+    throw new AppException(
+      404,
+      GENERAL_ERROR_CODE,
+      "다른 프로필을 찾을 수 없습니다",
+    );
   }
 
   // Mark all unread messages from other profile to this profile as read
@@ -630,7 +685,11 @@ export async function markAllDirectMessagesAsRead(
   });
 
   if (!profile) {
-    throw new AppException(404, GENERAL_ERROR_CODE, "프로필을 찾을 수 없습니다");
+    throw new AppException(
+      404,
+      GENERAL_ERROR_CODE,
+      "프로필을 찾을 수 없습니다",
+    );
   }
 
   // Mark all unread messages received by this profile as read
@@ -819,7 +878,11 @@ export async function createGroupChat(
   });
 
   if (memberProfiles.length !== memberProfileIds.length) {
-    throw new AppException(400, GENERAL_ERROR_CODE, "한 명 이상의 멤버 프로필을 찾을 수 없습니다");
+    throw new AppException(
+      400,
+      GENERAL_ERROR_CODE,
+      "한 명 이상의 멤버 프로필을 찾을 수 없습니다",
+    );
   }
 
   // Create the group chat and memberships in a transaction
@@ -890,7 +953,11 @@ export async function getGroupChatDetails(
   });
 
   if (!membership) {
-    throw new AppException(403, GENERAL_ERROR_CODE, "이 그룹 채팅에 대한 접근이 거부되었습니다");
+    throw new AppException(
+      403,
+      GENERAL_ERROR_CODE,
+      "이 그룹 채팅에 대한 접근이 거부되었습니다",
+    );
   }
 
   // Get group chat details with members
@@ -910,7 +977,11 @@ export async function getGroupChatDetails(
   });
 
   if (!groupChat) {
-    throw new AppException(404, GENERAL_ERROR_CODE, "그룹 채팅을 찾을 수 없습니다");
+    throw new AppException(
+      404,
+      GENERAL_ERROR_CODE,
+      "그룹 채팅을 찾을 수 없습니다",
+    );
   }
 
   // Collect member profile IDs
@@ -962,7 +1033,11 @@ export async function getGroupChatMessages(
   });
 
   if (!groupChat) {
-    throw new AppException(404, GENERAL_ERROR_CODE, "그룹 채팅을 찾을 수 없습니다");
+    throw new AppException(
+      404,
+      GENERAL_ERROR_CODE,
+      "그룹 채팅을 찾을 수 없습니다",
+    );
   }
 
   // Verify user is a member of the group chat
@@ -974,7 +1049,11 @@ export async function getGroupChatMessages(
   });
 
   if (!membership) {
-    throw new AppException(403, GENERAL_ERROR_CODE, "이 그룹 채팅에 대한 접근이 거부되었습니다");
+    throw new AppException(
+      403,
+      GENERAL_ERROR_CODE,
+      "이 그룹 채팅에 대한 접근이 거부되었습니다",
+    );
   }
 
   // Get messages for the group chat
@@ -1110,7 +1189,11 @@ export async function sendGroupChatMessage(
   });
 
   if (!groupChat) {
-    throw new AppException(404, GENERAL_ERROR_CODE, "그룹 채팅을 찾을 수 없습니다");
+    throw new AppException(
+      404,
+      GENERAL_ERROR_CODE,
+      "그룹 채팅을 찾을 수 없습니다",
+    );
   }
 
   // Verify user is a member of the group chat
@@ -1122,7 +1205,11 @@ export async function sendGroupChatMessage(
   });
 
   if (!membership) {
-    throw new AppException(403, GENERAL_ERROR_CODE, "이 그룹 채팅에 대한 접근이 거부되었습니다");
+    throw new AppException(
+      403,
+      GENERAL_ERROR_CODE,
+      "이 그룹 채팅에 대한 접근이 거부되었습니다",
+    );
   }
 
   // Get profile with profile picture
@@ -1143,12 +1230,20 @@ export async function sendGroupChatMessage(
   });
 
   if (!profile) {
-    throw new AppException(403, GENERAL_ERROR_CODE, "프로필을 찾을 수 없거나 권한이 없습니다");
+    throw new AppException(
+      403,
+      GENERAL_ERROR_CODE,
+      "프로필을 찾을 수 없거나 권한이 없습니다",
+    );
   }
 
   // Validate that at least content or images are provided
   if (!content.trim() && (!imageIds || imageIds.length === 0)) {
-    throw new AppException(400, GENERAL_ERROR_CODE, "메시지 내용 또는 이미지를 제공해야 합니다");
+    throw new AppException(
+      400,
+      GENERAL_ERROR_CODE,
+      "메시지 내용 또는 이미지를 제공해야 합니다",
+    );
   }
 
   // Validate images if provided
@@ -1158,7 +1253,11 @@ export async function sendGroupChatMessage(
     });
 
     if (images.length !== imageIds.length) {
-      throw new AppException(404, GENERAL_ERROR_CODE, "하나 이상의 이미지를 찾을 수 없습니다");
+      throw new AppException(
+        404,
+        GENERAL_ERROR_CODE,
+        "하나 이상의 이미지를 찾을 수 없습니다",
+      );
     }
   }
 
@@ -1239,7 +1338,11 @@ export async function createGroupChatMessageReaction(
   });
 
   if (!groupChat) {
-    throw new AppException(404, GENERAL_ERROR_CODE, "그룹 채팅을 찾을 수 없습니다");
+    throw new AppException(
+      404,
+      GENERAL_ERROR_CODE,
+      "그룹 채팅을 찾을 수 없습니다",
+    );
   }
 
   // Verify user is a member of the group chat
@@ -1251,7 +1354,11 @@ export async function createGroupChatMessageReaction(
   });
 
   if (!membership) {
-    throw new AppException(403, GENERAL_ERROR_CODE, "이 그룹 채팅에 대한 접근이 거부되었습니다");
+    throw new AppException(
+      403,
+      GENERAL_ERROR_CODE,
+      "이 그룹 채팅에 대한 접근이 거부되었습니다",
+    );
   }
 
   // Validate the message exists in the group chat
@@ -1264,7 +1371,11 @@ export async function createGroupChatMessageReaction(
   });
 
   if (!message) {
-    throw new AppException(404, GENERAL_ERROR_CODE, "메시지를 찾을 수 없습니다");
+    throw new AppException(
+      404,
+      GENERAL_ERROR_CODE,
+      "메시지를 찾을 수 없습니다",
+    );
   }
 
   // Check if reaction already exists
@@ -1322,7 +1433,11 @@ export async function deleteGroupChatMessageReaction(
   });
 
   if (!groupChat) {
-    throw new AppException(404, GENERAL_ERROR_CODE, "그룹 채팅을 찾을 수 없습니다");
+    throw new AppException(
+      404,
+      GENERAL_ERROR_CODE,
+      "그룹 채팅을 찾을 수 없습니다",
+    );
   }
 
   // Verify user is a member of the group chat
@@ -1334,7 +1449,11 @@ export async function deleteGroupChatMessageReaction(
   });
 
   if (!membership) {
-    throw new AppException(403, GENERAL_ERROR_CODE, "이 그룹 채팅에 대한 접근이 거부되었습니다");
+    throw new AppException(
+      403,
+      GENERAL_ERROR_CODE,
+      "이 그룹 채팅에 대한 접근이 거부되었습니다",
+    );
   }
 
   // Validate the message exists in the group chat
@@ -1347,7 +1466,11 @@ export async function deleteGroupChatMessageReaction(
   });
 
   if (!message) {
-    throw new AppException(404, GENERAL_ERROR_CODE, "메시지를 찾을 수 없습니다");
+    throw new AppException(
+      404,
+      GENERAL_ERROR_CODE,
+      "메시지를 찾을 수 없습니다",
+    );
   }
 
   // Find the reaction to delete
@@ -1387,7 +1510,11 @@ export async function markGroupChatMessagesAsRead(
   });
 
   if (!groupChat) {
-    throw new AppException(404, GENERAL_ERROR_CODE, "그룹 채팅을 찾을 수 없습니다");
+    throw new AppException(
+      404,
+      GENERAL_ERROR_CODE,
+      "그룹 채팅을 찾을 수 없습니다",
+    );
   }
 
   // Verify user is a member of the group chat
@@ -1399,7 +1526,11 @@ export async function markGroupChatMessagesAsRead(
   });
 
   if (!membership) {
-    throw new AppException(403, GENERAL_ERROR_CODE, "이 그룹 채팅에 대한 접근이 거부되었습니다");
+    throw new AppException(
+      403,
+      GENERAL_ERROR_CODE,
+      "이 그룹 채팅에 대한 접근이 거부되었습니다",
+    );
   }
 
   // Get all unread messages for this profile in this group chat
