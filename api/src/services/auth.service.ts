@@ -11,6 +11,7 @@ import {
   user as userTable,
 } from "../drizzle/schema";
 import { AppException } from "../exception";
+import { GENERAL_ERROR_CODE } from "../types/api-responses";
 import * as emailService from "./email.service";
 
 /**
@@ -84,7 +85,7 @@ export async function findCommunityByDomain(
   });
 
   if (!community) {
-    throw new AppException(403, "허용되지 않는 도메인입니다");
+    throw new AppException(403, GENERAL_ERROR_CODE, "허용되지 않는 도메인입니다");
   }
 
   return community;
@@ -132,7 +133,7 @@ export async function exchangeTokenForSession(token: string, domain: string) {
     });
 
     if (!exchangeToken) {
-      throw new AppException(401, "잘못된 또는 만료된 토큰입니다");
+      throw new AppException(401, GENERAL_ERROR_CODE, "잘못된 또는 만료된 토큰입니다");
     }
 
     // Look up the community by domain to get its ID for session scoping
@@ -209,10 +210,10 @@ async function getDummyHash(): Promise<string> {
 export async function loginUser(loginName: string, password: string) {
   // Input validation
   if (!loginName || loginName.length < 1 || loginName.length > 100) {
-    throw new AppException(400, "유효하지 않은 로그인 이름입니다");
+    throw new AppException(400, GENERAL_ERROR_CODE, "유효하지 않은 로그인 이름입니다");
   }
   if (!password || password.length < 8) {
-    throw new AppException(400, "비밀번호는 최소 8자 이상이어야 합니다");
+    throw new AppException(400, GENERAL_ERROR_CODE, "비밀번호는 최소 8자 이상이어야 합니다");
   }
 
   // Find user by login_name
@@ -226,7 +227,7 @@ export async function loginUser(loginName: string, password: string) {
   const isValidPassword = await bcrypt.compare(password, passwordHash);
 
   if (!user || !isValidPassword) {
-    throw new AppException(401, "잘못된 로그인 정보입니다");
+    throw new AppException(401, GENERAL_ERROR_CODE, "잘못된 로그인 정보입니다");
   }
 
   // Create session
@@ -248,10 +249,10 @@ export async function loginUser(loginName: string, password: string) {
 export async function signupUser(loginName: string, password: string) {
   // Input validation
   if (!loginName || loginName.length < 1 || loginName.length > 100) {
-    throw new AppException(400, "유효하지 않은 로그인 이름입니다");
+    throw new AppException(400, GENERAL_ERROR_CODE, "유효하지 않은 로그인 이름입니다");
   }
   if (!password || password.length < 8) {
-    throw new AppException(400, "비밀번호는 최소 8자 이상이어야 합니다");
+    throw new AppException(400, GENERAL_ERROR_CODE, "비밀번호는 최소 8자 이상이어야 합니다");
   }
 
   // Check if login_name already exists
@@ -260,7 +261,7 @@ export async function signupUser(loginName: string, password: string) {
   });
 
   if (existingUser) {
-    throw new AppException(400, "이미 사용 중인 로그인 이름입니다");
+    throw new AppException(400, GENERAL_ERROR_CODE, "이미 사용 중인 로그인 이름입니다");
   }
 
   const hashedPassword = await bcrypt.hash(password, 10);
@@ -282,7 +283,7 @@ export async function signupUser(loginName: string, password: string) {
     newUser = insertedUser;
   } catch (error: unknown) {
     if (error instanceof Error && error.message.includes("unique_login_name")) {
-      throw new AppException(400, "이미 사용 중인 로그인 이름입니다");
+      throw new AppException(400, GENERAL_ERROR_CODE, "이미 사용 중인 로그인 이름입니다");
     }
     throw new Error("사용자 생성에 실패했습니다");
   }
@@ -311,7 +312,7 @@ export async function signupUser(loginName: string, password: string) {
 export async function resetPassword(token: string, newPassword: string) {
   // Input validation
   if (!newPassword || newPassword.length < 8) {
-    throw new AppException(400, "비밀번호는 최소 8자 이상이어야 합니다");
+    throw new AppException(400, GENERAL_ERROR_CODE, "비밀번호는 최소 8자 이상이어야 합니다");
   }
 
   // Verify token and get user ID

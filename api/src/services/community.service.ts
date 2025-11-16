@@ -27,6 +27,7 @@ import {
   profile as profileTable,
 } from "../drizzle/schema";
 import { AppException } from "../exception";
+import { GENERAL_ERROR_CODE } from "../types/api-responses";
 import {
   createCommunityHashtags,
   replaceCommunityHashtags,
@@ -70,7 +71,7 @@ export async function validateCommunityExistsBySlug(slug: string) {
   const community = await getCommunityBySlug(slug);
 
   if (!community) {
-    throw new AppException(404, "커뮤를 찾을 수 없습니다");
+    throw new AppException(404, GENERAL_ERROR_CODE, "커뮤를 찾을 수 없습니다");
   }
 
   return community;
@@ -104,7 +105,7 @@ export async function createCommunity(
       where: and(eq(imageTable.id, data.imageId), isNull(imageTable.deletedAt)),
     });
     if (!image) {
-      throw new AppException(400, "잘못된 이미지 ID입니다");
+      throw new AppException(400, GENERAL_ERROR_CODE, "잘못된 이미지 ID입니다");
     }
   }
 
@@ -193,9 +194,9 @@ export async function createCommunity(
   } catch (error: unknown) {
     logger.service.error("Error creating community", { error });
     if (error instanceof Error && error.message.includes("unique_slug")) {
-      throw new AppException(409, "이미 존재하는 커뮤 ID입니다");
+      throw new AppException(409, GENERAL_ERROR_CODE, "이미 존재하는 커뮤 ID입니다");
     }
-    throw new AppException(400, "커뮤 생성에 실패했습니다");
+    throw new AppException(400, GENERAL_ERROR_CODE, "커뮤 생성에 실패했습니다");
   }
 }
 
@@ -229,7 +230,7 @@ export async function updateCommunity(
   });
 
   if (!community) {
-    throw new AppException(404, "커뮤를 찾을 수 없습니다");
+    throw new AppException(404, GENERAL_ERROR_CODE, "커뮤를 찾을 수 없습니다");
   }
 
   try {
@@ -287,12 +288,13 @@ export async function updateCommunity(
             isNull(imageTable.deletedAt),
           ),
         });
-        if (!image) {
-          throw new AppException(
-            400,
-            `잘못된 이미지 ID입니다: ${data.imageId}`,
-          );
-        }
+				if (!image) {
+					throw new AppException(
+						400,
+						GENERAL_ERROR_CODE,
+						`잘못된 이미지 ID입니다: ${data.imageId}`,
+					);
+				}
 
         // Create new banner image association
         await tx.insert(communityBannerImageTable).values({
@@ -348,10 +350,11 @@ export async function updateCommunity(
             const invalidIds = newImageIdsToAdd.filter(
               (id) => !validImageIds.has(id),
             );
-            throw new AppException(
-              400,
-              `잘못된 이미지 ID입니다: ${invalidIds.join(", ")}`,
-            );
+						throw new AppException(
+							400,
+							GENERAL_ERROR_CODE,
+							`잘못된 이미지 ID입니다: ${invalidIds.join(", ")}`,
+						);
           }
 
           // Batch insert all new associations
@@ -393,9 +396,9 @@ export async function updateCommunity(
     }
     logger.service.error("Error updating community", { error });
     if (error instanceof Error && error.message.includes("unique_slug")) {
-      throw new AppException(409, "이미 존재하는 커뮤 ID입니다");
+      throw new AppException(409, GENERAL_ERROR_CODE, "이미 존재하는 커뮤 ID입니다");
     }
-    throw new AppException(400, "커뮤 업데이트에 실패했습니다");
+    throw new AppException(400, GENERAL_ERROR_CODE, "커뮤 업데이트에 실패했습니다");
   }
 }
 
@@ -412,7 +415,7 @@ export async function deleteCommunity(communityId: string) {
   });
 
   if (!community) {
-    throw new AppException(404, "커뮤를 찾을 수 없습니다");
+    throw new AppException(404, GENERAL_ERROR_CODE, "커뮤를 찾을 수 없습니다");
   }
 
   // Get banner images before transaction
@@ -499,7 +502,7 @@ export async function deleteBannerImage(
   });
 
   if (!bannerImage) {
-    throw new AppException(404, "배너 이미지를 찾을 수 없습니다");
+    throw new AppException(404, GENERAL_ERROR_CODE, "배너 이미지를 찾을 수 없습니다");
   }
 
   // Soft delete the banner image association
@@ -580,7 +583,7 @@ export async function createCommunityLink(
     .returning();
 
   if (!newLink[0]) {
-    throw new AppException(500, "링크 생성에 실패했습니다");
+    throw new AppException(500, GENERAL_ERROR_CODE, "링크 생성에 실패했습니다");
   }
 
   return newLink[0];
@@ -609,7 +612,7 @@ export async function updateCommunityLink(
 
   const updatedLink = updatedLinks[0];
   if (!updatedLink) {
-    throw new AppException(404, "링크를 찾을 수 없습니다");
+    throw new AppException(404, GENERAL_ERROR_CODE, "링크를 찾을 수 없습니다");
   }
 
   return updatedLink;
@@ -632,7 +635,7 @@ export async function deleteCommunityLink(communityId: string, linkId: string) {
     .returning();
 
   if (deletedLinks.length === 0) {
-    throw new AppException(404, "링크를 찾을 수 없습니다");
+    throw new AppException(404, GENERAL_ERROR_CODE, "링크를 찾을 수 없습니다");
   }
 
   return deletedLinks[0];
@@ -962,7 +965,7 @@ export async function getCommunityStats(communityId: string) {
   });
 
   if (!community) {
-    throw new AppException(404, "커뮤를 찾을 수 없습니다");
+    throw new AppException(404, GENERAL_ERROR_CODE, "커뮤를 찾을 수 없습니다");
   }
 
   // Get application statistics
@@ -1039,7 +1042,7 @@ export async function getCommunityActivityStats(
   });
 
   if (!community) {
-    throw new AppException(404, "커뮤를 찾을 수 없습니다");
+    throw new AppException(404, GENERAL_ERROR_CODE, "커뮤를 찾을 수 없습니다");
   }
 
   // Get posts activity by date
@@ -1544,7 +1547,7 @@ export async function getCommunityDetailWithUserContext(
   });
 
   if (!community) {
-    throw new AppException(404, "커뮤를 찾을 수 없습니다");
+    throw new AppException(404, GENERAL_ERROR_CODE, "커뮤를 찾을 수 없습니다");
   }
 
   // Get banner info

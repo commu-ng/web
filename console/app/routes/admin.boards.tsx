@@ -68,8 +68,9 @@ interface Board {
 }
 
 async function fetchBoards(): Promise<Board[]> {
-  const res = await api.console.boards.$get();
-  return await res.json();
+	const res = await api.console.boards.$get();
+	const json = await res.json();
+	return json.data;
 }
 
 export default function AdminBoards() {

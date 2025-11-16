@@ -75,7 +75,8 @@ async function fetchBoardPost(
   if (!res.ok) {
     throw new Error("Failed to fetch board post");
   }
-  return await res.json();
+  const json = await res.json();
+  return json.data;
 }
 
 export default function BoardPostDetail({ params }: Route.ComponentProps) {

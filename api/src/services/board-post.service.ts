@@ -9,6 +9,7 @@ import {
   user as userTable,
 } from "../drizzle/schema";
 import { AppException } from "../exception";
+import { BoardErrorCode } from "../types/api-responses";
 import { addImageUrl } from "../utils/r2";
 
 /**
@@ -39,7 +40,11 @@ export async function getBoard(boardId: string) {
   });
 
   if (!board) {
-    throw new AppException(404, "게시판을 찾을 수 없습니다");
+    throw new AppException(
+      404,
+      BoardErrorCode.BOARD_NOT_FOUND,
+      "Board not found",
+    );
   }
 
   return {
@@ -61,7 +66,11 @@ export async function getBoardBySlug(slug: string) {
   });
 
   if (!board) {
-    throw new AppException(404, "게시판을 찾을 수 없습니다");
+    throw new AppException(
+      404,
+      BoardErrorCode.BOARD_NOT_FOUND,
+      "Board not found",
+    );
   }
 
   return {
@@ -88,7 +97,11 @@ export async function createBoard(
   });
 
   if (existingBoard) {
-    throw new AppException(409, "이미 존재하는 슬러그입니다");
+    throw new AppException(
+      409,
+      BoardErrorCode.DUPLICATE_BOARD_SLUG,
+      "Board slug already exists",
+    );
   }
 
   const newBoardResult = await db
@@ -130,7 +143,11 @@ export async function updateBoard(
   });
 
   if (!board) {
-    throw new AppException(404, "게시판을 찾을 수 없습니다");
+    throw new AppException(
+      404,
+      BoardErrorCode.BOARD_NOT_FOUND,
+      "Board not found",
+    );
   }
 
   // Check if slug is taken by another board
@@ -140,7 +157,11 @@ export async function updateBoard(
     });
 
     if (existingBoard && existingBoard.id !== boardId) {
-      throw new AppException(409, "이미 존재하는 슬러그입니다");
+      throw new AppException(
+        409,
+        BoardErrorCode.DUPLICATE_BOARD_SLUG,
+        "Board slug already exists",
+      );
     }
   }
 
@@ -179,7 +200,11 @@ export async function deleteBoard(boardId: string) {
   });
 
   if (!board) {
-    throw new AppException(404, "게시판을 찾을 수 없습니다");
+    throw new AppException(
+      404,
+      BoardErrorCode.BOARD_NOT_FOUND,
+      "Board not found",
+    );
   }
 
   await db
@@ -349,7 +374,11 @@ export async function getBoardPost(postId: string) {
   });
 
   if (!post) {
-    throw new AppException(404, "게시물을 찾을 수 없습니다");
+    throw new AppException(
+      404,
+      BoardErrorCode.BOARD_POST_NOT_FOUND,
+      "Board post not found",
+    );
   }
 
   // Get hashtags
@@ -408,7 +437,11 @@ export async function createBoardPost(
   });
 
   if (!board) {
-    throw new AppException(404, "게시판을 찾을 수 없습니다");
+    throw new AppException(
+      404,
+      BoardErrorCode.BOARD_NOT_FOUND,
+      "Board not found",
+    );
   }
 
   // Validate user exists
@@ -417,7 +450,7 @@ export async function createBoardPost(
   });
 
   if (!user) {
-    throw new AppException(404, "사용자를 찾을 수 없습니다");
+    throw new AppException(404, BoardErrorCode.UNAUTHORIZED, "User not found");
   }
 
   // Validate image if provided
@@ -427,7 +460,11 @@ export async function createBoardPost(
     });
 
     if (!image) {
-      throw new AppException(400, "유효하지 않은 이미지입니다");
+      throw new AppException(
+        400,
+        BoardErrorCode.INVALID_IMAGE,
+        "Invalid image",
+      );
     }
   }
 
@@ -515,12 +552,20 @@ export async function updateBoardPost(
   });
 
   if (!post) {
-    throw new AppException(404, "게시물을 찾을 수 없습니다");
+    throw new AppException(
+      404,
+      BoardErrorCode.BOARD_POST_NOT_FOUND,
+      "Board post not found",
+    );
   }
 
   // Check if user is the author
   if (post.authorId !== authorId) {
-    throw new AppException(403, "본인의 게시물만 수정할 수 있습니다");
+    throw new AppException(
+      403,
+      BoardErrorCode.NOT_POST_AUTHOR,
+      "Only the author can modify this post",
+    );
   }
 
   // Validate image if provided
@@ -530,7 +575,11 @@ export async function updateBoardPost(
     });
 
     if (!image) {
-      throw new AppException(400, "유효하지 않은 이미지입니다");
+      throw new AppException(
+        400,
+        BoardErrorCode.INVALID_IMAGE,
+        "Invalid image",
+      );
     }
   }
 
@@ -607,7 +656,11 @@ export async function deleteBoardPost(postId: string, userId: string) {
   });
 
   if (!post) {
-    throw new AppException(404, "게시물을 찾을 수 없습니다");
+    throw new AppException(
+      404,
+      BoardErrorCode.BOARD_POST_NOT_FOUND,
+      "Board post not found",
+    );
   }
 
   // Check if user is the author or admin
@@ -616,14 +669,15 @@ export async function deleteBoardPost(postId: string, userId: string) {
   });
 
   if (!user) {
-    throw new AppException(404, "사용자를 찾을 수 없습니다");
+    throw new AppException(404, BoardErrorCode.UNAUTHORIZED, "User not found");
   }
 
   // Only author or admin can delete
   if (post.authorId !== userId && !user.isAdmin) {
     throw new AppException(
       403,
-      "본인의 게시물 또는 관리자만 삭제할 수 있습니다",
+      BoardErrorCode.FORBIDDEN,
+      "Only the author or admin can delete this post",
     );
   }
 

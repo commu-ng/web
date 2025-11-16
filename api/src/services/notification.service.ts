@@ -5,6 +5,7 @@ import {
   profile as profileTable,
 } from "../drizzle/schema";
 import { AppException } from "../exception";
+import { GENERAL_ERROR_CODE } from "../types/api-responses";
 import type { ProfilePicture } from "../types";
 import { canUseProfile } from "../utils/profile-ownership";
 import { addImageUrl } from "../utils/r2";
@@ -22,7 +23,7 @@ export async function getNotificationsForProfile(
   // Validate user has access to this profile
   const hasAccess = await canUseProfile(userId, profileId);
   if (!hasAccess) {
-    throw new AppException(403, "프로필에 접근할 권한이 없습니다");
+    throw new AppException(403, GENERAL_ERROR_CODE, "프로필에 접근할 권한이 없습니다");
   }
 
   // Get the profile details
@@ -35,7 +36,7 @@ export async function getNotificationsForProfile(
   });
 
   if (!profile) {
-    throw new AppException(404, "프로필을 찾을 수 없습니다");
+    throw new AppException(404, GENERAL_ERROR_CODE, "프로필을 찾을 수 없습니다");
   }
 
   // Build where conditions
@@ -174,7 +175,7 @@ export async function getUnreadCount(
   // Validate user has access to this profile
   const hasAccess = await canUseProfile(userId, profileId);
   if (!hasAccess) {
-    throw new AppException(403, "프로필에 접근할 권한이 없습니다");
+    throw new AppException(403, GENERAL_ERROR_CODE, "프로필에 접근할 권한이 없습니다");
   }
 
   // Get the profile details
@@ -187,7 +188,7 @@ export async function getUnreadCount(
   });
 
   if (!profile) {
-    throw new AppException(404, "프로필을 찾을 수 없습니다");
+    throw new AppException(404, GENERAL_ERROR_CODE, "프로필을 찾을 수 없습니다");
   }
 
   // Get unread notification count
@@ -215,7 +216,7 @@ export async function markAllAsRead(
   // Validate user has access to this profile
   const hasAccess = await canUseProfile(userId, profileId);
   if (!hasAccess) {
-    throw new AppException(403, "프로필에 접근할 권한이 없습니다");
+    throw new AppException(403, GENERAL_ERROR_CODE, "프로필에 접근할 권한이 없습니다");
   }
 
   // Get the profile details
@@ -228,7 +229,7 @@ export async function markAllAsRead(
   });
 
   if (!profile) {
-    throw new AppException(404, "프로필을 찾을 수 없습니다");
+    throw new AppException(404, GENERAL_ERROR_CODE, "프로필을 찾을 수 없습니다");
   }
 
   // Mark all notifications as read
@@ -255,7 +256,7 @@ export async function markAsRead(
   // Validate user has access to this profile
   const hasAccess = await canUseProfile(userId, profileId);
   if (!hasAccess) {
-    throw new AppException(403, "프로필에 접근할 권한이 없습니다");
+    throw new AppException(403, GENERAL_ERROR_CODE, "프로필에 접근할 권한이 없습니다");
   }
 
   // Get the profile details
@@ -268,7 +269,7 @@ export async function markAsRead(
   });
 
   if (!profile) {
-    throw new AppException(404, "프로필을 찾을 수 없습니다");
+    throw new AppException(404, GENERAL_ERROR_CODE, "프로필을 찾을 수 없습니다");
   }
 
   // Mark the specific notification as read
@@ -284,7 +285,7 @@ export async function markAsRead(
     .returning();
 
   if (result.length === 0) {
-    throw new AppException(404, "알림을 찾을 수 없습니다");
+    throw new AppException(404, GENERAL_ERROR_CODE, "알림을 찾을 수 없습니다");
   }
 }
 
@@ -300,7 +301,7 @@ export async function markAsUnread(
   // Validate user has access to this profile
   const hasAccess = await canUseProfile(userId, profileId);
   if (!hasAccess) {
-    throw new AppException(403, "프로필에 접근할 권한이 없습니다");
+    throw new AppException(403, GENERAL_ERROR_CODE, "프로필에 접근할 권한이 없습니다");
   }
 
   // Get the profile details
@@ -313,7 +314,7 @@ export async function markAsUnread(
   });
 
   if (!profile) {
-    throw new AppException(404, "프로필을 찾을 수 없습니다");
+    throw new AppException(404, GENERAL_ERROR_CODE, "프로필을 찾을 수 없습니다");
   }
 
   // Mark the specific notification as unread
@@ -329,6 +330,6 @@ export async function markAsUnread(
     .returning();
 
   if (result.length === 0) {
-    throw new AppException(404, "알림을 찾을 수 없습니다");
+    throw new AppException(404, GENERAL_ERROR_CODE, "알림을 찾을 수 없습니다");
   }
 }

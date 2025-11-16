@@ -8,6 +8,7 @@ import {
   user as userTable,
 } from "../drizzle/schema";
 import { AppException } from "../exception";
+import { GENERAL_ERROR_CODE } from "../types/api-responses";
 import { getFileUrl, uploadExportFile } from "../utils/r2";
 import * as emailService from "./email.service";
 import * as exportService from "./export.service";
@@ -24,20 +25,16 @@ export async function createExportJob(communityId: string, userId: string) {
   });
 
   if (!user) {
-    throw new AppException(404, "사용자를 찾을 수 없습니다");
+    throw new AppException(404, GENERAL_ERROR_CODE, "사용자를 찾을 수 없습니다");
   }
 
   if (!user.email) {
-    throw new AppException(
-      403,
-      "이메일 주소가 필요합니다. 이메일을 등록한 후 다시 시도해주세요.",
+    throw new AppException(403, GENERAL_ERROR_CODE, "이메일 주소가 필요합니다. 이메일을 등록한 후 다시 시도해주세요.",
     );
   }
 
   if (!user.emailVerifiedAt) {
-    throw new AppException(
-      403,
-      "이메일 인증이 필요합니다. 이메일을 인증한 후 다시 시도해주세요.",
+    throw new AppException(403, GENERAL_ERROR_CODE, "이메일 인증이 필요합니다. 이메일을 인증한 후 다시 시도해주세요.",
     );
   }
 
@@ -54,7 +51,7 @@ export async function createExportJob(communityId: string, userId: string) {
   });
 
   if (existingJob) {
-    throw new AppException(409, "이미 진행 중인 내보내기가 있습니다");
+    throw new AppException(409, GENERAL_ERROR_CODE, "이미 진행 중인 내보내기가 있습니다");
   }
 
   // Create new export job
@@ -181,7 +178,7 @@ export async function getExportJobStatus(jobId: string, userId: string) {
   });
 
   if (!job) {
-    throw new AppException(404, "내보내기 작업을 찾을 수 없습니다");
+    throw new AppException(404, GENERAL_ERROR_CODE, "내보내기 작업을 찾을 수 없습니다");
   }
 
   // Verify user still has active membership in the community
@@ -194,9 +191,7 @@ export async function getExportJobStatus(jobId: string, userId: string) {
   });
 
   if (!membership) {
-    throw new AppException(
-      403,
-      "이 커뮤의 활성 회원이 아니므로 내보내기 상태에 접근할 수 없습니다",
+    throw new AppException(403, GENERAL_ERROR_CODE, "이 커뮤의 활성 회원이 아니므로 내보내기 상태에 접근할 수 없습니다",
     );
   }
 

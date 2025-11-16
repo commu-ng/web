@@ -14,12 +14,13 @@ import {
 } from "../../schemas";
 import * as boardPostService from "../../services/board-post.service";
 import type { AuthVariables } from "../../types";
+import { BoardErrorCode, BoardSuccessCode } from "../../types/api-responses";
 
 export const consoleBoardsRouter = new Hono<{ Variables: AuthVariables }>()
   // Get all boards (public)
   .get("/boards", async (c) => {
     const boards = await boardPostService.getBoards();
-    return c.json(boards);
+    return c.json({ data: boards });
   })
 
   // Create a new board (admin only)
@@ -32,7 +33,15 @@ export const consoleBoardsRouter = new Hono<{ Variables: AuthVariables }>()
 
       // Check if user is admin
       if (!user.isAdmin) {
-        return c.json({ error: "관리자만 게시판을 생성할 수 있습니다" }, 403);
+        return c.json(
+          {
+            error: {
+              code: BoardErrorCode.ADMIN_ONLY,
+              message: "Only admins can create boards",
+            },
+          },
+          403,
+        );
       }
 
       const { name, slug, description } = c.req.valid("json");
@@ -43,10 +52,18 @@ export const consoleBoardsRouter = new Hono<{ Variables: AuthVariables }>()
           slug,
           description,
         );
-        return c.json(board, 201);
+        return c.json({ data: board }, 201);
       } catch (error: unknown) {
         if (error instanceof AppException) {
-          return c.json({ error: error.message }, error.statusCode);
+          return c.json(
+            {
+              error: {
+                code: error.code,
+                message: error.message,
+              },
+            },
+            error.statusCode,
+          );
         }
         throw error;
       }
@@ -63,10 +80,18 @@ export const consoleBoardsRouter = new Hono<{ Variables: AuthVariables }>()
 
       try {
         const board = await boardPostService.getBoard(boardId);
-        return c.json(board);
+        return c.json({ data: board });
       } catch (error: unknown) {
         if (error instanceof AppException) {
-          return c.json({ error: error.message }, error.statusCode);
+          return c.json(
+            {
+              error: {
+                code: error.code,
+                message: error.message,
+              },
+            },
+            error.statusCode,
+          );
         }
         throw error;
       }
@@ -82,10 +107,18 @@ export const consoleBoardsRouter = new Hono<{ Variables: AuthVariables }>()
 
       try {
         const board = await boardPostService.getBoardBySlug(boardSlug);
-        return c.json(board);
+        return c.json({ data: board });
       } catch (error: unknown) {
         if (error instanceof AppException) {
-          return c.json({ error: error.message }, error.statusCode);
+          return c.json(
+            {
+              error: {
+                code: error.code,
+                message: error.message,
+              },
+            },
+            error.statusCode,
+          );
         }
         throw error;
       }
@@ -102,10 +135,18 @@ export const consoleBoardsRouter = new Hono<{ Variables: AuthVariables }>()
       try {
         const board = await boardPostService.getBoardBySlug(boardSlug);
         const hashtags = await boardPostService.getBoardHashtags(board.id);
-        return c.json(hashtags);
+        return c.json({ data: hashtags });
       } catch (error: unknown) {
         if (error instanceof AppException) {
-          return c.json({ error: error.message }, error.statusCode);
+          return c.json(
+            {
+              error: {
+                code: error.code,
+                message: error.message,
+              },
+            },
+            error.statusCode,
+          );
         }
         throw error;
       }
@@ -125,7 +166,15 @@ export const consoleBoardsRouter = new Hono<{ Variables: AuthVariables }>()
 
       // Check if user is admin
       if (!user.isAdmin) {
-        return c.json({ error: "관리자만 게시판을 수정할 수 있습니다" }, 403);
+        return c.json(
+          {
+            error: {
+              code: BoardErrorCode.ADMIN_ONLY,
+              message: "Only admins can update boards",
+            },
+          },
+          403,
+        );
       }
 
       try {
@@ -135,10 +184,18 @@ export const consoleBoardsRouter = new Hono<{ Variables: AuthVariables }>()
           slug,
           description,
         );
-        return c.json(board);
+        return c.json({ data: board });
       } catch (error: unknown) {
         if (error instanceof AppException) {
-          return c.json({ error: error.message }, error.statusCode);
+          return c.json(
+            {
+              error: {
+                code: error.code,
+                message: error.message,
+              },
+            },
+            error.statusCode,
+          );
         }
         throw error;
       }
@@ -156,15 +213,35 @@ export const consoleBoardsRouter = new Hono<{ Variables: AuthVariables }>()
 
       // Check if user is admin
       if (!user.isAdmin) {
-        return c.json({ error: "관리자만 게시판을 삭제할 수 있습니다" }, 403);
+        return c.json(
+          {
+            error: {
+              code: BoardErrorCode.ADMIN_ONLY,
+              message: "Only admins can delete boards",
+            },
+          },
+          403,
+        );
       }
 
       try {
         await boardPostService.deleteBoard(boardId);
-        return c.json({ message: "게시판이 성공적으로 삭제되었습니다" });
+        return c.json({
+          success: true,
+          code: BoardSuccessCode.BOARD_DELETED,
+          message: "Board deleted successfully",
+        });
       } catch (error: unknown) {
         if (error instanceof AppException) {
-          return c.json({ error: error.message }, error.statusCode);
+          return c.json(
+            {
+              error: {
+                code: error.code,
+                message: error.message,
+              },
+            },
+            error.statusCode,
+          );
         }
         throw error;
       }
@@ -194,10 +271,24 @@ export const consoleBoardsRouter = new Hono<{ Variables: AuthVariables }>()
           cursor,
           hashtagsArray,
         );
-        return c.json(result);
+        return c.json({
+          data: result.data,
+          pagination: {
+            nextCursor: result.nextCursor,
+            hasMore: result.hasMore,
+          },
+        });
       } catch (error: unknown) {
         if (error instanceof AppException) {
-          return c.json({ error: error.message }, error.statusCode);
+          return c.json(
+            {
+              error: {
+                code: error.code,
+                message: error.message,
+              },
+            },
+            error.statusCode,
+          );
         }
         throw error;
       }
@@ -230,10 +321,18 @@ export const consoleBoardsRouter = new Hono<{ Variables: AuthVariables }>()
           imageId,
           hashtags,
         );
-        return c.json(post, 201);
+        return c.json({ data: post }, 201);
       } catch (error: unknown) {
         if (error instanceof AppException) {
-          return c.json({ error: error.message }, error.statusCode);
+          return c.json(
+            {
+              error: {
+                code: error.code,
+                message: error.message,
+              },
+            },
+            error.statusCode,
+          );
         }
         throw error;
       }
@@ -250,10 +349,18 @@ export const consoleBoardsRouter = new Hono<{ Variables: AuthVariables }>()
 
       try {
         const post = await boardPostService.getBoardPost(postId);
-        return c.json(post);
+        return c.json({ data: post });
       } catch (error: unknown) {
         if (error instanceof AppException) {
-          return c.json({ error: error.message }, error.statusCode);
+          return c.json(
+            {
+              error: {
+                code: error.code,
+                message: error.message,
+              },
+            },
+            error.statusCode,
+          );
         }
         throw error;
       }
@@ -286,10 +393,18 @@ export const consoleBoardsRouter = new Hono<{ Variables: AuthVariables }>()
           imageId,
           hashtags,
         );
-        return c.json(post);
+        return c.json({ data: post });
       } catch (error: unknown) {
         if (error instanceof AppException) {
-          return c.json({ error: error.message }, error.statusCode);
+          return c.json(
+            {
+              error: {
+                code: error.code,
+                message: error.message,
+              },
+            },
+            error.statusCode,
+          );
         }
         throw error;
       }
@@ -308,10 +423,22 @@ export const consoleBoardsRouter = new Hono<{ Variables: AuthVariables }>()
 
       try {
         await boardPostService.deleteBoardPost(postId, user.id);
-        return c.json({ message: "게시물이 성공적으로 삭제되었습니다" });
+        return c.json({
+          success: true,
+          code: BoardSuccessCode.BOARD_POST_DELETED,
+          message: "Board post deleted successfully",
+        });
       } catch (error: unknown) {
         if (error instanceof AppException) {
-          return c.json({ error: error.message }, error.statusCode);
+          return c.json(
+            {
+              error: {
+                code: error.code,
+                message: error.message,
+              },
+            },
+            error.statusCode,
+          );
         }
         throw error;
       }

@@ -62,8 +62,10 @@ interface BoardPost {
 
 interface BoardPostsResponse {
   data: BoardPost[];
-  nextCursor: string | null;
-  hasMore: boolean;
+  pagination: {
+    nextCursor: string | null;
+    hasMore: boolean;
+  };
 }
 
 async function fetchBoardPosts(
@@ -103,7 +105,7 @@ export function BoardPostList({ boardSlug, hashtags }: BoardPostListProps) {
     queryKey: ["board-posts", boardSlug, hashtags],
     queryFn: ({ pageParam }) => fetchBoardPosts(boardSlug, pageParam, hashtags),
     getNextPageParam: (lastPage) =>
-      lastPage.hasMore ? lastPage.nextCursor : undefined,
+      lastPage.pagination.hasMore ? lastPage.pagination.nextCursor : undefined,
     initialPageParam: undefined as string | undefined,
   });
 

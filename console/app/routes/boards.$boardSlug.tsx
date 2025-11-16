@@ -40,7 +40,8 @@ async function fetchBoard(boardSlug: string): Promise<Board> {
   if (!res.ok) {
     throw new Error("Failed to fetch board");
   }
-  return await res.json();
+  const json = await res.json();
+  return json.data;
 }
 
 async function fetchBoardHashtags(boardSlug: string): Promise<string[]> {
@@ -50,7 +51,8 @@ async function fetchBoardHashtags(boardSlug: string): Promise<string[]> {
   if (!res.ok) {
     throw new Error("Failed to fetch board hashtags");
   }
-  return await res.json();
+  const json = await res.json();
+  return json.data;
 }
 
 export default function BoardDetail({ params }: Route.ComponentProps) {

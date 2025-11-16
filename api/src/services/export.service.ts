@@ -12,6 +12,7 @@ import {
   profile as profileTable,
 } from "../drizzle/schema";
 import { AppException } from "../exception";
+import { GENERAL_ERROR_CODE } from "../types/api-responses";
 import { logger } from "../config/logger";
 import * as messageService from "./message.service";
 import * as postService from "./post.service";
@@ -370,7 +371,7 @@ export async function exportCommunityData(
   });
 
   if (!community) {
-    throw new AppException(404, "커뮤를 찾을 수 없습니다");
+    throw new AppException(404, GENERAL_ERROR_CODE, "커뮤를 찾을 수 없습니다");
   }
 
   // Get all user's profiles in this community via profile_ownership

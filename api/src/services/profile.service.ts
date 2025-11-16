@@ -10,6 +10,7 @@ import {
   profile as profileTable,
 } from "../drizzle/schema";
 import { AppException } from "../exception";
+import { GENERAL_ERROR_CODE } from "../types/api-responses";
 import {
   addUserToProfile,
   canManageProfile,
@@ -37,7 +38,7 @@ export async function uploadProfilePicture(
 ) {
   const [isValid, errorMessage] = validateImageFile(fileContentType, fileSize);
   if (!isValid) {
-    throw new AppException(400, errorMessage);
+    throw new AppException(400, GENERAL_ERROR_CODE, errorMessage);
   }
 
   // Upload to R2
@@ -56,7 +57,7 @@ export async function uploadProfilePicture(
     width = metadata.width ?? 0;
     height = metadata.height ?? 0;
   } catch (_err) {
-    throw new AppException(400, "이미지 크기 가져오기에 실패했습니다");
+    throw new AppException(400, GENERAL_ERROR_CODE, "이미지 크기 가져오기에 실패했습니다");
   }
 
   // Create image record and profile picture in a transaction
@@ -259,7 +260,7 @@ export async function createProfile(
   });
 
   if (existingProfile) {
-    throw new AppException(400, "이 커뮤에서 이미 사용 중인 사용자명입니다");
+    throw new AppException(400, GENERAL_ERROR_CODE, "이 커뮤에서 이미 사용 중인 사용자명입니다");
   }
 
   // Validate profile picture if provided
@@ -271,7 +272,7 @@ export async function createProfile(
       ),
     });
     if (!image) {
-      throw new AppException(400, "잘못된 프로필 사진 ID입니다");
+      throw new AppException(400, GENERAL_ERROR_CODE, "잘못된 프로필 사진 ID입니다");
     }
   }
 
@@ -383,7 +384,7 @@ export async function deleteProfile(
   // Verify user can manage this profile
   const canManage = await canManageProfile(userId, profileId);
   if (!canManage) {
-    throw new AppException(404, "프로필을 찾을 수 없거나 관리 권한이 없습니다");
+    throw new AppException(404, GENERAL_ERROR_CODE, "프로필을 찾을 수 없거나 관리 권한이 없습니다");
   }
 
   // Find the profile to verify it exists and is in the correct community
@@ -396,19 +397,19 @@ export async function deleteProfile(
   });
 
   if (!profile) {
-    throw new AppException(404, "프로필을 찾을 수 없습니다");
+    throw new AppException(404, GENERAL_ERROR_CODE, "프로필을 찾을 수 없습니다");
   }
 
   // Can't delete primary profile
   if (profile.isPrimary) {
-    throw new AppException(400, "메인 프로필은 삭제할 수 없습니다");
+    throw new AppException(400, GENERAL_ERROR_CODE, "메인 프로필은 삭제할 수 없습니다");
   }
 
   // Can't delete if it's the only profile user has access to
   const userProfilesInCommunity = await getUserProfiles(userId, communityId);
 
   if (userProfilesInCommunity.length <= 1) {
-    throw new AppException(400, "유일한 프로필은 삭제할 수 없습니다");
+    throw new AppException(400, GENERAL_ERROR_CODE, "유일한 프로필은 삭제할 수 없습니다");
   }
 
   // Soft delete the profile in a transaction
@@ -462,9 +463,7 @@ export async function setPrimaryProfile(
   // Verify user can manage this profile (only owners can set primary)
   const canManage = await canManageProfile(userId, profileId);
   if (!canManage) {
-    throw new AppException(
-      403,
-      "공유된 프로필은 기본 프로필로 설정할 수 없습니다",
+    throw new AppException(403, GENERAL_ERROR_CODE, "공유된 프로필은 기본 프로필로 설정할 수 없습니다",
     );
   }
 
@@ -479,9 +478,7 @@ export async function setPrimaryProfile(
   });
 
   if (!profile) {
-    throw new AppException(
-      404,
-      "프로필을 찾을 수 없거나 귀하의 소유가 아닙니다",
+    throw new AppException(404, GENERAL_ERROR_CODE, "프로필을 찾을 수 없거나 귀하의 소유가 아닙니다",
     );
   }
 
@@ -545,7 +542,7 @@ export async function getProfileProfile(username: string, communityId: string) {
   });
 
   if (!profile) {
-    throw new AppException(404, "프로필을 찾을 수 없습니다");
+    throw new AppException(404, GENERAL_ERROR_CODE, "프로필을 찾을 수 없습니다");
   }
 
   // Get post count for this profile
@@ -617,7 +614,7 @@ export async function getProfilePosts(
   });
 
   if (!profile) {
-    throw new AppException(404, "프로필을 찾을 수 없습니다");
+    throw new AppException(404, GENERAL_ERROR_CODE, "프로필을 찾을 수 없습니다");
   }
 
   // Get posts by this profile
@@ -717,7 +714,7 @@ export async function updateProfile(
   // Verify user can manage this profile
   const canManage = await canManageProfile(userId, profileId);
   if (!canManage) {
-    throw new AppException(404, "프로필을 찾을 수 없거나 관리 권한이 없습니다");
+    throw new AppException(404, GENERAL_ERROR_CODE, "프로필을 찾을 수 없거나 관리 권한이 없습니다");
   }
 
   // Get the profile
@@ -730,7 +727,7 @@ export async function updateProfile(
   });
 
   if (!profile) {
-    throw new AppException(404, "프로필을 찾을 수 없습니다");
+    throw new AppException(404, GENERAL_ERROR_CODE, "프로필을 찾을 수 없습니다");
   }
 
   // Check if username is already taken by another profile
@@ -744,7 +741,7 @@ export async function updateProfile(
     });
 
     if (existingProfile && existingProfile.id !== profile.id) {
-      throw new AppException(400, "사용자명이 이미 사용 중입니다");
+      throw new AppException(400, GENERAL_ERROR_CODE, "사용자명이 이미 사용 중입니다");
     }
   }
 
@@ -801,7 +798,7 @@ export async function getProfileSharedUsers(userId: string, profileId: string) {
   // Check if user can manage this profile (only owners can see user list)
   const canManage = await canManageProfile(userId, profileId);
   if (!canManage) {
-    throw new AppException(403, "이 프로필을 관리할 권한이 없습니다");
+    throw new AppException(403, GENERAL_ERROR_CODE, "이 프로필을 관리할 권한이 없습니다");
   }
 
   // Get the community ID for this profile
@@ -810,7 +807,7 @@ export async function getProfileSharedUsers(userId: string, profileId: string) {
   });
 
   if (!profile) {
-    throw new AppException(404, "프로필을 찾을 수 없습니다");
+    throw new AppException(404, GENERAL_ERROR_CODE, "프로필을 찾을 수 없습니다");
   }
 
   const profileUsers = await getProfileUsers(profileId);
@@ -878,7 +875,7 @@ export async function shareProfileWithUser(
   // Check if user can manage this profile (only owners can add users)
   const canManage = await canManageProfile(userId, profileId);
   if (!canManage) {
-    throw new AppException(403, "이 프로필을 관리할 권한이 없습니다");
+    throw new AppException(403, GENERAL_ERROR_CODE, "이 프로필을 관리할 권한이 없습니다");
   }
 
   // Get the profile to check if it's primary
@@ -887,12 +884,12 @@ export async function shareProfileWithUser(
   });
 
   if (!profile) {
-    throw new AppException(404, "프로필을 찾을 수 없습니다");
+    throw new AppException(404, GENERAL_ERROR_CODE, "프로필을 찾을 수 없습니다");
   }
 
   // Prevent sharing primary profiles
   if (profile.isPrimary) {
-    throw new AppException(400, "주 프로필는 공유할 수 없습니다");
+    throw new AppException(400, GENERAL_ERROR_CODE, "주 프로필는 공유할 수 없습니다");
   }
 
   // Find user by profile username
@@ -913,7 +910,7 @@ export async function shareProfileWithUser(
   });
 
   if (!targetProfile || !targetProfile.ownerships[0]) {
-    throw new AppException(404, "사용자를 찾을 수 없습니다");
+    throw new AppException(404, GENERAL_ERROR_CODE, "사용자를 찾을 수 없습니다");
   }
 
   const targetUser = targetProfile.ownerships[0].user;
@@ -928,7 +925,7 @@ export async function shareProfileWithUser(
   });
 
   if (!membership) {
-    throw new AppException(400, "사용자가 이 커뮤의 회원이 아닙니다");
+    throw new AppException(400, GENERAL_ERROR_CODE, "사용자가 이 커뮤의 회원이 아닙니다");
   }
 
   // Check if user already has access to this profile
@@ -940,9 +937,7 @@ export async function shareProfileWithUser(
   });
 
   if (existingOwnership) {
-    throw new AppException(
-      400,
-      "사용자가 이미 이 프로필에 액세스 권한을 가지고 있습니다",
+    throw new AppException(400, GENERAL_ERROR_CODE, "사용자가 이미 이 프로필에 액세스 권한을 가지고 있습니다",
     );
   }
 
@@ -975,7 +970,7 @@ export async function removeUserFromProfileSharing(
   // Check if user can manage this profile (only owners can remove users)
   const canManage = await canManageProfile(userId, profileId);
   if (!canManage) {
-    throw new AppException(403, "이 프로필을 관리할 권한이 없습니다");
+    throw new AppException(403, GENERAL_ERROR_CODE, "이 프로필을 관리할 권한이 없습니다");
   }
 
   // Prevent removing self if you're the only owner
@@ -983,7 +978,7 @@ export async function removeUserFromProfileSharing(
     const profileUsers = await getProfileUsers(profileId);
     const owners = profileUsers.filter((u) => u.role === "owner");
     if (owners.length === 1) {
-      throw new AppException(400, "유일한 소유자는 자신을 제거할 수 없습니다");
+      throw new AppException(400, GENERAL_ERROR_CODE, "유일한 소유자는 자신을 제거할 수 없습니다");
     }
   }
 
@@ -999,7 +994,7 @@ export async function getUserIdsFromProfile(profileId: string) {
   });
 
   if (!profileOwnerships || profileOwnerships.length === 0) {
-    throw new AppException(404, "프로필을 찾을 수 없습니다");
+    throw new AppException(404, GENERAL_ERROR_CODE, "프로필을 찾을 수 없습니다");
   }
 
   return profileOwnerships.map((ownership) => ownership.userId);
@@ -1090,7 +1085,7 @@ export async function updateOnlineStatusVisibility(
   // Verify user can manage this profile
   const canManage = await canManageProfile(userId, profileId);
   if (!canManage) {
-    throw new AppException(404, "프로필을 찾을 수 없거나 관리 권한이 없습니다");
+    throw new AppException(404, GENERAL_ERROR_CODE, "프로필을 찾을 수 없거나 관리 권한이 없습니다");
   }
 
   await db
