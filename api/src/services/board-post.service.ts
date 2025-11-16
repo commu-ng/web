@@ -342,6 +342,7 @@ export async function getBoardPosts(
           id: board.id,
           name: board.name,
           slug: board.slug,
+          allow_comments: board.allowComments,
         },
         title: post.title,
         content: post.content,
