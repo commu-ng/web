@@ -383,7 +383,6 @@ export async function getBoardPost(postId: string) {
   const post = await db.query.boardPost.findFirst({
     where: and(eq(boardPostTable.id, postId), isNull(boardPostTable.deletedAt)),
     with: {
-      board: true,
       user: true,
       image: true,
     },
@@ -407,11 +406,6 @@ export async function getBoardPost(postId: string) {
 
   return {
     id: post.id,
-    board: {
-      id: post.board.id,
-      name: post.board.name,
-      slug: post.board.slug,
-    },
     title: post.title,
     content: post.content,
     image: post.image

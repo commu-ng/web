@@ -25,11 +25,6 @@ export function meta({ params }: Route.MetaArgs) {
 
 interface BoardPost {
   id: string;
-  board: {
-    id: string;
-    name: string;
-    slug: string;
-  };
   title: string;
   content: string;
   image: {
@@ -169,7 +164,7 @@ export default function EditBoardPost({ params }: Route.ComponentProps) {
         <Button variant="ghost" asChild className="mb-4">
           <Link to={`/boards/${boardSlug}`}>
             <ArrowLeft className="mr-2 h-4 w-4" />
-            {post.board.name}로 돌아가기
+            게시판으로 돌아가기
           </Link>
         </Button>
         <h1 className="text-3xl font-bold">게시물 수정</h1>

@@ -46,14 +46,18 @@ export function meta({ params }: Route.MetaArgs) {
   ];
 }
 
+interface Board {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  allow_comments: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 interface BoardPost {
   id: string;
-  board: {
-    id: string;
-    name: string;
-    slug: string;
-    allow_comments: boolean;
-  };
   title: string;
   content: string;
   image: {
@@ -111,6 +115,17 @@ function isBoardPostRepliesResponse(
   value: object,
 ): value is BoardPostRepliesResponse {
   return "data" in value && Array.isArray(value.data);
+}
+
+async function fetchBoard(boardSlug: string): Promise<Board> {
+  const res = await api.console.board[":board_slug"].$get({
+    param: { board_slug: boardSlug },
+  });
+  if (!res.ok) {
+    throw new Error("Failed to fetch board");
+  }
+  const json = await res.json();
+  return json.data;
 }
 
 async function fetchBoardPost(
@@ -305,6 +320,14 @@ export default function BoardPostDetail({ params }: Route.ComponentProps) {
   const [editingReplyContent, setEditingReplyContent] = useState("");
 
   const {
+    data: board,
+    isLoading: boardLoading,
+  } = useQuery({
+    queryKey: ["board", boardSlug],
+    queryFn: () => fetchBoard(boardSlug),
+  });
+
+  const {
     data: post,
     isLoading,
     error,
@@ -320,7 +343,7 @@ export default function BoardPostDetail({ params }: Route.ComponentProps) {
   } = useQuery({
     queryKey: ["board-post-replies", boardSlug, postId],
     queryFn: () => fetchBoardPostReplies(boardSlug, postId),
-    enabled: !!post && post.board.allow_comments,
+    enabled: !!board && board.allow_comments,
   });
 
   const createReplyMutation = useMutation({
@@ -506,7 +529,7 @@ export default function BoardPostDetail({ params }: Route.ComponentProps) {
     }
   };
 
-  if (authLoading || isLoading) {
+  if (authLoading || isLoading || boardLoading) {
     return <LoadingState message="게시물을 불러오는 중..." />;
   }
 
@@ -548,7 +571,7 @@ export default function BoardPostDetail({ params }: Route.ComponentProps) {
           <Link to={`/boards/${boardSlug}`}>
             <ArrowLeft className="mr-2 h-4 w-4" />
             <span className="hidden sm:inline">
-              {post.board.name}로 돌아가기
+              {board?.name || boardSlug}로 돌아가기
             </span>
             <span className="sm:hidden">돌아가기</span>
           </Link>
@@ -638,7 +661,7 @@ export default function BoardPostDetail({ params }: Route.ComponentProps) {
       </Card>
 
       {/* Replies Section */}
-      {post.board.allow_comments && (
+      {board?.allow_comments && (
         <Card className="mt-6">
           <CardHeader className="px-4 sm:px-6 py-4 sm:py-6">
             <div className="flex items-center gap-2">
