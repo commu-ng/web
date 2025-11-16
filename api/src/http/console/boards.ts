@@ -8,6 +8,10 @@ import {
   boardPostCreateRequestSchema,
   boardPostIdParamSchema,
   boardPostQuerySchema,
+  boardPostReplyCreateRequestSchema,
+  boardPostReplyIdParamSchema,
+  boardPostReplyQuerySchema,
+  boardPostReplyUpdateRequestSchema,
   boardPostUpdateRequestSchema,
   boardSlugParamSchema,
   boardUpdateRequestSchema,
@@ -44,13 +48,19 @@ export const consoleBoardsRouter = new Hono<{ Variables: AuthVariables }>()
         );
       }
 
-      const { name, slug, description } = c.req.valid("json");
+      const {
+        name,
+        slug,
+        description,
+        allow_comments: allowComments,
+      } = c.req.valid("json");
 
       try {
         const board = await boardPostService.createBoard(
           name,
           slug,
           description,
+          allowComments,
         );
         return c.json({ data: board }, 201);
       } catch (error: unknown) {
@@ -162,7 +172,12 @@ export const consoleBoardsRouter = new Hono<{ Variables: AuthVariables }>()
     async (c) => {
       const user = c.get("user");
       const { board_id: boardId } = c.req.valid("param");
-      const { name, slug, description } = c.req.valid("json");
+      const {
+        name,
+        slug,
+        description,
+        allow_comments: allowComments,
+      } = c.req.valid("json");
 
       // Check if user is admin
       if (!user.isAdmin) {
@@ -183,6 +198,7 @@ export const consoleBoardsRouter = new Hono<{ Variables: AuthVariables }>()
           name,
           slug,
           description,
+          allowComments,
         );
         return c.json({ data: board });
       } catch (error: unknown) {
@@ -427,6 +443,155 @@ export const consoleBoardsRouter = new Hono<{ Variables: AuthVariables }>()
           success: true,
           code: BoardSuccessCode.BOARD_POST_DELETED,
           message: "Board post deleted successfully",
+        });
+      } catch (error: unknown) {
+        if (error instanceof AppException) {
+          return c.json(
+            {
+              error: {
+                code: error.code,
+                message: error.message,
+              },
+            },
+            error.statusCode,
+          );
+        }
+        throw error;
+      }
+    },
+  )
+
+  // Get replies for a board post (public)
+  .get(
+    "/board/:board_slug/posts/:board_post_id/replies",
+    zValidator("param", boardSlugParamSchema),
+    zValidator("param", boardPostIdParamSchema),
+    zValidator("query", boardPostReplyQuerySchema),
+    async (c) => {
+      const { board_post_id: postId } = c.req.valid("param");
+      const { limit = 20, cursor } = c.req.valid("query");
+
+      try {
+        const result = await boardPostService.getBoardPostReplies(
+          postId,
+          limit,
+          cursor,
+        );
+        return c.json({
+          data: result.data,
+          pagination: {
+            nextCursor: result.nextCursor,
+            hasMore: result.hasMore,
+          },
+        });
+      } catch (error: unknown) {
+        if (error instanceof AppException) {
+          return c.json(
+            {
+              error: {
+                code: error.code,
+                message: error.message,
+              },
+            },
+            error.statusCode,
+          );
+        }
+        throw error;
+      }
+    },
+  )
+
+  // Create a reply to a board post
+  .post(
+    "/board/:board_slug/posts/:board_post_id/replies",
+    authMiddleware,
+    zValidator("param", boardSlugParamSchema),
+    zValidator("param", boardPostIdParamSchema),
+    zValidator("json", boardPostReplyCreateRequestSchema),
+    async (c) => {
+      const user = c.get("user");
+      const { board_post_id: postId } = c.req.valid("param");
+      const { content, in_reply_to_id: inReplyToId } = c.req.valid("json");
+
+      try {
+        const reply = await boardPostService.createBoardPostReply(
+          postId,
+          user.id,
+          content,
+          inReplyToId,
+        );
+        return c.json({ data: reply }, 201);
+      } catch (error: unknown) {
+        if (error instanceof AppException) {
+          return c.json(
+            {
+              error: {
+                code: error.code,
+                message: error.message,
+              },
+            },
+            error.statusCode,
+          );
+        }
+        throw error;
+      }
+    },
+  )
+
+  // Update a reply
+  .patch(
+    "/board/:board_slug/posts/:board_post_id/replies/:reply_id",
+    authMiddleware,
+    zValidator("param", boardSlugParamSchema),
+    zValidator("param", boardPostIdParamSchema),
+    zValidator("param", boardPostReplyIdParamSchema),
+    zValidator("json", boardPostReplyUpdateRequestSchema),
+    async (c) => {
+      const user = c.get("user");
+      const { reply_id: replyId } = c.req.valid("param");
+      const { content } = c.req.valid("json");
+
+      try {
+        const reply = await boardPostService.updateBoardPostReply(
+          replyId,
+          user.id,
+          content,
+        );
+        return c.json({ data: reply });
+      } catch (error: unknown) {
+        if (error instanceof AppException) {
+          return c.json(
+            {
+              error: {
+                code: error.code,
+                message: error.message,
+              },
+            },
+            error.statusCode,
+          );
+        }
+        throw error;
+      }
+    },
+  )
+
+  // Delete a reply
+  .delete(
+    "/board/:board_slug/posts/:board_post_id/replies/:reply_id",
+    authMiddleware,
+    zValidator("param", boardSlugParamSchema),
+    zValidator("param", boardPostIdParamSchema),
+    zValidator("param", boardPostReplyIdParamSchema),
+    async (c) => {
+      const user = c.get("user");
+      const { reply_id: replyId } = c.req.valid("param");
+
+      try {
+        await boardPostService.deleteBoardPostReply(replyId, user.id);
+        return c.json({
+          success: true,
+          code: BoardSuccessCode.BOARD_POST_DELETED,
+          message: "Reply deleted successfully",
         });
       } catch (error: unknown) {
         if (error instanceof AppException) {

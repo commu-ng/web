@@ -366,6 +366,7 @@ export const boardCreateRequestSchema = z.object({
       "Slug must contain only lowercase letters, numbers, and single hyphens",
     ),
   description: z.string().max(1000).nullable().optional(),
+  allow_comments: z.boolean().optional(),
 });
 
 export const boardUpdateRequestSchema = z.object({
@@ -378,6 +379,7 @@ export const boardUpdateRequestSchema = z.object({
       "Slug must contain only lowercase letters, numbers, and single hyphens",
     ),
   description: z.string().max(1000).nullable().optional(),
+  allow_comments: z.boolean().optional(),
 });
 
 export const boardIdParamSchema = z.object({
@@ -413,6 +415,24 @@ export const boardPostQuerySchema = z.object({
   limit: z.string().regex(/^\d+$/).transform(Number).optional(),
   cursor: z.string().optional(),
   hashtags: z.string().optional(), // Comma-separated hashtags
+});
+
+export const boardPostReplyCreateRequestSchema = z.object({
+  content: z.string().min(1, "Content cannot be empty").max(10000),
+  in_reply_to_id: z.uuid().optional(),
+});
+
+export const boardPostReplyUpdateRequestSchema = z.object({
+  content: z.string().min(1, "Content cannot be empty").max(10000),
+});
+
+export const boardPostReplyIdParamSchema = z.object({
+  reply_id: z.uuid(),
+});
+
+export const boardPostReplyQuerySchema = z.object({
+  limit: z.string().regex(/^\d+$/).transform(Number).optional(),
+  cursor: z.string().optional(),
 });
 
 // Masquerade schemas

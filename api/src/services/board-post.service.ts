@@ -1,10 +1,11 @@
-import { and, desc, eq, inArray, isNull, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, lt, sql } from "drizzle-orm";
 import { db } from "../db";
 import {
   board as boardTable,
   boardHashtag as boardHashtagTable,
   boardPost as boardPostTable,
   boardPostHashtag as boardPostHashtagTable,
+  boardPostReply as boardPostReplyTable,
   image as imageTable,
   user as userTable,
 } from "../drizzle/schema";
@@ -26,6 +27,7 @@ export async function getBoards() {
     name: board.name,
     slug: board.slug,
     description: board.description,
+    allow_comments: board.allowComments,
     created_at: board.createdAt,
     updated_at: board.updatedAt,
   }));
@@ -52,6 +54,7 @@ export async function getBoard(boardId: string) {
     name: board.name,
     slug: board.slug,
     description: board.description,
+    allow_comments: board.allowComments,
     created_at: board.createdAt,
     updated_at: board.updatedAt,
   };
@@ -78,6 +81,7 @@ export async function getBoardBySlug(slug: string) {
     name: board.name,
     slug: board.slug,
     description: board.description,
+    allow_comments: board.allowComments,
     created_at: board.createdAt,
     updated_at: board.updatedAt,
   };
@@ -90,6 +94,7 @@ export async function createBoard(
   name: string,
   slug: string,
   description: string | null | undefined,
+  allowComments: boolean = true,
 ) {
   // Check if slug already exists
   const existingBoard = await db.query.board.findFirst({
@@ -110,6 +115,7 @@ export async function createBoard(
       name,
       slug,
       description: description || null,
+      allowComments,
     })
     .returning();
 
@@ -123,6 +129,7 @@ export async function createBoard(
     name: newBoard.name,
     slug: newBoard.slug,
     description: newBoard.description,
+    allow_comments: newBoard.allowComments,
     created_at: newBoard.createdAt,
     updated_at: newBoard.updatedAt,
   };
@@ -136,6 +143,7 @@ export async function updateBoard(
   name: string,
   slug: string,
   description: string | null | undefined,
+  allowComments?: boolean,
 ) {
   // Check if board exists
   const board = await db.query.board.findFirst({
@@ -165,14 +173,20 @@ export async function updateBoard(
     }
   }
 
+  const updateData: Record<string, unknown> = {
+    name,
+    slug,
+    description: description || null,
+    updatedAt: sql`NOW()`,
+  };
+
+  if (allowComments !== undefined) {
+    updateData.allowComments = allowComments;
+  }
+
   const updatedBoardResult = await db
     .update(boardTable)
-    .set({
-      name,
-      slug,
-      description: description || null,
-      updatedAt: sql`NOW()`,
-    })
+    .set(updateData)
     .where(eq(boardTable.id, boardId))
     .returning();
 
@@ -186,6 +200,7 @@ export async function updateBoard(
     name: updatedBoard.name,
     slug: updatedBoard.slug,
     description: updatedBoard.description,
+    allow_comments: updatedBoard.allowComments,
     created_at: updatedBoard.createdAt,
     updated_at: updatedBoard.updatedAt,
   };
@@ -720,4 +735,401 @@ export async function getBoardHashtags(boardId: string, limit: number = 30) {
     .limit(limit);
 
   return hashtags.map((h) => h.tag);
+}
+
+/**
+ * Helper to build nested reply tree
+ */
+function buildReplyTree(
+  replies: {
+    id: string;
+    content: string;
+    inReplyToId: string | null;
+    depth: number;
+    authorId: string;
+    authorLoginName: string;
+    createdAt: string;
+    updatedAt: string;
+  }[],
+) {
+  const replyMap = new Map<string, unknown>();
+  const rootReplies: unknown[] = [];
+
+  // First pass: create all reply objects
+  replies.forEach((reply) => {
+    const replyObj = {
+      id: reply.id,
+      content: reply.content,
+      depth: reply.depth,
+      author: {
+        id: reply.authorId,
+        login_name: reply.authorLoginName,
+      },
+      created_at: reply.createdAt,
+      updated_at: reply.updatedAt,
+      replies: [] as unknown[],
+    };
+    replyMap.set(reply.id, replyObj);
+  });
+
+  // Second pass: build tree structure
+  replies.forEach((reply) => {
+    const replyObj = replyMap.get(reply.id);
+    if (reply.inReplyToId) {
+      const parent = replyMap.get(reply.inReplyToId);
+      if (parent && typeof parent === "object" && "replies" in parent) {
+        (parent.replies as unknown[]).push(replyObj);
+      }
+    } else {
+      rootReplies.push(replyObj);
+    }
+  });
+
+  return rootReplies;
+}
+
+/**
+ * Get replies for a board post with nested structure
+ */
+export async function getBoardPostReplies(
+  boardPostId: string,
+  limit: number = 20,
+  cursor?: string,
+) {
+  // Validate post exists
+  const post = await db.query.boardPost.findFirst({
+    where: and(
+      eq(boardPostTable.id, boardPostId),
+      isNull(boardPostTable.deletedAt),
+    ),
+    with: {
+      board: true,
+    },
+  });
+
+  if (!post) {
+    throw new AppException(
+      404,
+      BoardErrorCode.BOARD_POST_NOT_FOUND,
+      "Board post not found",
+    );
+  }
+
+  // Check if comments are allowed on this board
+  if (!post.board.allowComments) {
+    throw new AppException(
+      403,
+      BoardErrorCode.FORBIDDEN,
+      "Comments are disabled for this board",
+    );
+  }
+
+  // Get top-level replies (depth 0) with pagination
+  const conditions = [
+    eq(boardPostReplyTable.boardPostId, boardPostId),
+    eq(boardPostReplyTable.depth, 0),
+    isNull(boardPostReplyTable.deletedAt),
+  ];
+
+  if (cursor) {
+    conditions.push(lt(boardPostReplyTable.id, cursor));
+  }
+
+  const topLevelReplies = await db
+    .select()
+    .from(boardPostReplyTable)
+    .leftJoin(userTable, eq(boardPostReplyTable.authorId, userTable.id))
+    .where(and(...conditions))
+    .orderBy(desc(boardPostReplyTable.id))
+    .limit(limit + 1);
+
+  const hasMore = topLevelReplies.length > limit;
+  const repliesToReturn = hasMore
+    ? topLevelReplies.slice(0, limit)
+    : topLevelReplies;
+  const nextCursor =
+    hasMore && repliesToReturn.length > 0
+      ? repliesToReturn[repliesToReturn.length - 1]?.board_post_reply?.id ||
+        null
+      : null;
+
+  // Get all nested replies for these top-level replies
+  const topLevelIds = repliesToReturn
+    .map((r) => r.board_post_reply?.id)
+    .filter((id): id is string => id !== undefined && id !== null);
+
+  if (topLevelIds.length === 0) {
+    return {
+      data: [],
+      nextCursor: null,
+      hasMore: false,
+    };
+  }
+
+  // Get all nested replies (depth > 0) for these top-level replies
+  const nestedReplies = await db
+    .select()
+    .from(boardPostReplyTable)
+    .leftJoin(userTable, eq(boardPostReplyTable.authorId, userTable.id))
+    .where(
+      and(
+        inArray(boardPostReplyTable.rootReplyId, topLevelIds),
+        isNull(boardPostReplyTable.deletedAt),
+      ),
+    )
+    .orderBy(boardPostReplyTable.createdAt);
+
+  // Combine all replies
+  const allReplies = [
+    ...repliesToReturn.map((r) => ({
+      id: r.board_post_reply?.id || "",
+      content: r.board_post_reply?.content || "",
+      inReplyToId: r.board_post_reply?.inReplyToId,
+      depth: r.board_post_reply?.depth || 0,
+      authorId: r.user?.id || "",
+      authorLoginName: r.user?.loginName || "",
+      createdAt: r.board_post_reply?.createdAt || "",
+      updatedAt: r.board_post_reply?.updatedAt || "",
+    })),
+    ...nestedReplies.map((r) => ({
+      id: r.board_post_reply?.id || "",
+      content: r.board_post_reply?.content || "",
+      inReplyToId: r.board_post_reply?.inReplyToId,
+      depth: r.board_post_reply?.depth || 0,
+      authorId: r.user?.id || "",
+      authorLoginName: r.user?.loginName || "",
+      createdAt: r.board_post_reply?.createdAt || "",
+      updatedAt: r.board_post_reply?.updatedAt || "",
+    })),
+  ];
+
+  const tree = buildReplyTree(allReplies);
+
+  return {
+    data: tree,
+    nextCursor,
+    hasMore,
+  };
+}
+
+/**
+ * Create a reply to a board post
+ */
+export async function createBoardPostReply(
+  boardPostId: string,
+  authorId: string,
+  content: string,
+  inReplyToId?: string,
+) {
+  // Validate post exists and get board info
+  const post = await db.query.boardPost.findFirst({
+    where: and(
+      eq(boardPostTable.id, boardPostId),
+      isNull(boardPostTable.deletedAt),
+    ),
+    with: {
+      board: true,
+    },
+  });
+
+  if (!post) {
+    throw new AppException(
+      404,
+      BoardErrorCode.BOARD_POST_NOT_FOUND,
+      "Board post not found",
+    );
+  }
+
+  // Check if comments are allowed
+  if (!post.board.allowComments) {
+    throw new AppException(
+      403,
+      BoardErrorCode.FORBIDDEN,
+      "Comments are disabled for this board",
+    );
+  }
+
+  // Validate user exists
+  const user = await db.query.user.findFirst({
+    where: eq(userTable.id, authorId),
+  });
+
+  if (!user) {
+    throw new AppException(404, BoardErrorCode.UNAUTHORIZED, "User not found");
+  }
+
+  let depth = 0;
+  let rootReplyId: string | null = null;
+
+  // If replying to another reply, calculate depth and rootReplyId
+  if (inReplyToId) {
+    const parentReply = await db.query.boardPostReply.findFirst({
+      where: and(
+        eq(boardPostReplyTable.id, inReplyToId),
+        isNull(boardPostReplyTable.deletedAt),
+      ),
+    });
+
+    if (!parentReply) {
+      throw new AppException(
+        404,
+        BoardErrorCode.BOARD_POST_NOT_FOUND,
+        "Parent reply not found",
+      );
+    }
+
+    // Validate parent belongs to same post
+    if (parentReply.boardPostId !== boardPostId) {
+      throw new AppException(
+        400,
+        BoardErrorCode.INVALID_REQUEST,
+        "Parent reply does not belong to this post",
+      );
+    }
+
+    depth = parentReply.depth + 1;
+    rootReplyId =
+      parentReply.depth === 0 ? parentReply.id : parentReply.rootReplyId;
+  }
+
+  // Create the reply
+  const newReplyResult = await db
+    .insert(boardPostReplyTable)
+    .values({
+      boardPostId,
+      authorId,
+      content,
+      inReplyToId: inReplyToId || null,
+      depth,
+      rootReplyId,
+    })
+    .returning();
+
+  const newReply = newReplyResult[0];
+  if (!newReply) {
+    throw new Error("Failed to create reply");
+  }
+
+  return {
+    id: newReply.id,
+    content: newReply.content,
+    depth: newReply.depth,
+    in_reply_to_id: newReply.inReplyToId,
+    author: {
+      id: user.id,
+      login_name: user.loginName,
+    },
+    created_at: newReply.createdAt,
+    updated_at: newReply.updatedAt,
+  };
+}
+
+/**
+ * Update a board post reply
+ */
+export async function updateBoardPostReply(
+  replyId: string,
+  authorId: string,
+  content: string,
+) {
+  // Check if reply exists
+  const reply = await db.query.boardPostReply.findFirst({
+    where: and(
+      eq(boardPostReplyTable.id, replyId),
+      isNull(boardPostReplyTable.deletedAt),
+    ),
+    with: {
+      user: true,
+    },
+  });
+
+  if (!reply) {
+    throw new AppException(
+      404,
+      BoardErrorCode.BOARD_POST_NOT_FOUND,
+      "Reply not found",
+    );
+  }
+
+  // Check if user is the author
+  if (reply.authorId !== authorId) {
+    throw new AppException(
+      403,
+      BoardErrorCode.NOT_POST_AUTHOR,
+      "Only the author can modify this reply",
+    );
+  }
+
+  // Update the reply
+  const updatedReplyResult = await db
+    .update(boardPostReplyTable)
+    .set({
+      content,
+      updatedAt: sql`NOW()`,
+    })
+    .where(eq(boardPostReplyTable.id, replyId))
+    .returning();
+
+  const updatedReply = updatedReplyResult[0];
+  if (!updatedReply) {
+    throw new Error("Failed to update reply");
+  }
+
+  return {
+    id: updatedReply.id,
+    content: updatedReply.content,
+    depth: updatedReply.depth,
+    in_reply_to_id: updatedReply.inReplyToId,
+    author: {
+      id: reply.user.id,
+      login_name: reply.user.loginName,
+    },
+    created_at: updatedReply.createdAt,
+    updated_at: updatedReply.updatedAt,
+  };
+}
+
+/**
+ * Delete a board post reply
+ */
+export async function deleteBoardPostReply(replyId: string, userId: string) {
+  const reply = await db.query.boardPostReply.findFirst({
+    where: and(
+      eq(boardPostReplyTable.id, replyId),
+      isNull(boardPostReplyTable.deletedAt),
+    ),
+  });
+
+  if (!reply) {
+    throw new AppException(
+      404,
+      BoardErrorCode.BOARD_POST_NOT_FOUND,
+      "Reply not found",
+    );
+  }
+
+  // Check if user is the author or admin
+  const user = await db.query.user.findFirst({
+    where: eq(userTable.id, userId),
+  });
+
+  if (!user) {
+    throw new AppException(404, BoardErrorCode.UNAUTHORIZED, "User not found");
+  }
+
+  // Only author or admin can delete
+  if (reply.authorId !== userId && !user.isAdmin) {
+    throw new AppException(
+      403,
+      BoardErrorCode.FORBIDDEN,
+      "Only the author or admin can delete this reply",
+    );
+  }
+
+  await db
+    .update(boardPostReplyTable)
+    .set({
+      deletedAt: sql`NOW()`,
+    })
+    .where(eq(boardPostReplyTable.id, replyId));
 }

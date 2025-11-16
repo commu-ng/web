@@ -1354,6 +1354,7 @@ export const board = pgTable(
     name: text().notNull(),
     slug: text().notNull(),
     description: text(),
+    allowComments: boolean("allow_comments").notNull().default(true),
     createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
       .notNull()
       .defaultNow(),
@@ -1449,5 +1450,62 @@ export const boardPostHashtag = pgTable(
       columns: [table.boardPostId, table.hashtagId],
       name: "board_post_hashtag_pkey",
     }),
+  ],
+);
+
+export const boardPostReply = pgTable(
+  "board_post_reply",
+  {
+    id: uuid().primaryKey().default(sql`uuidv7()`),
+    boardPostId: uuid("board_post_id").notNull(),
+    authorId: uuid("author_id").notNull(),
+    content: text().notNull(),
+    inReplyToId: uuid("in_reply_to_id"),
+    depth: integer().notNull().default(0),
+    rootReplyId: uuid("root_reply_id"),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+    deletedAt: timestamp("deleted_at", { withTimezone: true, mode: "string" }),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.boardPostId],
+      foreignColumns: [boardPost.id],
+      name: "board_post_reply_board_post_id_fkey",
+    }),
+    foreignKey({
+      columns: [table.authorId],
+      foreignColumns: [user.id],
+      name: "board_post_reply_author_id_fkey",
+    }),
+    foreignKey({
+      columns: [table.inReplyToId],
+      foreignColumns: [table.id],
+      name: "board_post_reply_in_reply_to_id_fkey",
+    }),
+    foreignKey({
+      columns: [table.rootReplyId],
+      foreignColumns: [table.id],
+      name: "board_post_reply_root_reply_id_fkey",
+    }),
+    index("idx_board_post_reply_board_post_id_created").on(
+      table.boardPostId,
+      table.createdAt,
+    ),
+    index("idx_board_post_reply_in_reply_to_id_created").on(
+      table.inReplyToId,
+      table.createdAt,
+    ),
+    index("idx_board_post_reply_root_reply_id_created").on(
+      table.rootReplyId,
+      table.createdAt,
+    ),
+    sql`CONSTRAINT valid_board_post_reply_content CHECK (length(content) > 0 AND length(content) <= 10000)`,
+    sql`CONSTRAINT valid_board_reply_depth CHECK ((in_reply_to_id IS NULL AND depth = 0) OR (in_reply_to_id IS NOT NULL AND depth > 0))`,
+    sql`CONSTRAINT valid_board_root_reply CHECK ((depth = 0 AND root_reply_id IS NULL) OR (depth > 0 AND root_reply_id IS NOT NULL))`,
   ],
 );
