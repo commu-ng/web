@@ -79,7 +79,7 @@ export const crudRouter = new Hono()
   .get("/mine", authMiddleware, async (c) => {
     const user = c.get("user");
     const result = await communityService.getUserCommunities(user.id);
-    return c.json(result);
+    return c.json({ data: result });
   })
   .get("/recruiting", optionalAuthMiddleware, async (c) => {
     const user = c.get("user");

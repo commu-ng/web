@@ -33,7 +33,8 @@ interface Community {
 
 async function fetchMyCommunities(): Promise<Community[]> {
   const res = await api.console.communities.mine.$get();
-  return await res.json();
+  const json = await res.json();
+  return json.data;
 }
 
 interface CommunityListProps {
