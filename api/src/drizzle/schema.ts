@@ -55,6 +55,8 @@ export const deletionReasonEnum = pgEnum("deletion_reason", [
   "cascade",
 ]);
 
+export const devicePlatformEnum = pgEnum("device_platform", ["ios", "android"]);
+
 export const groupChat = pgTable(
   "group_chat",
   {
@@ -405,6 +407,34 @@ export const session = pgTable(
     }),
     unique("session_token_key").on(table.token),
     index("idx_session_expires_at").on(table.expiresAt),
+  ],
+);
+
+export const device = pgTable(
+  "device",
+  {
+    id: uuid().primaryKey().default(sql`uuidv7()`),
+    pushToken: text("push_token").notNull(),
+    platform: devicePlatformEnum().notNull(),
+    userId: uuid("user_id").notNull(),
+    deviceModel: text("device_model"),
+    osVersion: text("os_version"),
+    appVersion: text("app_version"),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.userId],
+      foreignColumns: [user.id],
+      name: "device_user_id_fkey",
+    }),
+    unique("device_push_token_key").on(table.pushToken),
+    index("idx_device_user_id").on(table.userId),
   ],
 );
 

@@ -71,6 +71,13 @@
       "when": 1763340080998,
       "tag": "0009_slim_jackpot",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1763369959707,
+      "tag": "0010_brainy_kylun",
+      "breakpoints": true
     }
   ]
 }
