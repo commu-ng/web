@@ -64,6 +64,13 @@
       "when": 1763289068887,
       "tag": "0008_yellow_baron_zemo",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1763340080998,
+      "tag": "0009_slim_jackpot",
+      "breakpoints": true
     }
   ]
 }

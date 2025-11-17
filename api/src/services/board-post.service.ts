@@ -691,12 +691,28 @@ export async function deleteBoardPost(postId: string, userId: string) {
     );
   }
 
+  // Soft-delete the post with deletion reason
   await db
     .update(boardPostTable)
     .set({
       deletedAt: sql`NOW()`,
+      deletionReason: "author",
     })
     .where(eq(boardPostTable.id, postId));
+
+  // Cascade delete all replies for this post
+  await db
+    .update(boardPostReplyTable)
+    .set({
+      deletedAt: sql`NOW()`,
+      deletionReason: "cascade",
+    })
+    .where(
+      and(
+        eq(boardPostReplyTable.boardPostId, postId),
+        isNull(boardPostReplyTable.deletedAt),
+      ),
+    );
 }
 
 /**
@@ -1127,10 +1143,50 @@ export async function deleteBoardPostReply(replyId: string, userId: string) {
     );
   }
 
+  // Soft-delete the reply with deletion reason
   await db
     .update(boardPostReplyTable)
     .set({
       deletedAt: sql`NOW()`,
+      deletionReason: "author",
     })
     .where(eq(boardPostReplyTable.id, replyId));
+
+  // Cascade delete all descendant replies
+  // For depth 0 replies: delete all with matching root_reply_id
+  // For depth > 0 replies: recursively find and delete descendants
+  if (reply.depth === 0) {
+    // This is a top-level reply, delete all descendants using root_reply_id
+    await db
+      .update(boardPostReplyTable)
+      .set({
+        deletedAt: sql`NOW()`,
+        deletionReason: "cascade",
+      })
+      .where(
+        and(
+          eq(boardPostReplyTable.rootReplyId, replyId),
+          isNull(boardPostReplyTable.deletedAt),
+        ),
+      );
+  } else {
+    // This is a nested reply, use recursive CTE to find all descendants
+    await db.execute(sql`
+      WITH RECURSIVE descendants AS (
+        -- Base case: direct children
+        SELECT id FROM board_post_reply
+        WHERE in_reply_to_id = ${replyId} AND deleted_at IS NULL
+
+        UNION ALL
+
+        -- Recursive case: children of children
+        SELECT bpr.id FROM board_post_reply bpr
+        INNER JOIN descendants d ON bpr.in_reply_to_id = d.id
+        WHERE bpr.deleted_at IS NULL
+      )
+      UPDATE board_post_reply
+      SET deleted_at = NOW(), deletion_reason = 'cascade'
+      WHERE id IN (SELECT id FROM descendants)
+    `);
+  }
 }

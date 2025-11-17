@@ -50,6 +50,11 @@ export const exportStatusEnum = pgEnum("export_status", [
   "failed",
 ]);
 
+export const deletionReasonEnum = pgEnum("deletion_reason", [
+  "author",
+  "cascade",
+]);
+
 export const groupChat = pgTable(
   "group_chat",
   {
@@ -1387,6 +1392,7 @@ export const boardPost = pgTable(
       .notNull()
       .defaultNow(),
     deletedAt: timestamp("deleted_at", { withTimezone: true, mode: "string" }),
+    deletionReason: deletionReasonEnum("deletion_reason").notNull(),
   },
   (table) => [
     foreignKey({
@@ -1470,6 +1476,7 @@ export const boardPostReply = pgTable(
       .notNull()
       .defaultNow(),
     deletedAt: timestamp("deleted_at", { withTimezone: true, mode: "string" }),
+    deletionReason: deletionReasonEnum("deletion_reason").notNull(),
   },
   (table) => [
     foreignKey({
