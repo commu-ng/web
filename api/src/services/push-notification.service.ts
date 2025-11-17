@@ -21,11 +21,9 @@ class PushNotificationService {
 
   private initializeFCM() {
     try {
-      const projectId = process.env.FCM_PROJECT_ID;
-      const privateKey = process.env.FCM_PRIVATE_KEY;
-      const clientEmail = process.env.FCM_CLIENT_EMAIL;
+      const serviceAccountKeyPath = process.env.FCM_SERVICE_ACCOUNT_KEY_PATH;
 
-      if (!projectId || !privateKey || !clientEmail) {
+      if (!serviceAccountKeyPath) {
         console.warn(
           "FCM credentials not configured. Push notifications for Android will not work.",
         );
@@ -33,12 +31,11 @@ class PushNotificationService {
       }
 
       // Initialize Firebase Admin SDK
+      const serviceAccount = require(
+        serviceAccountKeyPath,
+      );
       this.fcmApp = admin.initializeApp({
-        credential: admin.credential.cert({
-          projectId,
-          privateKey: privateKey.replace(/\\n/g, "\n"), // Handle escaped newlines
-          clientEmail,
-        }),
+        credential: admin.credential.cert(serviceAccount),
       });
 
       console.log("FCM initialized successfully");
