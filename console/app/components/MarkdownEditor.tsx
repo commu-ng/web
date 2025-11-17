@@ -18,7 +18,7 @@ interface MarkdownEditorProps {
 export function MarkdownEditor({
   value,
   onChange,
-  placeholder = "Write your post content in markdown...",
+  placeholder = "마크다운으로 게시물 내용을 작성하세요...",
   disabled = false,
 }: MarkdownEditorProps) {
   const [showHelp, setShowHelp] = useState(false);
@@ -27,14 +27,14 @@ export function MarkdownEditor({
     try {
       return md.render(value);
     } catch (error) {
-      return `<p class="text-red-500">Error rendering markdown: ${error instanceof Error ? error.message : "Unknown error"}</p>`;
+      return `<p class="text-red-500">마크다운 렌더링 오류: ${error instanceof Error ? error.message : "알 수 없는 오류"}</p>`;
     }
   };
 
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
-        <div className="text-sm font-medium">Content</div>
+        <div className="text-sm font-medium">내용</div>
         <Button
           type="button"
           variant="ghost"
@@ -43,14 +43,14 @@ export function MarkdownEditor({
           className="h-8"
         >
           <HelpCircle className="h-4 w-4 mr-1" />
-          Markdown Help
+          마크다운 도움말
         </Button>
       </div>
 
       <Tabs defaultValue="edit" className="w-full">
         <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="edit">Edit</TabsTrigger>
-          <TabsTrigger value="preview">Preview</TabsTrigger>
+          <TabsTrigger value="edit">편집</TabsTrigger>
+          <TabsTrigger value="preview">미리보기</TabsTrigger>
         </TabsList>
 
         <TabsContent value="edit" className="space-y-2">
@@ -63,7 +63,7 @@ export function MarkdownEditor({
           />
 
           <p className="text-xs text-muted-foreground">
-            Tip: You can use markdown syntax to format your content
+            팁: 마크다운 문법을 사용하여 내용을 작성할 수 있습니다
           </p>
         </TabsContent>
 
@@ -77,7 +77,7 @@ export function MarkdownEditor({
               />
             ) : (
               <p className="text-muted-foreground text-center py-12">
-                Nothing to preview yet. Start writing in the Edit tab.
+                아직 미리 볼 내용이 없습니다. 편집 탭에서 작성을 시작하세요.
               </p>
             )}
           </div>
