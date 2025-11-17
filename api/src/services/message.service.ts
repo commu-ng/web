@@ -21,7 +21,6 @@ import {
   groupChatMessage as groupChatMessageTable,
   groupChat as groupChatTable,
   image as imageTable,
-  notification as notificationTable,
   profileOwnership as profileOwnershipTable,
   profilePicture as profilePictureTable,
   profile as profileTable,
@@ -181,16 +180,6 @@ export async function sendDirectMessage(
           where: inArray(imageTable.id, imageIds),
         })
       : [];
-
-  // Create notification for the receiver
-  await db.insert(notificationTable).values({
-    recipientId: receiverProfile.id,
-    profileId: senderProfileId,
-    type: "message",
-    title: "새로운 메시지",
-    message: `${senderProfile.name}님이 메시지를 보냈습니다: ${content.length > 50 ? `${content.substring(0, 50)}...` : content}`,
-    directMessageId: message.id,
-  });
 
   // Send push notification to receiver
   const receiverOwnership = await db.query.profileOwnership.findFirst({
