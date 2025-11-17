@@ -2,6 +2,8 @@
 
 Don't try to run servers on your own. They are already running.
 
+Don't run tests.
+
 Don't use "any" type.
 
 We use pnpm, not npm.
