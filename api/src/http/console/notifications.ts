@@ -129,9 +129,8 @@ export const consoleNotificationsRouter = new Hono<{
               const community = communitiesMap.get(post.communityId);
 
               if (community) {
-                // We don't have boardSlug readily available, use post ID directly
                 const baseDomain = process.env.BASE_DOMAIN || "commu.ng";
-                communityUrl = `https://${community.slug}.${baseDomain}/p/${post.id}`;
+                communityUrl = `https://${community.slug}.${baseDomain}`;
               }
             }
           }
