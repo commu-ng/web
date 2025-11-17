@@ -5,12 +5,10 @@ import { z } from "zod";
 import { db } from "../../db";
 import {
   notification as notificationTable,
-  profile as profileTable,
   profileOwnership as profileOwnershipTable,
 } from "../../drizzle/schema";
 import { authMiddleware } from "../../middleware/auth";
-import type { AuthVariables, ProfilePicture } from "../../types";
-import { addImageUrl } from "../../utils/r2";
+import type { AuthVariables } from "../../types";
 
 const notificationQuerySchema = z.object({
   limit: z.coerce.number().min(1).max(100).default(20),
@@ -76,7 +74,11 @@ export const consoleNotificationsRouter = new Hono<{
         (n) => n.postId,
       );
       const postIds = [
-        ...new Set(notificationsWithPostIds.map((n) => n.postId!)),
+        ...new Set(
+          notificationsWithPostIds
+            .map((n) => n.postId)
+            .filter((id): id is string => id != null),
+        ),
       ];
 
       // Get posts with their board and community info
@@ -121,16 +123,18 @@ export const consoleNotificationsRouter = new Hono<{
           return true;
         })
         .map((notification) => {
-          let communityUrl = null;
+          let community_url = null;
+          let community_name = null;
 
           if (notification.postId) {
             const post = postsMap.get(notification.postId);
-            if (post && post.communityId) {
+            if (post?.communityId) {
               const community = communitiesMap.get(post.communityId);
 
               if (community) {
                 const baseDomain = process.env.BASE_DOMAIN || "commu.ng";
-                communityUrl = `https://${community.slug}.${baseDomain}`;
+                community_url = `https://${community.slug}.${baseDomain}`;
+                community_name = community.name;
               }
             }
           }
@@ -139,9 +143,10 @@ export const consoleNotificationsRouter = new Hono<{
             id: notification.id,
             type: notification.type,
             content: notification.message,
-            readAt: notification.readAt,
-            createdAt: notification.createdAt,
-            communityUrl,
+            read_at: notification.readAt,
+            created_at: notification.createdAt,
+            community_url,
+            community_name,
             sender: null,
             related_post: null,
           };
@@ -149,79 +154,71 @@ export const consoleNotificationsRouter = new Hono<{
 
       return c.json({
         data,
-        nextCursor,
-        hasMore,
+        next_cursor: nextCursor,
+        has_more: hasMore,
       });
     },
   )
 
-  .get(
-    "/notifications/unread-count",
-    authMiddleware,
-    async (c) => {
-      const user = c.get("user");
+  .get("/notifications/unread-count", authMiddleware, async (c) => {
+    const user = c.get("user");
 
-      // Get all profiles owned by this user
-      const userProfiles = await db
-        .select({ profileId: profileOwnershipTable.profileId })
-        .from(profileOwnershipTable)
-        .where(eq(profileOwnershipTable.userId, user.id));
+    // Get all profiles owned by this user
+    const userProfiles = await db
+      .select({ profileId: profileOwnershipTable.profileId })
+      .from(profileOwnershipTable)
+      .where(eq(profileOwnershipTable.userId, user.id));
 
-      if (userProfiles.length === 0) {
-        return c.json({ count: 0 });
-      }
+    if (userProfiles.length === 0) {
+      return c.json({ count: 0 });
+    }
 
-      const profileIds = userProfiles.map((p) => p.profileId);
+    const profileIds = userProfiles.map((p) => p.profileId);
 
-      // Count unread notifications across all profiles
-      const result = await db
-        .select({
-          count: sql<number>`count(*)::int`,
-        })
-        .from(notificationTable)
-        .where(
-          and(
-            inArray(notificationTable.recipientId, profileIds),
-            isNull(notificationTable.readAt),
-          ),
-        );
+    // Count unread notifications across all profiles
+    const result = await db
+      .select({
+        count: sql<number>`count(*)::int`,
+      })
+      .from(notificationTable)
+      .where(
+        and(
+          inArray(notificationTable.recipientId, profileIds),
+          isNull(notificationTable.readAt),
+        ),
+      );
 
-      return c.json({ count: result[0]?.count || 0 });
-    },
-  )
+    return c.json({ count: result[0]?.count || 0 });
+  })
 
-  .post(
-    "/notifications/mark-all-read",
-    authMiddleware,
-    async (c) => {
-      const user = c.get("user");
+  .post("/notifications/mark-all-read", authMiddleware, async (c) => {
+    const user = c.get("user");
 
-      // Get all profiles owned by this user
-      const userProfiles = await db
-        .select({ profileId: profileOwnershipTable.profileId })
-        .from(profileOwnershipTable)
-        .where(eq(profileOwnershipTable.userId, user.id));
+    // Get all profiles owned by this user
+    const userProfiles = await db
+      .select({ profileId: profileOwnershipTable.profileId })
+      .from(profileOwnershipTable)
+      .where(eq(profileOwnershipTable.userId, user.id));
 
-      if (userProfiles.length === 0) {
-        return c.json({ message: "No notifications to mark as read" });
-      }
+    if (userProfiles.length === 0) {
+      return c.json({ message: "No notifications to mark as read" });
+    }
 
-      const profileIds = userProfiles.map((p) => p.profileId);
+    const profileIds = userProfiles.map((p) => p.profileId);
 
-      // Mark all unread notifications as read
-      await db
-        .update(notificationTable)
-        .set({ readAt: new Date().toISOString() })
-        .where(
-          and(
-            inArray(notificationTable.recipientId, profileIds),
-            isNull(notificationTable.readAt),
-          ),
-        );
+    // Mark all unread notifications as read
+    await db
+      .update(notificationTable)
+      .set({ readAt: new Date().toISOString() })
+      .where(
+        and(
+          inArray(notificationTable.recipientId, profileIds),
+          isNull(notificationTable.readAt),
+        ),
+      );
 
-      return c.json({ message: "All notifications marked as read" });
-    },
-  )
+    return c.json({ message: "All notifications marked as read" });
+  })
 
   .post(
     "/notifications/:notification_id/read",

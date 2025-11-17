@@ -14,6 +14,7 @@ import {
   postImage as postImageTable,
   postReaction as postReactionTable,
   post as postTable,
+  profileOwnership as profileOwnershipTable,
   profile as profileTable,
 } from "../drizzle/schema";
 import { AppException } from "../exception";
@@ -22,6 +23,7 @@ import { validateCommunityActive } from "../utils/community-validation";
 import { batchLoadProfilePictures } from "../utils/profile-picture-helper";
 import { addImageUrl, uploadFileDirect, validateImageFile } from "../utils/r2";
 import * as membershipService from "./membership.service";
+import { pushNotificationService } from "./push-notification.service";
 
 /**
  * Validate that a post belongs to a specific community
@@ -54,6 +56,27 @@ async function validatePostCommunityAccess(
   }
 
   return true;
+}
+
+/**
+ * Helper function to get user IDs from profile IDs
+ */
+async function getUserIdsFromProfiles(
+  profileIds: string[],
+): Promise<Map<string, string>> {
+  if (profileIds.length === 0) {
+    return new Map();
+  }
+
+  const ownerships = await db.query.profileOwnership.findMany({
+    where: inArray(profileOwnershipTable.profileId, profileIds),
+    columns: {
+      profileId: true,
+      userId: true,
+    },
+  });
+
+  return new Map(ownerships.map((o) => [o.profileId, o.userId]));
 }
 
 /**
@@ -735,6 +758,22 @@ export async function createReaction(
 
     return r;
   });
+
+  // Send push notification after transaction commits
+  if (post.authorId !== profileId) {
+    const userIdMap = await getUserIdsFromProfiles([post.authorId]);
+    const recipientUserId = userIdMap.get(post.authorId);
+    if (recipientUserId) {
+      await pushNotificationService.sendPushNotification(recipientUserId, {
+        title: "새로운 반응",
+        body: `${profileName}님이 게시물에 ${emoji} 반응을 남겼습니다`,
+        data: {
+          type: "reaction",
+          postId: post.id,
+        },
+      });
+    }
+  }
 
   return {
     id: reaction.id,
@@ -2008,6 +2047,20 @@ export async function createPost(
       message: `${profile?.name}님이 답글을 작성했습니다`,
       postId: newPost.id,
     });
+
+    // Send push notification for reply
+    const userIdMap = await getUserIdsFromProfiles([parentPost.authorId]);
+    const recipientUserId = userIdMap.get(parentPost.authorId);
+    if (recipientUserId) {
+      await pushNotificationService.sendPushNotification(recipientUserId, {
+        title: "새로운 답글",
+        body: `${profile?.name}님이 답글을 작성했습니다`,
+        data: {
+          type: "reply",
+          postId: newPost.id,
+        },
+      });
+    }
   }
 
   // Create mention notifications
@@ -2062,6 +2115,24 @@ export async function createPost(
   // Batch insert all mention notifications
   if (mentionNotifications.length > 0) {
     await db.insert(notificationTable).values(mentionNotifications);
+
+    // Send push notifications for mentions
+    const mentionedProfileIds = mentionNotifications.map((n) => n.recipientId);
+    const userIdMap = await getUserIdsFromProfiles(mentionedProfileIds);
+
+    for (const notification of mentionNotifications) {
+      const recipientUserId = userIdMap.get(notification.recipientId);
+      if (recipientUserId) {
+        await pushNotificationService.sendPushNotification(recipientUserId, {
+          title: notification.title,
+          body: notification.message,
+          data: {
+            type: "mention",
+            postId: newPost.id,
+          },
+        });
+      }
+    }
   }
 
   // Get the post with author and images for response
