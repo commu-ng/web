@@ -1036,8 +1036,8 @@ export async function createBoardPostReply(
     });
   }
 
-  // Send push notification for direct replies (depth 1 only)
-  if (inReplyToId && depth === 1) {
+  // Send push notification for direct replies (any depth)
+  if (inReplyToId) {
     const parentReply = await db.query.boardPostReply.findFirst({
       where: eq(boardPostReplyTable.id, inReplyToId),
       columns: {
