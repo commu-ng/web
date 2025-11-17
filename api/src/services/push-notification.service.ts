@@ -1,4 +1,4 @@
-import * as admin from "firebase-admin";
+import admin from "firebase-admin";
 import apn from "@parse/node-apn";
 import { readFileSync } from "node:fs";
 import { eq } from "drizzle-orm";
