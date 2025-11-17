@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray, isNull, lt, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNull, lt, sql } from "drizzle-orm";
 import { db } from "../db";
 import {
   board as boardTable,
@@ -19,7 +19,7 @@ import { addImageUrl } from "../utils/r2";
 export async function getBoards() {
   const boards = await db.query.board.findMany({
     where: isNull(boardTable.deletedAt),
-    orderBy: [desc(boardTable.createdAt)],
+    orderBy: [asc(boardTable.createdAt)],
   });
 
   return boards.map((board) => ({
