@@ -1392,7 +1392,7 @@ export const boardPost = pgTable(
       .notNull()
       .defaultNow(),
     deletedAt: timestamp("deleted_at", { withTimezone: true, mode: "string" }),
-    deletionReason: deletionReasonEnum("deletion_reason").notNull(),
+    deletionReason: deletionReasonEnum("deletion_reason"),
   },
   (table) => [
     foreignKey({
@@ -1476,7 +1476,7 @@ export const boardPostReply = pgTable(
       .notNull()
       .defaultNow(),
     deletedAt: timestamp("deleted_at", { withTimezone: true, mode: "string" }),
-    deletionReason: deletionReasonEnum("deletion_reason").notNull(),
+    deletionReason: deletionReasonEnum("deletion_reason"),
   },
   (table) => [
     foreignKey({
