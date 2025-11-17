@@ -1022,6 +1022,20 @@ export async function createBoardPostReply(
     throw new Error("Failed to create reply");
   }
 
+  // Send push notification for direct comments on post (depth 0 only)
+  if (!inReplyToId && depth === 0 && post.authorId !== authorId) {
+    await pushNotificationService.sendPushNotification(post.authorId, {
+      title: "새로운 댓글",
+      body: `${user.loginName}님이 회원님의 게시글에 댓글을 작성했습니다`,
+      data: {
+        type: "board_post_comment",
+        board_post_id: boardPostId,
+        reply_id: newReply.id,
+        board_slug: post.board.slug || post.board.id,
+      },
+    });
+  }
+
   // Send push notification for direct replies (depth 1 only)
   if (inReplyToId && depth === 1) {
     const parentReply = await db.query.boardPostReply.findFirst({
