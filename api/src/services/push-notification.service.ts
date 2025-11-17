@@ -1,9 +1,13 @@
 import admin from "firebase-admin";
 import apn from "@parse/node-apn";
 import { readFileSync } from "node:fs";
-import { eq } from "drizzle-orm";
+import { and, eq, inArray, isNull, sql } from "drizzle-orm";
 import { db } from "../db";
-import { device as deviceTable } from "../drizzle/schema";
+import {
+	device as deviceTable,
+	notification as notificationTable,
+	profileOwnership as profileOwnershipTable,
+} from "../drizzle/schema";
 
 interface NotificationPayload {
   title: string;
@@ -94,6 +98,31 @@ class PushNotificationService {
         return;
       }
 
+      // Get unread notification count for this user
+      const userProfiles = await db
+        .select({ profileId: profileOwnershipTable.profileId })
+        .from(profileOwnershipTable)
+        .where(eq(profileOwnershipTable.userId, userId));
+
+      const profileIds = userProfiles.map((p) => p.profileId);
+
+      let unreadCount = 0;
+      if (profileIds.length > 0) {
+        const result = await db
+          .select({
+            count: sql<number>`count(*)::int`,
+          })
+          .from(notificationTable)
+          .where(
+            and(
+              inArray(notificationTable.recipientId, profileIds),
+              isNull(notificationTable.readAt),
+            ),
+          );
+
+        unreadCount = result[0]?.count || 0;
+      }
+
       // Group devices by platform
       const iosTokens = devices
         .filter((d) => d.platform === "ios")
@@ -104,12 +133,12 @@ class PushNotificationService {
 
       // Send to iOS devices
       if (iosTokens.length > 0) {
-        await this.sendToIOS(iosTokens, payload);
+        await this.sendToIOS(iosTokens, payload, unreadCount);
       }
 
       // Send to Android devices
       if (androidTokens.length > 0) {
-        await this.sendToAndroid(androidTokens, payload);
+        await this.sendToAndroid(androidTokens, payload, unreadCount);
       }
     } catch (error) {
       // Log error but don't throw - push notifications are fire-and-forget
@@ -117,7 +146,11 @@ class PushNotificationService {
     }
   }
 
-  private async sendToIOS(tokens: string[], payload: NotificationPayload) {
+  private async sendToIOS(
+    tokens: string[],
+    payload: NotificationPayload,
+    badge: number,
+  ) {
     if (!this.apnProvider) {
       console.warn("APNs not initialized, skipping iOS push notifications");
       return;
@@ -130,7 +163,7 @@ class PushNotificationService {
           body: payload.body,
         },
         sound: "default",
-        badge: 1,
+        badge: badge,
         topic: "ng.commu", // Bundle ID
         payload: payload.data || {},
       });
@@ -156,7 +189,11 @@ class PushNotificationService {
     }
   }
 
-  private async sendToAndroid(tokens: string[], payload: NotificationPayload) {
+  private async sendToAndroid(
+    tokens: string[],
+    payload: NotificationPayload,
+    badge: number,
+  ) {
     if (!this.fcmApp) {
       console.warn("FCM not initialized, skipping Android push notifications");
       return;
@@ -169,6 +206,11 @@ class PushNotificationService {
           body: payload.body,
         },
         data: payload.data || {},
+        android: {
+          notification: {
+            notificationCount: badge,
+          },
+        },
         tokens: tokens,
       };
 
