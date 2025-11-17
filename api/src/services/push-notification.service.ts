@@ -1,5 +1,6 @@
 import * as admin from "firebase-admin";
 import apn from "@parse/node-apn";
+import { readFileSync } from "node:fs";
 import { eq } from "drizzle-orm";
 import { db } from "../db";
 import { device as deviceTable } from "../drizzle/schema";
@@ -25,15 +26,17 @@ class PushNotificationService {
 
       if (!serviceAccountKeyPath) {
         console.warn(
-          "FCM credentials not configured. Push notifications for Android will not work.",
+          "FCM_SERVICE_ACCOUNT_KEY_PATH not configured. Push notifications for Android will not work.",
         );
         return;
       }
 
-      // Initialize Firebase Admin SDK
-      const serviceAccount = require(
-        serviceAccountKeyPath,
+      // Read and parse the service account key file
+      const serviceAccount = JSON.parse(
+        readFileSync(serviceAccountKeyPath, "utf8"),
       );
+
+      // Initialize Firebase Admin SDK
       this.fcmApp = admin.initializeApp({
         credential: admin.credential.cert(serviceAccount),
       });
