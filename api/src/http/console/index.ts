@@ -4,6 +4,7 @@ import { consoleBoardsRouter } from "./boards";
 import { consoleCommunitiesRouter } from "./communities/index";
 import { consoleDevicesRouter } from "./devices";
 import { consoleMasqueradeRouter } from "./masquerade";
+import { consoleNotificationsRouter } from "./notifications";
 import { consoleSearchRouter } from "./search";
 import { uploadRouter } from "./upload";
 
@@ -14,4 +15,5 @@ export const consoleRouter = new Hono()
   .route("/", consoleSearchRouter)
   .route("/", consoleBoardsRouter)
   .route("/", consoleMasqueradeRouter)
-  .route("/", consoleDevicesRouter);
+  .route("/", consoleDevicesRouter)
+  .route("/", consoleNotificationsRouter);
