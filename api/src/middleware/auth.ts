@@ -26,7 +26,15 @@ type AppAuthVariables = {
 export const authMiddleware = createMiddleware<{
   Variables: ConsoleAuthVariables;
 }>(async (c, next) => {
-  const sessionToken = getCookie(c, "session_token");
+  let sessionToken = getCookie(c, "session_token");
+
+  // If no cookie, try Bearer token (for mobile clients)
+  if (!sessionToken) {
+    const authHeader = c.req.header("Authorization");
+    if (authHeader?.startsWith("Bearer ")) {
+      sessionToken = authHeader.substring(7);
+    }
+  }
 
   if (!sessionToken) {
     return c.json({ error: "인증되지 않음" }, 401);
