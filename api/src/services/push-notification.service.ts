@@ -131,7 +131,7 @@ class PushNotificationService {
         },
         sound: "default",
         badge: 1,
-        topic: "ng.commu.app", // Bundle ID
+        topic: "ng.commu", // Bundle ID
         payload: payload.data || {},
       });
 
