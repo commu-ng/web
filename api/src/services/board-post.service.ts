@@ -12,6 +12,7 @@ import {
 import { AppException } from "../exception";
 import { BoardErrorCode } from "../types/api-responses";
 import { addImageUrl } from "../utils/r2";
+import { pushNotificationService } from "./push-notification.service";
 
 /**
  * Get all boards
@@ -1019,6 +1020,29 @@ export async function createBoardPostReply(
   const newReply = newReplyResult[0];
   if (!newReply) {
     throw new Error("Failed to create reply");
+  }
+
+  // Send push notification for direct replies (depth 1 only)
+  if (inReplyToId && depth === 1) {
+    const parentReply = await db.query.boardPostReply.findFirst({
+      where: eq(boardPostReplyTable.id, inReplyToId),
+      columns: {
+        authorId: true,
+      },
+    });
+
+    // Only send if not replying to own comment
+    if (parentReply && parentReply.authorId !== authorId) {
+      await pushNotificationService.sendPushNotification(parentReply.authorId, {
+        title: "새로운 답글",
+        body: `${user.loginName}님이 회원님의 댓글에 답글을 작성했습니다`,
+        data: {
+          type: "board_post_reply",
+          boardPostId: boardPostId,
+          replyId: newReply.id,
+        },
+      });
+    }
   }
 
   return {
