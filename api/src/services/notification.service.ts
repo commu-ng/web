@@ -151,8 +151,8 @@ export async function getNotificationsForProfile(
       id: notification.id,
       type: notification.type,
       content: notification.message,
-      readAt: notification.readAt,
-      createdAt: notification.createdAt,
+      readAt: notification.readAt ? new Date(notification.readAt).toISOString() : null,
+      createdAt: new Date(notification.createdAt).toISOString(),
       sender: sender
         ? {
             id: sender.id,
