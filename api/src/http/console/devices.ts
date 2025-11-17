@@ -9,11 +9,11 @@ import { authMiddleware } from "../../middleware/auth";
 import type { AuthVariables } from "../../types";
 
 const registerDeviceSchema = z.object({
-  pushToken: z.string().min(1),
+  push_token: z.string().min(1),
   platform: z.enum(["ios", "android"]),
-  deviceModel: z.string().optional(),
-  osVersion: z.string().optional(),
-  appVersion: z.string().optional(),
+  device_model: z.string().optional(),
+  os_version: z.string().optional(),
+  app_version: z.string().optional(),
 });
 
 const pushTokenParamSchema = z.object({
@@ -34,21 +34,21 @@ export const consoleDevicesRouter = new Hono<{ Variables: AuthVariables }>()
         await db
           .insert(device)
           .values({
-            pushToken: body.pushToken,
+            pushToken: body.push_token,
             platform: body.platform,
             userId: user.id,
-            deviceModel: body.deviceModel,
-            osVersion: body.osVersion,
-            appVersion: body.appVersion,
+            deviceModel: body.device_model,
+            osVersion: body.os_version,
+            appVersion: body.app_version,
           })
           .onConflictDoUpdate({
             target: device.pushToken,
             set: {
               userId: user.id,
               platform: body.platform,
-              deviceModel: body.deviceModel,
-              osVersion: body.osVersion,
-              appVersion: body.appVersion,
+              deviceModel: body.device_model,
+              osVersion: body.os_version,
+              appVersion: body.app_version,
               updatedAt: new Date().toISOString(),
             },
           });
