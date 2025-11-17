@@ -133,7 +133,7 @@ export const consoleNotificationsRouter = new Hono<{
 
               if (community) {
                 const baseDomain = process.env.BASE_DOMAIN || "commu.ng";
-                community_url = `https://${community.slug}.${baseDomain}`;
+                community_url = `https://${community.slug}.${baseDomain}/notifications`;
                 community_name = community.name;
               }
             }

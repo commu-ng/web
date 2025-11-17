@@ -764,12 +764,16 @@ export async function createReaction(
     const userIdMap = await getUserIdsFromProfiles([post.authorId]);
     const recipientUserId = userIdMap.get(post.authorId);
     if (recipientUserId) {
+      const baseDomain = process.env.BASE_DOMAIN || "commu.ng";
+      const communityUrl = `https://${community.slug}.${baseDomain}/notifications`;
+
       await pushNotificationService.sendPushNotification(recipientUserId, {
         title: "새로운 반응",
         body: `${profileName}님이 게시물에 ${emoji} 반응을 남겼습니다`,
         data: {
           type: "reaction",
-          postId: post.id,
+          post_id: post.id,
+          community_url: communityUrl,
         },
       });
     }
@@ -2052,14 +2056,25 @@ export async function createPost(
     const userIdMap = await getUserIdsFromProfiles([parentPost.authorId]);
     const recipientUserId = userIdMap.get(parentPost.authorId);
     if (recipientUserId) {
-      await pushNotificationService.sendPushNotification(recipientUserId, {
-        title: "새로운 답글",
-        body: `${profile?.name}님이 답글을 작성했습니다`,
-        data: {
-          type: "reply",
-          postId: newPost.id,
-        },
+      // Get community for URL
+      const community = await db.query.community.findFirst({
+        where: eq(communityTable.id, communityId),
       });
+
+      if (community) {
+        const baseDomain = process.env.BASE_DOMAIN || "commu.ng";
+        const communityUrl = `https://${community.slug}.${baseDomain}/notifications`;
+
+        await pushNotificationService.sendPushNotification(recipientUserId, {
+          title: "새로운 답글",
+          body: `${profile?.name}님이 답글을 작성했습니다`,
+          data: {
+            type: "reply",
+            post_id: newPost.id,
+            community_url: communityUrl,
+          },
+        });
+      }
     }
   }
 
@@ -2120,17 +2135,28 @@ export async function createPost(
     const mentionedProfileIds = mentionNotifications.map((n) => n.recipientId);
     const userIdMap = await getUserIdsFromProfiles(mentionedProfileIds);
 
-    for (const notification of mentionNotifications) {
-      const recipientUserId = userIdMap.get(notification.recipientId);
-      if (recipientUserId) {
-        await pushNotificationService.sendPushNotification(recipientUserId, {
-          title: notification.title,
-          body: notification.message,
-          data: {
-            type: "mention",
-            postId: newPost.id,
-          },
-        });
+    // Get community for URL
+    const community = await db.query.community.findFirst({
+      where: eq(communityTable.id, communityId),
+    });
+
+    if (community) {
+      const baseDomain = process.env.BASE_DOMAIN || "commu.ng";
+      const communityUrl = `https://${community.slug}.${baseDomain}/notifications`;
+
+      for (const notification of mentionNotifications) {
+        const recipientUserId = userIdMap.get(notification.recipientId);
+        if (recipientUserId) {
+          await pushNotificationService.sendPushNotification(recipientUserId, {
+            title: notification.title,
+            body: notification.message,
+            data: {
+              type: "mention",
+              post_id: newPost.id,
+              community_url: communityUrl,
+            },
+          });
+        }
       }
     }
   }

@@ -11,6 +11,7 @@ import {
 } from "drizzle-orm";
 import { db } from "../db";
 import {
+  community as communityTable,
   directMessageReaction as directMessageReactionTable,
   directMessage as directMessageTable,
   directMessageImage as directMessageImageTable,
@@ -190,18 +191,29 @@ export async function sendDirectMessage(
   });
 
   if (receiverOwnership) {
-    await pushNotificationService.sendPushNotification(
-      receiverOwnership.userId,
-      {
-        title: "새로운 메시지",
-        body: `${senderProfile.name}님이 메시지를 보냈습니다`,
-        data: {
-          type: "direct_message",
-          messageId: message.id,
-          senderId: senderProfileId,
+    // Get community for URL
+    const community = await db.query.community.findFirst({
+      where: eq(communityTable.id, communityId),
+    });
+
+    if (community) {
+      const baseDomain = process.env.BASE_DOMAIN || "commu.ng";
+      const communityUrl = `https://${community.slug}.${baseDomain}`;
+
+      await pushNotificationService.sendPushNotification(
+        receiverOwnership.userId,
+        {
+          title: "새로운 메시지",
+          body: `${senderProfile.name}님이 메시지를 보냈습니다`,
+          data: {
+            type: "direct_message",
+            message_id: message.id,
+            sender_id: senderProfileId,
+            community_url: communityUrl,
+          },
         },
-      },
-    );
+      );
+    }
   }
 
   return {

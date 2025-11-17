@@ -1038,8 +1038,9 @@ export async function createBoardPostReply(
         body: `${user.loginName}님이 회원님의 댓글에 답글을 작성했습니다`,
         data: {
           type: "board_post_reply",
-          boardPostId: boardPostId,
-          replyId: newReply.id,
+          board_post_id: boardPostId,
+          reply_id: newReply.id,
+          board_slug: post.board.slug || post.board.id,
         },
       });
     }
