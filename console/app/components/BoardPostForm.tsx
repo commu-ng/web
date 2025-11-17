@@ -275,10 +275,6 @@ export function BoardPostForm({
       <MarkdownEditor
         value={content}
         onChange={setContent}
-        onImageUpload={async (file) => {
-          const result = await uploadImage(file);
-          return { url: result.url };
-        }}
         placeholder="게시물 내용을 입력하세요..."
         disabled={savePostMutation.isPending}
       />

@@ -11,7 +11,6 @@ const md = new MarkdownIt({ linkify: true, breaks: true });
 interface MarkdownEditorProps {
   value: string;
   onChange: (value: string) => void;
-  onImageUpload?: (file: File) => Promise<{ url: string }>;
   placeholder?: string;
   disabled?: boolean;
 }
@@ -19,31 +18,10 @@ interface MarkdownEditorProps {
 export function MarkdownEditor({
   value,
   onChange,
-  onImageUpload,
   placeholder = "Write your post content in markdown...",
   disabled = false,
 }: MarkdownEditorProps) {
   const [showHelp, setShowHelp] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
-
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !onImageUpload) return;
-
-    setIsUploading(true);
-    try {
-      const { url } = await onImageUpload(file);
-      // Insert markdown image syntax at cursor position
-      const imageMarkdown = `![Image](${url})`;
-      onChange(value + "\n\n" + imageMarkdown);
-    } catch (error) {
-      console.error("Failed to upload image:", error);
-    } finally {
-      setIsUploading(false);
-      // Reset input
-      e.target.value = "";
-    }
-  };
 
   const renderMarkdown = () => {
     try {
@@ -56,7 +34,7 @@ export function MarkdownEditor({
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
-        <label className="text-sm font-medium">Content</label>
+        <div className="text-sm font-medium">Content</div>
         <Button
           type="button"
           variant="ghost"
@@ -83,24 +61,6 @@ export function MarkdownEditor({
             disabled={disabled}
             className="min-h-[300px] font-mono text-sm"
           />
-
-          {onImageUpload && (
-            <div className="flex items-center gap-2">
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleImageUpload}
-                disabled={disabled || isUploading}
-                className="text-sm file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90 file:cursor-pointer"
-                id="markdown-image-upload"
-              />
-              {isUploading && (
-                <span className="text-sm text-muted-foreground">
-                  Uploading...
-                </span>
-              )}
-            </div>
-          )}
 
           <p className="text-xs text-muted-foreground">
             Tip: You can use markdown syntax to format your content
