@@ -33,8 +33,8 @@ const exportJobIdParamSchema = z.object({
 export const postsRouter = new Hono<{ Variables: AuthVariables }>()
   .post(
     "/export",
-    appAuthMiddleware,
     communityMiddleware,
+    appAuthMiddleware,
     membershipMiddleware,
     async (c) => {
       const user = c.get("user");
@@ -73,7 +73,7 @@ export const postsRouter = new Hono<{ Variables: AuthVariables }>()
       });
     },
   )
-  .get("/exports", appAuthMiddleware, communityMiddleware, async (c) => {
+  .get("/exports", communityMiddleware, appAuthMiddleware, async (c) => {
     const user = c.get("user");
     const community = c.get("community");
     const exports = await exportJobService.getUserExports(
@@ -128,8 +128,8 @@ export const postsRouter = new Hono<{ Variables: AuthVariables }>()
   )
   .get(
     "/bookmarks",
-    appAuthMiddleware,
     communityMiddleware,
+    appAuthMiddleware,
     zValidator("query", conversationsQuerySchema),
     async (c) => {
       const user = c.get("user");
@@ -193,8 +193,8 @@ export const postsRouter = new Hono<{ Variables: AuthVariables }>()
   )
   .get(
     "/posts/search",
-    appAuthMiddleware,
     communityMiddleware,
+    appAuthMiddleware,
     membershipMiddleware,
     zValidator("query", postSearchQuerySchema),
     async (c) => {
@@ -213,8 +213,8 @@ export const postsRouter = new Hono<{ Variables: AuthVariables }>()
   )
   .get(
     "/scheduled-posts",
-    appAuthMiddleware,
     communityMiddleware,
+    appAuthMiddleware,
     membershipMiddleware,
     zValidator("query", scheduledPostsQuerySchema),
     async (c) => {
@@ -254,8 +254,8 @@ export const postsRouter = new Hono<{ Variables: AuthVariables }>()
 
   .post(
     "/posts",
-    appAuthMiddleware,
     communityMiddleware,
+    appAuthMiddleware,
     membershipMiddleware,
     zValidator("json", postCreateRequestSchema),
     async (c) => {
@@ -341,8 +341,8 @@ export const postsRouter = new Hono<{ Variables: AuthVariables }>()
 
   .delete(
     "/posts/:post_id",
-    appAuthMiddleware,
     communityMiddleware,
+    appAuthMiddleware,
     membershipMiddleware,
     zValidator("param", postIdParamSchema),
     zValidator("query", profileIdQuerySchema),
@@ -374,8 +374,8 @@ export const postsRouter = new Hono<{ Variables: AuthVariables }>()
   )
   .patch(
     "/posts/:post_id",
-    appAuthMiddleware,
     communityMiddleware,
+    appAuthMiddleware,
     membershipMiddleware,
     zValidator("param", postIdParamSchema),
     zValidator("query", profileIdQuerySchema),
@@ -417,8 +417,8 @@ export const postsRouter = new Hono<{ Variables: AuthVariables }>()
   )
   .post(
     "/posts/:post_id/bookmark",
-    appAuthMiddleware,
     communityMiddleware,
+    appAuthMiddleware,
     membershipMiddleware,
     zValidator("param", postIdParamSchema),
     zValidator("query", profileIdQuerySchema),
@@ -454,8 +454,8 @@ export const postsRouter = new Hono<{ Variables: AuthVariables }>()
   )
   .delete(
     "/posts/:post_id/bookmark",
-    appAuthMiddleware,
     communityMiddleware,
+    appAuthMiddleware,
     zValidator("param", postIdParamSchema),
     zValidator("query", profileIdQuerySchema),
     async (c) => {
@@ -486,8 +486,8 @@ export const postsRouter = new Hono<{ Variables: AuthVariables }>()
   )
   .post(
     "/posts/:post_id/reactions",
-    appAuthMiddleware,
     communityMiddleware,
+    appAuthMiddleware,
     membershipMiddleware,
     zValidator("param", postIdParamSchema),
     zValidator("json", postReactionCreateSchema),
@@ -522,8 +522,8 @@ export const postsRouter = new Hono<{ Variables: AuthVariables }>()
 
   .delete(
     "/posts/:post_id/reactions",
-    appAuthMiddleware,
     communityMiddleware,
+    appAuthMiddleware,
     zValidator("param", postIdParamSchema),
     zValidator("query", postReactionDeleteSchema),
     async (c) => {
@@ -555,8 +555,8 @@ export const postsRouter = new Hono<{ Variables: AuthVariables }>()
   )
   .post(
     "/posts/:post_id/pin",
-    appAuthMiddleware,
     communityMiddleware,
+    appAuthMiddleware,
     membershipMiddleware,
     zValidator("param", postIdParamSchema),
     zValidator("query", profileIdQuerySchema),
@@ -572,8 +572,8 @@ export const postsRouter = new Hono<{ Variables: AuthVariables }>()
   )
   .delete(
     "/posts/:post_id/pin",
-    appAuthMiddleware,
     communityMiddleware,
+    appAuthMiddleware,
     membershipMiddleware,
     zValidator("param", postIdParamSchema),
     zValidator("query", profileIdQuerySchema),

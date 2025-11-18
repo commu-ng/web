@@ -25,7 +25,7 @@ export const meRouter = new Hono<{ Variables: AuthVariables }>()
     const result = await userService.getCurrentUser(user.id);
     return c.json(result);
   })
-  .get("/me/instance", appAuthMiddleware, communityMiddleware, async (c) => {
+  .get("/me/instance", communityMiddleware, appAuthMiddleware, async (c) => {
     const user = c.get("user");
     const community = c.get("community");
     const result = await userService.getCurrentUserInstance(
@@ -37,8 +37,8 @@ export const meRouter = new Hono<{ Variables: AuthVariables }>()
 
   .put(
     "/me/profiles",
-    appAuthMiddleware,
     communityMiddleware,
+    appAuthMiddleware,
     membershipMiddleware,
     zValidator("query", profileIdQuerySchema),
     zValidator("json", profileUpdateRequestSchema),

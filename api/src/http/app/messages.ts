@@ -27,8 +27,8 @@ import type { AuthVariables } from "../../types";
 export const messagesRouter = new Hono<{ Variables: AuthVariables }>()
   .post(
     "/messages",
-    appAuthMiddleware,
     communityMiddleware,
+    appAuthMiddleware,
     membershipMiddleware,
     zValidator("query", profileIdQuerySchema),
     zValidator("json", messageCreateSchema),
@@ -67,8 +67,8 @@ export const messagesRouter = new Hono<{ Variables: AuthVariables }>()
   )
   .delete(
     "/messages/:message_id",
-    appAuthMiddleware,
     communityMiddleware,
+    appAuthMiddleware,
     membershipMiddleware,
     zValidator("param", messageIdParamSchema),
     zValidator("query", profileIdQuerySchema),
@@ -104,8 +104,8 @@ export const messagesRouter = new Hono<{ Variables: AuthVariables }>()
   )
   .get(
     "/messages/unread-count",
-    appAuthMiddleware,
     communityMiddleware,
+    appAuthMiddleware,
     zValidator("query", unreadCountQuerySchema),
     async (c) => {
       const user = c.get("user");
@@ -134,8 +134,8 @@ export const messagesRouter = new Hono<{ Variables: AuthVariables }>()
   )
   .get(
     "/conversations/:other_profile_id",
-    appAuthMiddleware,
     communityMiddleware,
+    appAuthMiddleware,
     zValidator("param", otherProfileIdParamSchema),
     zValidator("query", conversationsQuerySchema),
     async (c) => {
@@ -169,8 +169,8 @@ export const messagesRouter = new Hono<{ Variables: AuthVariables }>()
 
   .post(
     "/conversations/:other_profile_id/mark-read",
-    appAuthMiddleware,
     communityMiddleware,
+    appAuthMiddleware,
     membershipMiddleware,
     zValidator("param", otherProfileIdParamSchema),
     zValidator("query", z.object({ profile_id: z.uuid() })),
@@ -203,8 +203,8 @@ export const messagesRouter = new Hono<{ Variables: AuthVariables }>()
 
   .post(
     "/conversations/mark-all-read",
-    appAuthMiddleware,
     communityMiddleware,
+    appAuthMiddleware,
     membershipMiddleware,
     zValidator("query", z.object({ profile_id: z.uuid() })),
     async (c) => {
@@ -231,8 +231,8 @@ export const messagesRouter = new Hono<{ Variables: AuthVariables }>()
 
   .get(
     "/conversations",
-    appAuthMiddleware,
     communityMiddleware,
+    appAuthMiddleware,
     zValidator("query", profileIdWithLimitQuerySchema),
     async (c) => {
       const user = c.get("user");
@@ -263,8 +263,8 @@ export const messagesRouter = new Hono<{ Variables: AuthVariables }>()
 
   .post(
     "/messages/:message_id/reactions",
-    appAuthMiddleware,
     communityMiddleware,
+    appAuthMiddleware,
     membershipMiddleware,
     zValidator("param", messageIdParamSchema),
     zValidator("json", messageReactionCreateSchema),
@@ -299,8 +299,8 @@ export const messagesRouter = new Hono<{ Variables: AuthVariables }>()
 
   .delete(
     "/messages/:message_id/reactions",
-    appAuthMiddleware,
     communityMiddleware,
+    appAuthMiddleware,
     membershipMiddleware,
     zValidator("param", messageIdParamSchema),
     zValidator("query", messageReactionDeleteSchema),
@@ -340,8 +340,8 @@ export const messagesRouter = new Hono<{ Variables: AuthVariables }>()
 
   .get(
     "/group-chats",
-    appAuthMiddleware,
     communityMiddleware,
+    appAuthMiddleware,
     zValidator("query", conversationsQuerySchema),
     async (c) => {
       const user = c.get("user");
@@ -372,8 +372,8 @@ export const messagesRouter = new Hono<{ Variables: AuthVariables }>()
 
   .post(
     "/group-chats",
-    appAuthMiddleware,
     communityMiddleware,
+    appAuthMiddleware,
     membershipMiddleware,
     zValidator("json", groupChatCreateRequestSchema),
     async (c) => {
@@ -409,8 +409,8 @@ export const messagesRouter = new Hono<{ Variables: AuthVariables }>()
 
   .get(
     "/group-chats/:group_chat_id",
-    appAuthMiddleware,
     communityMiddleware,
+    appAuthMiddleware,
     zValidator("param", groupChatIdParamSchema),
     zValidator("query", profileIdQuerySchema),
     async (c) => {
@@ -445,8 +445,8 @@ export const messagesRouter = new Hono<{ Variables: AuthVariables }>()
 
   .get(
     "/group-chats/:group_chat_id/messages",
-    appAuthMiddleware,
     communityMiddleware,
+    appAuthMiddleware,
     zValidator("param", groupChatIdParamSchema),
     zValidator("query", profileIdQuerySchema),
     async (c) => {
@@ -481,8 +481,8 @@ export const messagesRouter = new Hono<{ Variables: AuthVariables }>()
 
   .post(
     "/group-chats/:group_chat_id/messages",
-    appAuthMiddleware,
     communityMiddleware,
+    appAuthMiddleware,
     membershipMiddleware,
     zValidator("param", groupChatIdParamSchema),
     zValidator("json", groupChatMessageCreateRequestSchema),
@@ -518,8 +518,8 @@ export const messagesRouter = new Hono<{ Variables: AuthVariables }>()
 
   .post(
     "/group-chats/:group_chat_id/messages/:message_id/reactions",
-    appAuthMiddleware,
     communityMiddleware,
+    appAuthMiddleware,
     membershipMiddleware,
     zValidator(
       "param",
@@ -557,8 +557,8 @@ export const messagesRouter = new Hono<{ Variables: AuthVariables }>()
 
   .delete(
     "/group-chats/:group_chat_id/messages/:message_id/reactions",
-    appAuthMiddleware,
     communityMiddleware,
+    appAuthMiddleware,
     membershipMiddleware,
     zValidator(
       "param",
@@ -596,8 +596,8 @@ export const messagesRouter = new Hono<{ Variables: AuthVariables }>()
 
   .post(
     "/group-chats/:group_chat_id/mark-read",
-    appAuthMiddleware,
     communityMiddleware,
+    appAuthMiddleware,
     membershipMiddleware,
     zValidator("param", groupChatIdParamSchema),
     zValidator("query", profileIdQuerySchema),

@@ -30,8 +30,8 @@ import type { AuthVariables } from "../../types";
 export const profilesRouter = new Hono<{ Variables: AuthVariables }>()
   .post(
     "/profile-picture",
-    appAuthMiddleware,
     communityMiddleware,
+    appAuthMiddleware,
     membershipMiddleware,
     zValidator("query", profileIdQuerySchema),
     async (c) => {
@@ -97,7 +97,7 @@ export const profilesRouter = new Hono<{ Variables: AuthVariables }>()
     },
   )
 
-  .get("/profiles", appAuthMiddleware, communityMiddleware, async (c) => {
+  .get("/profiles", communityMiddleware, appAuthMiddleware, async (c) => {
     const community = c.get("community");
 
     const result = await profileService.listProfilesByUser(community.id);
@@ -107,8 +107,8 @@ export const profilesRouter = new Hono<{ Variables: AuthVariables }>()
 
   .post(
     "/profiles",
-    appAuthMiddleware,
     communityMiddleware,
+    appAuthMiddleware,
     membershipMiddleware,
     moderatorOrOwnerMiddleware,
     zValidator("json", profileCreateSchema),
@@ -133,8 +133,8 @@ export const profilesRouter = new Hono<{ Variables: AuthVariables }>()
   )
   .get(
     "/profiles/post-count",
-    appAuthMiddleware,
     communityMiddleware,
+    appAuthMiddleware,
     membershipMiddleware,
     zValidator("query", profileIdQuerySchema),
     async (c) => {
@@ -145,8 +145,8 @@ export const profilesRouter = new Hono<{ Variables: AuthVariables }>()
   )
   .delete(
     "/profiles",
-    appAuthMiddleware,
     communityMiddleware,
+    appAuthMiddleware,
     membershipMiddleware,
     zValidator("query", profileIdQuerySchema),
     async (c) => {
@@ -161,8 +161,8 @@ export const profilesRouter = new Hono<{ Variables: AuthVariables }>()
   // Online status endpoints - must be before :username routes
   .get(
     "/profiles/online-status",
-    appAuthMiddleware,
     communityMiddleware,
+    appAuthMiddleware,
     membershipMiddleware,
     zValidator("query", onlineStatusQuerySchema),
     async (c) => {
@@ -174,8 +174,8 @@ export const profilesRouter = new Hono<{ Variables: AuthVariables }>()
   )
   .put(
     "/profiles/online-status-settings",
-    appAuthMiddleware,
     communityMiddleware,
+    appAuthMiddleware,
     membershipMiddleware,
     zValidator("json", onlineStatusVisibilitySchema),
     async (c) => {
@@ -231,8 +231,8 @@ export const profilesRouter = new Hono<{ Variables: AuthVariables }>()
   )
   .post(
     "/profiles/set-primary",
-    appAuthMiddleware,
     communityMiddleware,
+    appAuthMiddleware,
     membershipMiddleware,
     zValidator("query", profileIdQuerySchema),
     async (c) => {
@@ -246,8 +246,8 @@ export const profilesRouter = new Hono<{ Variables: AuthVariables }>()
   )
   .put(
     "/profiles",
-    appAuthMiddleware,
     communityMiddleware,
+    appAuthMiddleware,
     membershipMiddleware,
     zValidator("query", profileUpdateQuerySchema),
     zValidator("json", profileUpdateRequestSchema),
@@ -272,8 +272,8 @@ export const profilesRouter = new Hono<{ Variables: AuthVariables }>()
   // Profile sharing endpoints
   .get(
     "/profiles/:profile_id/users",
-    appAuthMiddleware,
     communityMiddleware,
+    appAuthMiddleware,
     membershipMiddleware,
     ownerOnlyMiddleware,
     zValidator("param", profileIdParamSchema),
@@ -290,8 +290,8 @@ export const profilesRouter = new Hono<{ Variables: AuthVariables }>()
   )
   .post(
     "/profiles/:profile_id/users",
-    appAuthMiddleware,
     communityMiddleware,
+    appAuthMiddleware,
     membershipMiddleware,
     ownerOnlyMiddleware,
     zValidator("param", profileIdParamSchema),
@@ -333,8 +333,8 @@ export const profilesRouter = new Hono<{ Variables: AuthVariables }>()
   )
   .delete(
     "/profiles/:profile_id/shared-profiles/:shared_profile_id",
-    appAuthMiddleware,
     communityMiddleware,
+    appAuthMiddleware,
     membershipMiddleware,
     ownerOnlyMiddleware,
     zValidator(

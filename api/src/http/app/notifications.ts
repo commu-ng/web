@@ -14,8 +14,8 @@ import type { AuthVariables } from "../../types";
 export const notificationsRouter = new Hono<{ Variables: AuthVariables }>()
   .get(
     "/notifications",
-    appAuthMiddleware,
     communityMiddleware,
+    appAuthMiddleware,
     zValidator("query", conversationsQuerySchema),
     async (c) => {
       const user = c.get("user");
@@ -40,8 +40,8 @@ export const notificationsRouter = new Hono<{ Variables: AuthVariables }>()
 
   .get(
     "/notifications/unread-count",
-    appAuthMiddleware,
     communityMiddleware,
+    appAuthMiddleware,
     zValidator("query", unreadCountQuerySchema),
     async (c) => {
       const user = c.get("user");
@@ -60,8 +60,8 @@ export const notificationsRouter = new Hono<{ Variables: AuthVariables }>()
   .post(
     "/notifications/mark-all-read",
     zValidator("query", z.object({ profile_id: z.string() })),
-    appAuthMiddleware,
     communityMiddleware,
+    appAuthMiddleware,
     async (c) => {
       const user = c.get("user");
       const community = c.get("community");
@@ -77,8 +77,8 @@ export const notificationsRouter = new Hono<{ Variables: AuthVariables }>()
     "/notifications/:notification_id/read",
     zValidator("param", notificationIdParamSchema),
     zValidator("query", z.object({ profile_id: z.string() })),
-    appAuthMiddleware,
     communityMiddleware,
+    appAuthMiddleware,
     async (c) => {
       const user = c.get("user");
       const community = c.get("community");
@@ -100,8 +100,8 @@ export const notificationsRouter = new Hono<{ Variables: AuthVariables }>()
     "/notifications/:notification_id/unread",
     zValidator("param", notificationIdParamSchema),
     zValidator("query", z.object({ profile_id: z.string() })),
-    appAuthMiddleware,
     communityMiddleware,
+    appAuthMiddleware,
     async (c) => {
       const user = c.get("user");
       const community = c.get("community");
