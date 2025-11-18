@@ -136,6 +136,35 @@ export const appAuthMiddleware = createMiddleware<{
   await next();
 });
 
+// User-scoped app auth middleware for Bearer token authentication
+// This variant allows console sessions without requiring community context
+// Used for endpoints like /me/profiles that are user-scoped, not community-scoped
+export const userScopedAppAuthMiddleware = createMiddleware<{
+  Variables: Pick<AppAuthVariables, "user" | "session">;
+}>(async (c, next) => {
+  const authHeader = c.req.header("Authorization");
+
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return c.json({ error: "인증되지 않음" }, 401);
+  }
+
+  const sessionToken = authHeader.substring(7); // Remove 'Bearer ' prefix
+
+  const result = await authService.validateSessionAndGetUser(sessionToken);
+
+  if (!result) {
+    return c.json({ error: "잘못된 세션" }, 401);
+  }
+
+  c.set("user", result.user);
+  c.set("session" as never, result.session as never);
+
+  // No community validation - this middleware is for user-scoped endpoints
+  // that work across all communities the user has access to
+
+  await next();
+});
+
 // Optional app auth middleware for Bearer token authentication
 // NOTE: Now supports both app-scoped sessions and universal console sessions
 export const optionalAppAuthMiddleware = createMiddleware<{

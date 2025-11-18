@@ -1,6 +1,9 @@
 import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
-import { appAuthMiddleware } from "../../middleware/auth";
+import {
+  appAuthMiddleware,
+  userScopedAppAuthMiddleware,
+} from "../../middleware/auth";
 import { communityMiddleware } from "../../middleware/community";
 import { membershipMiddleware } from "../../middleware/membership";
 import {
@@ -97,9 +100,8 @@ export const meRouter = new Hono<{ Variables: AuthVariables }>()
   )
   .get(
     "/me/profiles",
-    appAuthMiddleware,
+    userScopedAppAuthMiddleware,
     communityMiddleware,
-    membershipMiddleware,
     async (c) => {
       const user = c.get("user");
       const community = c.get("community");
