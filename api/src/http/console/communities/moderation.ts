@@ -1,7 +1,6 @@
 import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
 import { z } from "zod";
-import { AppException } from "../../../exception";
 import { authMiddleware } from "../../../middleware/auth";
 import * as communityService from "../../../services/community.service";
 import * as moderationService from "../../../services/moderation.service";
@@ -29,25 +28,18 @@ export const moderationRouter = new Hono()
       const { id: slug, profileId } = c.req.valid("param");
       const { reason } = c.req.valid("json");
 
-      try {
-        // Validate community exists and get its ID
-        const community =
-          await communityService.validateCommunityExistsBySlug(slug);
+      // Validate community exists and get its ID
+      const community =
+        await communityService.validateCommunityExistsBySlug(slug);
 
-        const result = await moderationService.muteProfile(
-          user.id,
-          community.id,
-          profileId,
-          reason,
-        );
+      const result = await moderationService.muteProfile(
+        user.id,
+        community.id,
+        profileId,
+        reason,
+      );
 
-        return c.json(result, 200);
-      } catch (error: unknown) {
-        if (error instanceof AppException) {
-          return c.json({ error: error.message }, error.statusCode);
-        }
-        throw error;
-      }
+      return c.json(result, 200);
     },
   )
   .delete(
@@ -58,23 +50,16 @@ export const moderationRouter = new Hono()
       const user = c.get("user");
       const { id: slug, profileId } = c.req.valid("param");
 
-      try {
-        // Validate community exists and get its ID
-        const community =
-          await communityService.validateCommunityExistsBySlug(slug);
+      // Validate community exists and get its ID
+      const community =
+        await communityService.validateCommunityExistsBySlug(slug);
 
-        const result = await moderationService.unmuteProfile(
-          user.id,
-          community.id,
-          profileId,
-        );
+      const result = await moderationService.unmuteProfile(
+        user.id,
+        community.id,
+        profileId,
+      );
 
-        return c.json(result, 200);
-      } catch (error: unknown) {
-        if (error instanceof AppException) {
-          return c.json({ error: error.message }, error.statusCode);
-        }
-        throw error;
-      }
+      return c.json(result, 200);
     },
   );

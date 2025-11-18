@@ -2,7 +2,6 @@ import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
 import { setCookie } from "hono/cookie";
 import { z } from "zod";
-import { AppException } from "../../exception";
 import { authMiddleware } from "../../middleware/auth";
 import {
   accountDeletionConfirmSchema,
@@ -57,19 +56,12 @@ export const consoleAccountRouter = new Hono()
 
       const { current_password, new_password } = c.req.valid("json");
 
-      try {
-        await userService.updateUserPassword(
-          user.id,
-          current_password,
-          new_password,
-        );
-        return c.json({ message: "비밀번호가 성공적으로 변경되었습니다" });
-      } catch (error: unknown) {
-        if (error instanceof AppException) {
-          return c.json({ error: error.message }, error.statusCode);
-        }
-        throw error;
-      }
+      await userService.updateUserPassword(
+        user.id,
+        current_password,
+        new_password,
+      );
+      return c.json({ message: "비밀번호가 성공적으로 변경되었습니다" });
     },
   )
   .post(
@@ -90,17 +82,10 @@ export const consoleAccountRouter = new Hono()
 
       const { email } = c.req.valid("json");
 
-      try {
-        await userService.requestEmailUpdate(user.id, email);
-        return c.json({
-          message: "인증 이메일이 전송되었습니다. 이메일을 확인해주세요.",
-        });
-      } catch (error: unknown) {
-        if (error instanceof AppException) {
-          return c.json({ error: error.message }, error.statusCode);
-        }
-        throw error;
-      }
+      await userService.requestEmailUpdate(user.id, email);
+      return c.json({
+        message: "인증 이메일이 전송되었습니다. 이메일을 확인해주세요.",
+      });
     },
   )
   .post(
@@ -109,44 +94,27 @@ export const consoleAccountRouter = new Hono()
     async (c) => {
       const { token } = c.req.valid("json");
 
-      try {
-        const result = await emailService.verifyEmail(token);
+      const result = await emailService.verifyEmail(token);
 
-        return c.json({
-          message: "이메일이 성공적으로 인증되었습니다",
-          email: result.email,
-        });
-      } catch (error: unknown) {
-        if (error instanceof AppException) {
-          return c.json({ error: error.message }, error.statusCode);
-        }
-        throw error;
-      }
+      return c.json({
+        message: "이메일이 성공적으로 인증되었습니다",
+        email: result.email,
+      });
     },
   )
   .post("/login", zValidator("json", userLoginSchema), async (c) => {
     const { login_name: loginName, password } = c.req.valid("json");
-    try {
-      const { session, user } = await authService.loginUser(
-        loginName,
-        password,
-      );
+    const { session, user } = await authService.loginUser(loginName, password);
 
-      // Set session cookie
-      setCookie(c, "session_token", session.token, {
-        maxAge: 30 * 24 * 60 * 60, // 30 days in seconds
-        httpOnly: true,
-        sameSite: "Lax",
-      });
+    // Set session cookie
+    setCookie(c, "session_token", session.token, {
+      maxAge: 30 * 24 * 60 * 60, // 30 days in seconds
+      httpOnly: true,
+      sameSite: "Lax",
+    });
 
-      // Return user data with session token (for mobile clients)
-      return c.json({ ...user, session_token: session.token });
-    } catch (error: unknown) {
-      if (error instanceof AppException) {
-        return c.json({ error: error.message }, error.statusCode);
-      }
-      throw error;
-    }
+    // Return user data with session token (for mobile clients)
+    return c.json({ ...user, session_token: session.token });
   })
   .post("/signup", zValidator("json", userSignupSchema), async (c) => {
     const { login_name: loginName, password } = c.req.valid("json");
@@ -207,23 +175,16 @@ export const consoleAccountRouter = new Hono()
     async (c) => {
       const { token } = c.req.valid("param");
 
-      try {
-        // Check token without marking it as used
-        const { userId } = await emailService.checkAccountDeletionToken(token);
+      // Check token without marking it as used
+      const { userId } = await emailService.checkAccountDeletionToken(token);
 
-        // Get user info
-        const user = await userService.getUserById(userId);
+      // Get user info
+      const user = await userService.getUserById(userId);
 
-        return c.json({
-          login_name: user.loginName,
-          email: user.email || "",
-        });
-      } catch (error: unknown) {
-        if (error instanceof AppException) {
-          return c.json({ error: error.message }, error.statusCode);
-        }
-        throw error;
-      }
+      return c.json({
+        login_name: user.loginName,
+        email: user.email || "",
+      });
     },
   )
   .post(
@@ -232,59 +193,45 @@ export const consoleAccountRouter = new Hono()
     async (c) => {
       const { token } = c.req.valid("json");
 
-      try {
-        // Verify token
-        const result = await emailService.verifyAccountDeletionToken(token);
+      // Verify token
+      const result = await emailService.verifyAccountDeletionToken(token);
 
-        // Delete the user account
-        await userService.deleteUserAccount(result.userId);
+      // Delete the user account
+      await userService.deleteUserAccount(result.userId);
 
-        return c.json({ message: "계정이 성공적으로 삭제되었습니다" });
-      } catch (error: unknown) {
-        if (error instanceof AppException) {
-          return c.json({ error: error.message }, error.statusCode);
-        }
-        throw error;
-      }
+      return c.json({ message: "계정이 성공적으로 삭제되었습니다" });
     },
   )
   .get("/my-applications", authMiddleware, async (c) => {
     const user = c.get("user");
 
-    try {
-      const applications = await membershipService.getAllUserApplications(
-        user.id,
-      );
+    const applications = await membershipService.getAllUserApplications(
+      user.id,
+    );
 
-      return c.json(
-        applications.map((app) => ({
-          id: app.id,
-          status: app.status,
-          profile_name: app.profileName,
-          profile_username: app.profileUsername,
-          message: app.message,
-          rejection_reason: app.rejectionReason,
-          created_at: app.createdAt,
-          reviewed_at: app.reviewedAt,
-          community: {
-            id: app.community.id,
-            name: app.community.name,
-            slug: app.community.slug,
-          },
-          attachments: app.attachments.map((att) => ({
-            id: att.id,
-            image_id: att.imageId,
-            image_url: addImageUrl(att.image),
-            created_at: att.createdAt,
-          })),
+    return c.json(
+      applications.map((app) => ({
+        id: app.id,
+        status: app.status,
+        profile_name: app.profileName,
+        profile_username: app.profileUsername,
+        message: app.message,
+        rejection_reason: app.rejectionReason,
+        created_at: app.createdAt,
+        reviewed_at: app.reviewedAt,
+        community: {
+          id: app.community.id,
+          name: app.community.name,
+          slug: app.community.slug,
+        },
+        attachments: app.attachments.map((att) => ({
+          id: att.id,
+          image_id: att.imageId,
+          image_url: addImageUrl(att.image),
+          created_at: att.createdAt,
         })),
-      );
-    } catch (error: unknown) {
-      if (error instanceof AppException) {
-        return c.json({ error: error.message }, error.statusCode);
-      }
-      throw error;
-    }
+      })),
+    );
   })
   .post(
     "/request-password-reset",
@@ -292,17 +239,10 @@ export const consoleAccountRouter = new Hono()
     async (c) => {
       const { email } = c.req.valid("json");
 
-      try {
-        await emailService.sendPasswordResetEmail(email);
-        return c.json({
-          message: "비밀번호 재설정 이메일이 전송되었습니다.",
-        });
-      } catch (error: unknown) {
-        if (error instanceof AppException) {
-          return c.json({ error: error.message }, error.statusCode);
-        }
-        throw error;
-      }
+      await emailService.sendPasswordResetEmail(email);
+      return c.json({
+        message: "비밀번호 재설정 이메일이 전송되었습니다.",
+      });
     },
   )
   .get(
@@ -311,15 +251,8 @@ export const consoleAccountRouter = new Hono()
     async (c) => {
       const { token } = c.req.valid("param");
 
-      try {
-        await emailService.checkPasswordResetToken(token);
-        return c.json({ valid: true });
-      } catch (error: unknown) {
-        if (error instanceof AppException) {
-          return c.json({ error: error.message }, error.statusCode);
-        }
-        throw error;
-      }
+      await emailService.checkPasswordResetToken(token);
+      return c.json({ valid: true });
     },
   )
   .post(
@@ -328,27 +261,19 @@ export const consoleAccountRouter = new Hono()
     async (c) => {
       const { token, new_password } = c.req.valid("json");
 
-      try {
-        const result = await authService.resetPassword(token, new_password);
+      const result = await authService.resetPassword(token, new_password);
 
-        // Set session cookie for web clients
-        setCookie(c, "session_token", result.session.token, {
-          maxAge: 30 * 24 * 60 * 60, // 30 days in seconds
-          httpOnly: true,
-          sameSite: "Lax",
-        });
+      // Set session cookie for web clients
+      setCookie(c, "session_token", result.session.token, {
+        maxAge: 30 * 24 * 60 * 60, // 30 days in seconds
+        httpOnly: true,
+        sameSite: "Lax",
+      });
 
-        // Return success message with session token (for mobile clients)
-        return c.json({
-          message: "비밀번호가 성공적으로 재설정되었습니다.",
-          session_token: result.session.token,
-        });
-      } catch (error: unknown) {
-        const message =
-          error instanceof Error
-            ? error.message
-            : "비밀번호 재설정에 실패했습니다";
-        return c.json({ error: message }, 400);
-      }
+      // Return success message with session token (for mobile clients)
+      return c.json({
+        message: "비밀번호가 성공적으로 재설정되었습니다.",
+        session_token: result.session.token,
+      });
     },
   );

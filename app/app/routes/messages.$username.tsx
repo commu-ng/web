@@ -24,7 +24,7 @@ import {
 import { useUnreadCount } from "~/contexts/UnreadCountContext";
 import { useAuth } from "~/hooks/useAuth";
 import { useCurrentInstance } from "~/hooks/useCurrentInstance";
-import { client } from "~/lib/api-client";
+import { client, getErrorMessage } from "~/lib/api-client";
 import type { Route } from "./+types/messages.$username";
 
 export function meta({ params }: Route.MetaArgs) {
@@ -422,9 +422,9 @@ export default function MessageConversation() {
         // Handle API error response
         try {
           const errorData = await response.json();
-          const errorMessage =
-            "error" in errorData ? errorData.error : errorData.message;
-          toast.error(errorMessage || "메시지를 삭제할 수 없습니다");
+          toast.error(
+            getErrorMessage(errorData, "메시지를 삭제할 수 없습니다"),
+          );
         } catch {
           toast.error("메시지를 삭제할 수 없습니다");
         }

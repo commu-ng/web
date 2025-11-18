@@ -1,7 +1,6 @@
 import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
 import { z } from "zod";
-import { AppException } from "../../exception";
 import {
   appAuthMiddleware,
   optionalAppAuthMiddleware,
@@ -41,26 +40,16 @@ export const postsRouter = new Hono<{ Variables: AuthVariables }>()
       const user = c.get("user");
       const community = c.get("community");
 
-      try {
-        const job = await exportJobService.createExportJob(
-          community.id,
-          user.id,
-        );
+      const job = await exportJobService.createExportJob(community.id, user.id);
 
-        return c.json(
-          {
-            job_id: job.id,
-            status: job.status,
-            created_at: job.createdAt,
-          },
-          202,
-        );
-      } catch (error: unknown) {
-        if (error instanceof AppException) {
-          return c.json({ error: error.message }, error.statusCode);
-        }
-        throw error;
-      }
+      return c.json(
+        {
+          job_id: job.id,
+          status: job.status,
+          created_at: job.createdAt,
+        },
+        202,
+      );
     },
   )
   .get(
@@ -71,24 +60,17 @@ export const postsRouter = new Hono<{ Variables: AuthVariables }>()
       const { job_id: jobId } = c.req.valid("param");
       const user = c.get("user");
 
-      try {
-        const job = await exportJobService.getExportJobStatus(jobId, user.id);
+      const job = await exportJobService.getExportJobStatus(jobId, user.id);
 
-        return c.json({
-          id: job.id,
-          status: job.status,
-          download_url: job.r2Key ? getFileUrl(job.r2Key) : null,
-          expires_at: job.expiresAt,
-          error: job.errorMessage,
-          created_at: job.createdAt,
-          completed_at: job.completedAt,
-        });
-      } catch (error: unknown) {
-        if (error instanceof AppException) {
-          return c.json({ error: error.message }, error.statusCode);
-        }
-        throw error;
-      }
+      return c.json({
+        id: job.id,
+        status: job.status,
+        download_url: job.r2Key ? getFileUrl(job.r2Key) : null,
+        expires_at: job.expiresAt,
+        error: job.errorMessage,
+        created_at: job.createdAt,
+        completed_at: job.completedAt,
+      });
     },
   )
   .get("/exports", appAuthMiddleware, communityMiddleware, async (c) => {
@@ -120,24 +102,17 @@ export const postsRouter = new Hono<{ Variables: AuthVariables }>()
       return c.json({ error: "업로드된 파일이 없습니다" }, 400);
     }
 
-    try {
-      const fileBuffer = await file.arrayBuffer();
-      const fileContentType = file.type || "application/octet-stream";
+    const fileBuffer = await file.arrayBuffer();
+    const fileContentType = file.type || "application/octet-stream";
 
-      const result = await postService.uploadImage(
-        fileBuffer,
-        file.name,
-        fileContentType,
-        file.size,
-      );
+    const result = await postService.uploadImage(
+      fileBuffer,
+      file.name,
+      fileContentType,
+      file.size,
+    );
 
-      return c.json(result, 201);
-    } catch (error: unknown) {
-      if (error instanceof AppException) {
-        return c.json({ error: error.message }, error.statusCode);
-      }
-      throw error;
-    }
+    return c.json(result, 201);
   })
   .get(
     "/announcements",
@@ -316,28 +291,21 @@ export const postsRouter = new Hono<{ Variables: AuthVariables }>()
         // Silently ignore errors
       });
 
-      try {
-        const result = await postService.createPost(
-          user.id,
-          profile.id,
-          community.id,
-          content,
-          in_reply_to_id || null,
-          image_ids,
-          announcement,
-          content_warning || null,
-          scheduled_at || null,
-          community.startsAt,
-          community.endsAt,
-        );
+      const result = await postService.createPost(
+        user.id,
+        profile.id,
+        community.id,
+        content,
+        in_reply_to_id || null,
+        image_ids,
+        announcement,
+        content_warning || null,
+        scheduled_at || null,
+        community.startsAt,
+        community.endsAt,
+      );
 
-        return c.json(result, 201);
-      } catch (error: unknown) {
-        if (error instanceof AppException) {
-          return c.json({ error: error.message }, error.statusCode);
-        }
-        throw error;
-      }
+      return c.json(result, 201);
     },
   )
 
@@ -352,15 +320,8 @@ export const postsRouter = new Hono<{ Variables: AuthVariables }>()
       const community = c.get("community");
       const { profile_id: profileId } = c.req.valid("query");
 
-      try {
-        const post = await postService.getPost(postId, community.id, profileId);
-        return c.json(post);
-      } catch (error: unknown) {
-        if (error instanceof AppException) {
-          return c.json({ error: error.message }, error.statusCode);
-        }
-        throw error;
-      }
+      const post = await postService.getPost(postId, community.id, profileId);
+      return c.json(post);
     },
   )
 
@@ -373,15 +334,8 @@ export const postsRouter = new Hono<{ Variables: AuthVariables }>()
       const { post_id: postId } = c.req.valid("param");
       const community = c.get("community");
 
-      try {
-        const history = await postService.getPostHistory(postId, community.id);
-        return c.json(history);
-      } catch (error: unknown) {
-        if (error instanceof AppException) {
-          return c.json({ error: error.message }, error.statusCode);
-        }
-        throw error;
-      }
+      const history = await postService.getPostHistory(postId, community.id);
+      return c.json(history);
     },
   )
 
@@ -413,16 +367,9 @@ export const postsRouter = new Hono<{ Variables: AuthVariables }>()
         );
       }
 
-      try {
-        await postService.deletePost(user.id, profile.id, postId, community.id);
+      await postService.deletePost(user.id, profile.id, postId, community.id);
 
-        return c.json({ message: "게시물이 성공적으로 삭제되었습니다" });
-      } catch (error: unknown) {
-        if (error instanceof AppException) {
-          return c.json({ error: error.message }, error.statusCode);
-        }
-        throw error;
-      }
+      return c.json({ message: "게시물이 성공적으로 삭제되었습니다" });
     },
   )
   .patch(
@@ -455,24 +402,17 @@ export const postsRouter = new Hono<{ Variables: AuthVariables }>()
         );
       }
 
-      try {
-        const result = await postService.updatePost(
-          user.id,
-          profile.id,
-          postId,
-          community.id,
-          content,
-          image_ids,
-          content_warning,
-        );
+      const result = await postService.updatePost(
+        user.id,
+        profile.id,
+        postId,
+        community.id,
+        content,
+        image_ids,
+        content_warning,
+      );
 
-        return c.json(result);
-      } catch (error: unknown) {
-        if (error instanceof AppException) {
-          return c.json({ error: error.message }, error.statusCode);
-        }
-        throw error;
-      }
+      return c.json(result);
     },
   )
   .post(
@@ -503,20 +443,13 @@ export const postsRouter = new Hono<{ Variables: AuthVariables }>()
         );
       }
 
-      try {
-        const result = await postService.createBookmark(
-          profile.id,
-          postId,
-          community.id,
-        );
+      const result = await postService.createBookmark(
+        profile.id,
+        postId,
+        community.id,
+      );
 
-        return c.json(result, 201);
-      } catch (error: unknown) {
-        if (error instanceof AppException) {
-          return c.json({ error: error.message }, error.statusCode);
-        }
-        throw error;
-      }
+      return c.json(result, 201);
     },
   )
   .delete(
@@ -546,16 +479,9 @@ export const postsRouter = new Hono<{ Variables: AuthVariables }>()
         );
       }
 
-      try {
-        await postService.deleteBookmark(profile.id, postId, community.id);
+      await postService.deleteBookmark(profile.id, postId, community.id);
 
-        return c.json({ message: "북마크가 성공적으로 제거되었습니다" });
-      } catch (error: unknown) {
-        if (error instanceof AppException) {
-          return c.json({ error: error.message }, error.statusCode);
-        }
-        throw error;
-      }
+      return c.json({ message: "북마크가 성공적으로 제거되었습니다" });
     },
   )
   .post(
@@ -582,22 +508,15 @@ export const postsRouter = new Hono<{ Variables: AuthVariables }>()
         return c.json({ error: "프로필을 찾을 수 없습니다" }, 404);
       }
 
-      try {
-        const result = await postService.createReaction(
-          profile.id,
-          postId,
-          community.id,
-          emoji,
-          profile.name,
-        );
+      const result = await postService.createReaction(
+        profile.id,
+        postId,
+        community.id,
+        emoji,
+        profile.name,
+      );
 
-        return c.json(result, 201);
-      } catch (error: unknown) {
-        if (error instanceof AppException) {
-          return c.json({ error: error.message }, error.statusCode);
-        }
-        throw error;
-      }
+      return c.json(result, 201);
     },
   )
 
@@ -624,26 +543,14 @@ export const postsRouter = new Hono<{ Variables: AuthVariables }>()
         return c.json({ error: "프로필을 찾을 수 없습니다" }, 404);
       }
 
-      try {
-        await postService.deleteReaction(
-          profile.id,
-          postId,
-          community.id,
-          emoji,
-        );
+      await postService.deleteReaction(profile.id, postId, community.id, emoji);
 
-        return c.json(
-          {
-            message: "반응이 성공적으로 제거되었습니다",
-          },
-          200,
-        );
-      } catch (error: unknown) {
-        if (error instanceof AppException) {
-          return c.json({ error: error.message }, error.statusCode);
-        }
-        throw error;
-      }
+      return c.json(
+        {
+          message: "반응이 성공적으로 제거되었습니다",
+        },
+        200,
+      );
     },
   )
   .post(
@@ -659,15 +566,8 @@ export const postsRouter = new Hono<{ Variables: AuthVariables }>()
       const user = c.get("user");
       const community = c.get("community");
 
-      try {
-        await postService.pinPost(user.id, profileId, postId, community.id);
-        return c.json({ message: "게시물이 성공적으로 고정되었습니다" });
-      } catch (error: unknown) {
-        if (error instanceof AppException) {
-          return c.json({ error: error.message }, error.statusCode);
-        }
-        throw error;
-      }
+      await postService.pinPost(user.id, profileId, postId, community.id);
+      return c.json({ message: "게시물이 성공적으로 고정되었습니다" });
     },
   )
   .delete(
@@ -683,14 +583,7 @@ export const postsRouter = new Hono<{ Variables: AuthVariables }>()
       const user = c.get("user");
       const community = c.get("community");
 
-      try {
-        await postService.unpinPost(user.id, profileId, postId, community.id);
-        return c.json({ message: "게시물 고정이 성공적으로 해제되었습니다" });
-      } catch (error: unknown) {
-        if (error instanceof AppException) {
-          return c.json({ error: error.message }, error.statusCode);
-        }
-        throw error;
-      }
+      await postService.unpinPost(user.id, profileId, postId, community.id);
+      return c.json({ message: "게시물 고정이 성공적으로 해제되었습니다" });
     },
   );

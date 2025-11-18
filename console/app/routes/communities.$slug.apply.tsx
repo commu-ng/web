@@ -17,7 +17,7 @@ import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { Spinner } from "~/components/ui/spinner";
 import { useAuth } from "~/hooks/useAuth";
-import { api, uploadImage } from "~/lib/api-client";
+import { api, getErrorMessage, uploadImage } from "~/lib/api-client";
 import type { Route } from "./+types/communities.$slug.apply";
 
 export function meta(_args: Route.MetaArgs) {
@@ -253,7 +253,7 @@ export default function CommunityApply({ params }: Route.ComponentProps) {
       });
       if (!res.ok) {
         const errorData = await res.json();
-        toast.error(errorData.error);
+        toast.error(getErrorMessage(errorData, "지원에 실패했습니다"));
       }
       return await res.json();
     },

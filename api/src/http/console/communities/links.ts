@@ -1,6 +1,5 @@
 import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
-import { AppException } from "../../../exception";
 import {
   authMiddleware,
   optionalAuthMiddleware,
@@ -26,23 +25,16 @@ export const linksRouter = new Hono()
       const community =
         await communityService.validateCommunityExistsBySlug(slug);
 
-      try {
-        const links = await communityService.getCommunityLinks(community.id);
-        return c.json(
-          links.map((link) => ({
-            id: link.id,
-            title: link.title,
-            url: link.url,
-            created_at: link.createdAt,
-            updated_at: link.updatedAt,
-          })),
-        );
-      } catch (error) {
-        if (error instanceof AppException) {
-          return c.json({ error: error.message }, error.statusCode);
-        }
-        throw error;
-      }
+      const links = await communityService.getCommunityLinks(community.id);
+      return c.json(
+        links.map((link) => ({
+          id: link.id,
+          title: link.title,
+          url: link.url,
+          created_at: link.createdAt,
+          updated_at: link.updatedAt,
+        })),
+      );
     },
   )
   .post(
@@ -60,39 +52,22 @@ export const linksRouter = new Hono()
         await communityService.validateCommunityExistsBySlug(slug);
 
       // Check if user is owner
-      try {
-        await membershipService.validateMembershipRole(user.id, community.id, [
-          "owner",
-        ]);
-      } catch (error) {
-        if (error instanceof AppException) {
-          return c.json({ error: error.message }, error.statusCode);
-        }
-        return c.json(
-          { error: "커뮤 소유자만 링크를 관리할 수 있습니다" },
-          403,
-        );
-      }
+      await membershipService.validateMembershipRole(user.id, community.id, [
+        "owner",
+      ]);
 
-      try {
-        const link = await communityService.createCommunityLink(
-          community.id,
-          title,
-          url,
-        );
-        return c.json({
-          id: link.id,
-          title: link.title,
-          url: link.url,
-          created_at: link.createdAt,
-          updated_at: link.updatedAt,
-        });
-      } catch (error) {
-        if (error instanceof AppException) {
-          return c.json({ error: error.message }, error.statusCode);
-        }
-        throw error;
-      }
+      const link = await communityService.createCommunityLink(
+        community.id,
+        title,
+        url,
+      );
+      return c.json({
+        id: link.id,
+        title: link.title,
+        url: link.url,
+        created_at: link.createdAt,
+        updated_at: link.updatedAt,
+      });
     },
   )
   .put(
@@ -110,40 +85,23 @@ export const linksRouter = new Hono()
         await communityService.validateCommunityExistsBySlug(slug);
 
       // Check permissions
-      try {
-        await membershipService.validateMembershipRole(user.id, community.id, [
-          "owner",
-        ]);
-      } catch (error) {
-        if (error instanceof AppException) {
-          return c.json({ error: error.message }, error.statusCode);
-        }
-        return c.json(
-          { error: "커뮤 소유자만 링크를 관리할 수 있습니다" },
-          403,
-        );
-      }
+      await membershipService.validateMembershipRole(user.id, community.id, [
+        "owner",
+      ]);
 
-      try {
-        const updatedLink = await communityService.updateCommunityLink(
-          community.id,
-          linkId,
-          title,
-          url,
-        );
-        return c.json({
-          id: updatedLink.id,
-          title: updatedLink.title,
-          url: updatedLink.url,
-          created_at: updatedLink.createdAt,
-          updated_at: updatedLink.updatedAt,
-        });
-      } catch (error) {
-        if (error instanceof AppException) {
-          return c.json({ error: error.message }, error.statusCode);
-        }
-        throw error;
-      }
+      const updatedLink = await communityService.updateCommunityLink(
+        community.id,
+        linkId,
+        title,
+        url,
+      );
+      return c.json({
+        id: updatedLink.id,
+        title: updatedLink.title,
+        url: updatedLink.url,
+        created_at: updatedLink.createdAt,
+        updated_at: updatedLink.updatedAt,
+      });
     },
   )
   .delete(
@@ -155,22 +113,15 @@ export const linksRouter = new Hono()
       const user = c.get("user");
 
       // Check permissions
-      try {
-        // Validate community exists and get its ID
-        const community =
-          await communityService.validateCommunityExistsBySlug(slug);
+      // Validate community exists and get its ID
+      const community =
+        await communityService.validateCommunityExistsBySlug(slug);
 
-        await membershipService.validateMembershipRole(user.id, community.id, [
-          "owner",
-        ]);
+      await membershipService.validateMembershipRole(user.id, community.id, [
+        "owner",
+      ]);
 
-        await communityService.deleteCommunityLink(community.id, linkId);
-        return c.json({ message: "링크가 성공적으로 삭제되었습니다" });
-      } catch (error) {
-        if (error instanceof AppException) {
-          return c.json({ error: error.message }, error.statusCode);
-        }
-        throw error;
-      }
+      await communityService.deleteCommunityLink(community.id, linkId);
+      return c.json({ message: "링크가 성공적으로 삭제되었습니다" });
     },
   );

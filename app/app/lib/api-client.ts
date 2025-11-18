@@ -14,22 +14,8 @@ export interface ApiSuccessResponse {
 
 // Helper function to extract error message from API response
 export function getErrorMessage(errorData: unknown, fallback: string): string {
-  if (
-    typeof errorData === "object" &&
-    errorData !== null &&
-    ("error" in errorData || "message" in errorData)
-  ) {
-    const error =
-      "error" in errorData && typeof errorData.error === "string"
-        ? errorData.error
-        : undefined;
-    const message =
-      "message" in errorData && typeof errorData.message === "string"
-        ? errorData.message
-        : undefined;
-    return error || message || fallback;
-  }
-  return fallback;
+  const data = errorData as { error?: string };
+  return data.error || fallback;
 }
 
 export const client = hc<AppType>(env.apiBaseUrl, {

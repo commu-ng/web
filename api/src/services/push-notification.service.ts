@@ -1,12 +1,12 @@
-import admin from "firebase-admin";
-import apn from "@parse/node-apn";
 import { readFileSync } from "node:fs";
+import apn from "@parse/node-apn";
 import { and, eq, inArray, isNull, sql } from "drizzle-orm";
+import admin from "firebase-admin";
 import { db } from "../db";
 import {
-	device as deviceTable,
-	notification as notificationTable,
-	profileOwnership as profileOwnershipTable,
+  device as deviceTable,
+  notification as notificationTable,
+  profileOwnership as profileOwnershipTable,
 } from "../drizzle/schema";
 
 interface NotificationPayload {
@@ -221,7 +221,7 @@ class PushNotificationService {
         const failedTokens: string[] = [];
         response.responses.forEach((resp, idx) => {
           if (!resp.success) {
-            failedTokens.push(tokens[idx]);
+            failedTokens.push(tokens[idx] ?? "");
             console.error(`Failed to send to ${tokens[idx]}:`, resp.error);
           }
         });

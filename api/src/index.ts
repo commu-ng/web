@@ -5,6 +5,7 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { env } from "./config/env";
 import { configureLogger, logger } from "./config/logger";
+import { AppException } from "./exception";
 import { appRouter } from "./http/app/index";
 import { auth } from "./http/auth";
 import { consoleRouter } from "./http/console";
@@ -55,6 +56,11 @@ const app = new Hono()
   .route("/app", appRouter)
   .route("/console", consoleRouter)
   .onError((err, c) => {
+    if (err instanceof AppException) {
+      logger.http.warn("AppException: {message}", { message: err.message });
+      return c.json({ error: err.message }, err.statusCode);
+    }
+
     logger.http.error("Unhandled error: {message} {stack}", {
       message: err.message,
       stack: err.stack,

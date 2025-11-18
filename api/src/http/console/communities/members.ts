@@ -1,6 +1,5 @@
 import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
-import { AppException } from "../../../exception";
 import { authMiddleware } from "../../../middleware/auth";
 import * as communityService from "../../../services/community.service";
 import * as membershipService from "../../../services/membership.service";
@@ -20,23 +19,12 @@ export const membersRouter = new Hono()
       const { id: slug, membership_id: membershipId } = c.req.valid("param");
       const user = c.get("user");
 
-      try {
-        // Validate community exists and get its ID
-        const community =
-          await communityService.validateCommunityExistsBySlug(slug);
+      // Validate community exists and get its ID
+      const community =
+        await communityService.validateCommunityExistsBySlug(slug);
 
-        await membershipService.removeMember(
-          community.id,
-          membershipId,
-          user.id,
-        );
-        return c.json({ message: "회원이 성공적으로 제거되었습니다" });
-      } catch (error) {
-        if (error instanceof AppException) {
-          return c.json({ error: error.message }, error.statusCode);
-        }
-        throw error;
-      }
+      await membershipService.removeMember(community.id, membershipId, user.id);
+      return c.json({ message: "회원이 성공적으로 제거되었습니다" });
     },
   )
   .delete(
@@ -47,19 +35,12 @@ export const membersRouter = new Hono()
       const { id: slug } = c.req.valid("param");
       const user = c.get("user");
 
-      try {
-        // Validate community exists and get its ID
-        const community =
-          await communityService.validateCommunityExistsBySlug(slug);
+      // Validate community exists and get its ID
+      const community =
+        await communityService.validateCommunityExistsBySlug(slug);
 
-        await membershipService.leaveCommunity(user.id, community.id);
-        return c.json({ message: "커뮤에서 성공적으로 나갔습니다" });
-      } catch (error) {
-        if (error instanceof AppException) {
-          return c.json({ error: error.message }, error.statusCode);
-        }
-        throw error;
-      }
+      await membershipService.leaveCommunity(user.id, community.id);
+      return c.json({ message: "커뮤에서 성공적으로 나갔습니다" });
     },
   )
   .get(
@@ -73,29 +54,22 @@ export const membersRouter = new Hono()
       const { limit = 50, offset = 0 } = c.req.valid("query");
 
       // Check if user has permission (must be owner only)
-      try {
-        // Validate community exists and get its ID
-        const community =
-          await communityService.validateCommunityExistsBySlug(slug);
+      // Validate community exists and get its ID
+      const community =
+        await communityService.validateCommunityExistsBySlug(slug);
 
-        await membershipService.validateMembershipRole(user.id, community.id, [
-          "owner",
-        ]);
+      await membershipService.validateMembershipRole(user.id, community.id, [
+        "owner",
+      ]);
 
-        // Get community members with profiles
-        const result = await membershipService.getCommunityMembers(
-          community.id,
-          user.id,
-          { limit, offset },
-        );
+      // Get community members with profiles
+      const result = await membershipService.getCommunityMembers(
+        community.id,
+        user.id,
+        { limit, offset },
+      );
 
-        return c.json(result);
-      } catch (error) {
-        if (error instanceof AppException) {
-          return c.json({ error: error.message }, error.statusCode);
-        }
-        throw error;
-      }
+      return c.json(result);
     },
   )
   .put(
@@ -109,33 +83,26 @@ export const membersRouter = new Hono()
       const { membership_id: membershipId, role: newRole } =
         c.req.valid("json");
 
-      try {
-        // Validate community exists and get its ID
-        const community =
-          await communityService.validateCommunityExistsBySlug(slug);
+      // Validate community exists and get its ID
+      const community =
+        await communityService.validateCommunityExistsBySlug(slug);
 
-        const result = await membershipService.updateMemberRole(
-          community.id,
-          membershipId,
-          newRole,
-          user.id,
-        );
+      const result = await membershipService.updateMemberRole(
+        community.id,
+        membershipId,
+        newRole,
+        user.id,
+      );
 
-        // Check if ownership was transferred
-        if (
-          typeof result === "object" &&
-          "transferred" in result &&
-          result.transferred
-        ) {
-          return c.json({ message: "소유권이 성공적으로 이전되었습니다" });
-        }
-
-        return c.json({ message: "회원 역할이 성공적으로 업데이트되었습니다" });
-      } catch (error) {
-        if (error instanceof AppException) {
-          return c.json({ error: error.message }, error.statusCode);
-        }
-        throw error;
+      // Check if ownership was transferred
+      if (
+        typeof result === "object" &&
+        "transferred" in result &&
+        result.transferred
+      ) {
+        return c.json({ message: "소유권이 성공적으로 이전되었습니다" });
       }
+
+      return c.json({ message: "회원 역할이 성공적으로 업데이트되었습니다" });
     },
   );

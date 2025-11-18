@@ -50,7 +50,7 @@ import {
 } from "~/components/ui/table";
 import { Textarea } from "~/components/ui/textarea";
 import { useAuth } from "~/hooks/useAuth";
-import { api } from "~/lib/api-client";
+import { api, getErrorMessage } from "~/lib/api-client";
 import type { Application } from "~/types/application";
 import type { Route } from "./+types/communities.$slug.applications";
 
@@ -72,10 +72,7 @@ async function fetchAllApplications(communityId: string) {
 
   // Handle error response
   if (!Array.isArray(data)) {
-    if ("message" in data && typeof data.message === "string") {
-      throw new Error(data.message);
-    }
-    throw new Error("Failed to fetch applications");
+    throw new Error(getErrorMessage(data, "Failed to fetch applications"));
   }
 
   return data;

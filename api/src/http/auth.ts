@@ -3,7 +3,6 @@ import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
 import { deleteCookie, getCookie } from "hono/cookie";
 import { env } from "../config/env";
-import { AppException } from "../exception";
 import { optionalAuthMiddleware } from "../middleware/auth";
 import { ssoQuerySchema, tokenExchangeSchema } from "../schemas";
 import * as authService from "../services/auth.service";
@@ -50,46 +49,32 @@ export const auth = new Hono()
         return c.redirect(loginUrl, 302);
       }
 
-      try {
-        // Get targetDomain from returnTo
-        const mainDomain = env.consoleDomain;
-        const returnToUrl = new URL(returnTo);
-        const targetDomain = returnToUrl.hostname;
+      // Get targetDomain from returnTo
+      const mainDomain = env.consoleDomain;
+      const returnToUrl = new URL(returnTo);
+      const targetDomain = returnToUrl.hostname;
 
-        // Verify the community exists for this domain
-        await authService.findCommunityByDomain(targetDomain, mainDomain);
+      // Verify the community exists for this domain
+      await authService.findCommunityByDomain(targetDomain, mainDomain);
 
-        // Create exchange token
-        const exchangeToken = await authService.createExchangeToken(
-          user.id,
-          targetDomain,
-        );
+      // Create exchange token
+      const exchangeToken = await authService.createExchangeToken(
+        user.id,
+        targetDomain,
+      );
 
-        // Extract the path from returnTo to pass to callback
-        const returnPath =
-          returnToUrl.pathname + returnToUrl.search + returnToUrl.hash;
+      // Extract the path from returnTo to pass to callback
+      const returnPath =
+        returnToUrl.pathname + returnToUrl.search + returnToUrl.hash;
 
-        // Redirect to target domain with token and return path
-        const redirectUrl = `https://${targetDomain}/auth/callback?token=${exchangeToken.token}&return_path=${encodeURIComponent(returnPath)}`;
-        return c.redirect(redirectUrl, 302);
-      } catch (error) {
-        if (error instanceof AppException) {
-          return c.json({ error: error.message }, error.statusCode);
-        }
-        throw error;
-      }
+      // Redirect to target domain with token and return path
+      const redirectUrl = `https://${targetDomain}/auth/callback?token=${exchangeToken.token}&return_path=${encodeURIComponent(returnPath)}`;
+      return c.redirect(redirectUrl, 302);
     },
   )
   .post("/callback", zValidator("json", tokenExchangeSchema), async (c) => {
     const { token, domain } = c.req.valid("json");
 
-    try {
-      const session = await authService.exchangeTokenForSession(token, domain);
-      return c.json({ message: "SSO 성공", session_token: session.token });
-    } catch (error) {
-      if (error instanceof AppException) {
-        return c.json({ error: error.message }, error.statusCode);
-      }
-      throw error;
-    }
+    const session = await authService.exchangeTokenForSession(token, domain);
+    return c.json({ message: "SSO 성공", session_token: session.token });
   });

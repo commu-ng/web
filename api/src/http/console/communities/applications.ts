@@ -1,6 +1,5 @@
 import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
-import { AppException } from "../../../exception";
 import { authMiddleware } from "../../../middleware/auth";
 import * as communityService from "../../../services/community.service";
 import * as membershipService from "../../../services/membership.service";
@@ -22,41 +21,34 @@ export const applicationsRouter = new Hono()
       const { id: slug } = c.req.valid("param");
       const user = c.get("user");
 
-      try {
-        // Validate community exists and get its ID
-        const community =
-          await communityService.validateCommunityExistsBySlug(slug);
+      // Validate community exists and get its ID
+      const community =
+        await communityService.validateCommunityExistsBySlug(slug);
 
-        // Get all applications for this user in this community
-        const applications =
-          await membershipService.getUserApplicationsForCommunity(
-            user.id,
-            community.id,
-          );
-
-        return c.json(
-          applications.map((app) => ({
-            id: app.id,
-            status: app.status,
-            profile_name: app.profileName,
-            profile_username: app.profileUsername,
-            message: app.message,
-            rejection_reason: app.rejectionReason,
-            created_at: app.createdAt,
-            attachments: app.attachments.map((att) => ({
-              id: att.id,
-              image_id: att.imageId,
-              image_url: addImageUrl(att.image),
-              created_at: att.createdAt,
-            })),
-          })),
+      // Get all applications for this user in this community
+      const applications =
+        await membershipService.getUserApplicationsForCommunity(
+          user.id,
+          community.id,
         );
-      } catch (error: unknown) {
-        if (error instanceof AppException) {
-          return c.json({ error: error.message }, error.statusCode);
-        }
-        throw error;
-      }
+
+      return c.json(
+        applications.map((app) => ({
+          id: app.id,
+          status: app.status,
+          profile_name: app.profileName,
+          profile_username: app.profileUsername,
+          message: app.message,
+          rejection_reason: app.rejectionReason,
+          created_at: app.createdAt,
+          attachments: app.attachments.map((att) => ({
+            id: att.id,
+            image_id: att.imageId,
+            image_url: addImageUrl(att.image),
+            created_at: att.createdAt,
+          })),
+        })),
+      );
     },
   )
   .post(
@@ -71,39 +63,32 @@ export const applicationsRouter = new Hono()
         c.req.valid("json");
 
       // Create application using service
-      try {
-        // Validate community exists and get its ID
-        const community =
-          await communityService.validateCommunityExistsBySlug(slug);
+      // Validate community exists and get its ID
+      const community =
+        await communityService.validateCommunityExistsBySlug(slug);
 
-        const newApplication = await membershipService.createApplication(
-          user.id,
-          community.id,
-          {
-            message,
-            profileName: profile_name,
-            profileUsername: profile_username,
-            attachmentIds: attachment_ids,
-          },
-        );
+      const newApplication = await membershipService.createApplication(
+        user.id,
+        community.id,
+        {
+          message,
+          profileName: profile_name,
+          profileUsername: profile_username,
+          attachmentIds: attachment_ids,
+        },
+      );
 
-        return c.json(
-          {
-            id: newApplication.id,
-            status: newApplication.status,
-            profile_name: newApplication.profileName,
-            profile_username: newApplication.profileUsername,
-            message: newApplication.message,
-            created_at: newApplication.createdAt,
-          },
-          201,
-        );
-      } catch (error: unknown) {
-        if (error instanceof AppException) {
-          return c.json({ error: error.message }, error.statusCode);
-        }
-        throw error;
-      }
+      return c.json(
+        {
+          id: newApplication.id,
+          status: newApplication.status,
+          profile_name: newApplication.profileName,
+          profile_username: newApplication.profileUsername,
+          message: newApplication.message,
+          created_at: newApplication.createdAt,
+        },
+        201,
+      );
     },
   )
   .put(
@@ -116,55 +101,48 @@ export const applicationsRouter = new Hono()
       const user = c.get("user");
       const { status, rejection_reason } = c.req.valid("json");
 
-      try {
-        // Find the application
-        const application =
-          await membershipService.getApplicationByIdSimple(applicationId);
+      // Find the application
+      const application =
+        await membershipService.getApplicationByIdSimple(applicationId);
 
-        if (!application) {
-          return c.json({ error: "지원서를 찾을 수 없습니다" }, 404);
-        }
+      if (!application) {
+        return c.json({ error: "지원서를 찾을 수 없습니다" }, 404);
+      }
 
-        // Check if user has permission (community owner or moderator)
-        const community = application.community;
-        await membershipService.validateMembershipRole(user.id, community.id, [
-          "owner",
-          "moderator",
-        ]);
+      // Check if user has permission (community owner or moderator)
+      const community = application.community;
+      await membershipService.validateMembershipRole(user.id, community.id, [
+        "owner",
+        "moderator",
+      ]);
 
-        if (status === "approved") {
-          // Use membership service to approve and create membership + profile
-          const result = await membershipService.approveMembershipApplication(
+      if (status === "approved") {
+        // Use membership service to approve and create membership + profile
+        const result = await membershipService.approveMembershipApplication(
+          applicationId,
+          user.id,
+        );
+
+        return c.json({
+          id: applicationId,
+          status: "approved",
+          membership_id: result.membership.id,
+          profile_id: result.profile.id,
+        });
+      } else {
+        // Use membership service to reject
+        const updatedApplication =
+          await membershipService.rejectMembershipApplication(
             applicationId,
             user.id,
+            rejection_reason,
           );
 
-          return c.json({
-            id: applicationId,
-            status: "approved",
-            membership_id: result.membership.id,
-            profile_id: result.profile.id,
-          });
-        } else {
-          // Use membership service to reject
-          const updatedApplication =
-            await membershipService.rejectMembershipApplication(
-              applicationId,
-              user.id,
-              rejection_reason,
-            );
-
-          return c.json({
-            id: updatedApplication.id,
-            status: updatedApplication.status,
-            reviewed_at: updatedApplication.reviewedAt,
-          });
-        }
-      } catch (error) {
-        if (error instanceof AppException) {
-          return c.json({ error: error.message }, error.statusCode);
-        }
-        throw error;
+        return c.json({
+          id: updatedApplication.id,
+          status: updatedApplication.status,
+          reviewed_at: updatedApplication.reviewedAt,
+        });
       }
     },
   )
@@ -176,30 +154,23 @@ export const applicationsRouter = new Hono()
       const { application_id: applicationId } = c.req.valid("param");
       const user = c.get("user");
 
-      try {
-        // Find the application
-        const application =
-          await membershipService.getApplicationByIdSimple(applicationId);
+      // Find the application
+      const application =
+        await membershipService.getApplicationByIdSimple(applicationId);
 
-        if (!application) {
-          return c.json({ error: "지원서를 찾을 수 없습니다" }, 404);
-        }
-
-        const community = application.community;
-
-        // Check if user has permission (community owner only)
-        await membershipService.validateMembershipRole(user.id, community.id, [
-          "owner",
-        ]);
-
-        await membershipService.revokeApplicationReview(applicationId);
-        return c.json({ message: "지원서 검토가 취소되었습니다" });
-      } catch (error) {
-        if (error instanceof AppException) {
-          return c.json({ error: error.message }, error.statusCode);
-        }
-        throw error;
+      if (!application) {
+        return c.json({ error: "지원서를 찾을 수 없습니다" }, 404);
       }
+
+      const community = application.community;
+
+      // Check if user has permission (community owner only)
+      await membershipService.validateMembershipRole(user.id, community.id, [
+        "owner",
+      ]);
+
+      await membershipService.revokeApplicationReview(applicationId);
+      return c.json({ message: "지원서 검토가 취소되었습니다" });
     },
   )
   .get(
@@ -211,89 +182,82 @@ export const applicationsRouter = new Hono()
       const user = c.get("user");
 
       // Check if user is owner or moderator
-      try {
-        // Validate community exists and get its ID
-        const community =
-          await communityService.validateCommunityExistsBySlug(slug);
+      // Validate community exists and get its ID
+      const community =
+        await communityService.validateCommunityExistsBySlug(slug);
 
-        await membershipService.validateMembershipRole(user.id, community.id, [
-          "owner",
-          "moderator",
-        ]);
-        // Get applications
-        const applications = await membershipService.getCommunityApplications(
-          community.id,
-        );
+      await membershipService.validateMembershipRole(user.id, community.id, [
+        "owner",
+        "moderator",
+      ]);
+      // Get applications
+      const applications = await membershipService.getCommunityApplications(
+        community.id,
+      );
 
-        // Batch fetch profile IDs for all applicants and reviewers
-        const userCommunityPairs: Array<{
-          userId: string;
-          communityId: string;
-        }> = [];
+      // Batch fetch profile IDs for all applicants and reviewers
+      const userCommunityPairs: Array<{
+        userId: string;
+        communityId: string;
+      }> = [];
 
-        for (const app of applications) {
-          // Add applicant
+      for (const app of applications) {
+        // Add applicant
+        userCommunityPairs.push({
+          userId: app.user_userId.id,
+          communityId: community.id,
+        });
+        // Add reviewer if exists
+        if (app.user_reviewedById) {
           userCommunityPairs.push({
-            userId: app.user_userId.id,
+            userId: app.user_reviewedById.id,
             communityId: community.id,
           });
-          // Add reviewer if exists
-          if (app.user_reviewedById) {
-            userCommunityPairs.push({
-              userId: app.user_reviewedById.id,
-              communityId: community.id,
-            });
-          }
         }
-
-        const profileIdsMap =
-          userCommunityPairs.length > 0
-            ? await getPrimaryProfileIdForUserInCommunity(userCommunityPairs)
-            : new Map<string, string | null>();
-
-        // Build result using the batched profile IDs
-        const result = applications.map((app) => {
-          const applicantKey = `${app.user_userId.id}:${community.id}`;
-          const applicantProfileId = profileIdsMap.get(applicantKey) || null;
-
-          let reviewerProfileId = null;
-          if (app.user_reviewedById) {
-            const reviewerKey = `${app.user_reviewedById.id}:${community.id}`;
-            reviewerProfileId = profileIdsMap.get(reviewerKey) || null;
-          }
-
-          return {
-            id: app.id,
-            status: app.status,
-            profile_name: app.profileName,
-            profile_username: app.profileUsername,
-            message: app.message,
-            created_at: app.createdAt,
-            reviewed_at: app.reviewedAt,
-            applicant: {
-              profile_id: applicantProfileId,
-            },
-            reviewed_by: app.user_reviewedById
-              ? {
-                  profile_id: reviewerProfileId,
-                }
-              : null,
-            attachments: app.attachments.map((att) => ({
-              id: att.id,
-              image_id: att.imageId,
-              image_url: addImageUrl(att.image),
-              created_at: att.createdAt,
-            })),
-          };
-        });
-
-        return c.json(result);
-      } catch (error) {
-        if (error instanceof AppException) {
-          return c.json({ error: error.message }, error.statusCode);
-        }
-        throw error;
       }
+
+      const profileIdsMap =
+        userCommunityPairs.length > 0
+          ? await getPrimaryProfileIdForUserInCommunity(userCommunityPairs)
+          : new Map<string, string | null>();
+
+      // Build result using the batched profile IDs
+      const result = applications.map((app) => {
+        const applicantKey = `${app.user_userId.id}:${community.id}`;
+        const applicantProfileId = profileIdsMap.get(applicantKey) || null;
+
+        let reviewerProfileId = null;
+        if (app.user_reviewedById) {
+          const reviewerKey = `${app.user_reviewedById.id}:${community.id}`;
+          reviewerProfileId = profileIdsMap.get(reviewerKey) || null;
+        }
+
+        return {
+          id: app.id,
+          status: app.status,
+          profile_name: app.profileName,
+          profile_username: app.profileUsername,
+          message: app.message,
+          created_at: app.createdAt,
+          reviewed_at: app.reviewedAt,
+          applicant: {
+            profile_id: applicantProfileId,
+          },
+          reviewed_by: app.user_reviewedById
+            ? {
+                profile_id: reviewerProfileId,
+              }
+            : null,
+          attachments: app.attachments.map((att) => ({
+            id: att.id,
+            image_id: att.imageId,
+            image_url: addImageUrl(att.image),
+            created_at: att.createdAt,
+          })),
+        };
+      });
+
+      return c.json(result);
     },
   )
   .get(
@@ -304,96 +268,87 @@ export const applicationsRouter = new Hono()
       const { id: slug, application_id: applicationId } = c.req.valid("param");
       const user = c.get("user");
 
-      try {
-        // Validate community exists and get its ID
-        const community =
-          await communityService.validateCommunityExistsBySlug(slug);
+      // Validate community exists and get its ID
+      const community =
+        await communityService.validateCommunityExistsBySlug(slug);
 
-        // Get the application
-        const application = await membershipService.getApplicationById(
-          applicationId,
-          community.id,
-        );
+      // Get the application
+      const application = await membershipService.getApplicationById(
+        applicationId,
+        community.id,
+      );
 
-        if (!application) {
-          return c.json({ error: "지원서를 찾을 수 없습니다" }, 404);
-        }
-
-        // Check if user has permission to view this application
-        // Either the applicant themselves OR a moderator/owner
-        const isApplicant = application.userId === user.id;
-
-        if (!isApplicant) {
-          try {
-            await membershipService.validateMembershipRole(
-              user.id,
-              community.id,
-              ["owner", "moderator"],
-            );
-          } catch (_error) {
-            return c.json(
-              { error: "이 지원서를 볼 수 있는 권한이 없습니다" },
-              403,
-            );
-          }
-        }
-
-        // Batch fetch profile IDs for applicant and reviewer
-        const userCommunityPairs: Array<{
-          userId: string;
-          communityId: string;
-        }> = [
-          { userId: application.user_userId.id, communityId: community.id },
-        ];
-
-        if (application.user_reviewedById?.id) {
-          userCommunityPairs.push({
-            userId: application.user_reviewedById.id,
-            communityId: community.id,
-          });
-        }
-
-        const profileIdsMap =
-          await getPrimaryProfileIdForUserInCommunity(userCommunityPairs);
-
-        const applicantKey = `${application.user_userId.id}:${community.id}`;
-        const applicantProfileId = profileIdsMap.get(applicantKey) || null;
-
-        let reviewerProfileId = null;
-        if (application.user_reviewedById?.id) {
-          const reviewerKey = `${application.user_reviewedById.id}:${community.id}`;
-          reviewerProfileId = profileIdsMap.get(reviewerKey) || null;
-        }
-
-        return c.json({
-          id: application.id,
-          profile_name: application.profileName,
-          profile_username: application.profileUsername,
-          message: application.message,
-          status: application.status,
-          rejection_reason: application.rejectionReason,
-          created_at: application.createdAt,
-          reviewed_at: application.reviewedAt,
-          applicant: {
-            profile_id: applicantProfileId,
-          },
-          reviewed_by: application.user_reviewedById
-            ? {
-                profile_id: reviewerProfileId,
-              }
-            : null,
-          attachments: application.attachments.map((att) => ({
-            id: att.id,
-            image_id: att.imageId,
-            image_url: addImageUrl(att.image),
-            created_at: att.createdAt,
-          })),
-        });
-      } catch (error) {
-        if (error instanceof AppException) {
-          return c.json({ error: error.message }, error.statusCode);
-        }
-        throw error;
+      if (!application) {
+        return c.json({ error: "지원서를 찾을 수 없습니다" }, 404);
       }
+
+      // Check if user has permission to view this application
+      // Either the applicant themselves OR a moderator/owner
+      const isApplicant = application.userId === user.id;
+
+      if (!isApplicant) {
+        try {
+          await membershipService.validateMembershipRole(
+            user.id,
+            community.id,
+            ["owner", "moderator"],
+          );
+        } catch (_error) {
+          return c.json(
+            { error: "이 지원서를 볼 수 있는 권한이 없습니다" },
+            403,
+          );
+        }
+      }
+
+      // Batch fetch profile IDs for applicant and reviewer
+      const userCommunityPairs: Array<{
+        userId: string;
+        communityId: string;
+      }> = [{ userId: application.user_userId.id, communityId: community.id }];
+
+      if (application.user_reviewedById?.id) {
+        userCommunityPairs.push({
+          userId: application.user_reviewedById.id,
+          communityId: community.id,
+        });
+      }
+
+      const profileIdsMap =
+        await getPrimaryProfileIdForUserInCommunity(userCommunityPairs);
+
+      const applicantKey = `${application.user_userId.id}:${community.id}`;
+      const applicantProfileId = profileIdsMap.get(applicantKey) || null;
+
+      let reviewerProfileId = null;
+      if (application.user_reviewedById?.id) {
+        const reviewerKey = `${application.user_reviewedById.id}:${community.id}`;
+        reviewerProfileId = profileIdsMap.get(reviewerKey) || null;
+      }
+
+      return c.json({
+        id: application.id,
+        profile_name: application.profileName,
+        profile_username: application.profileUsername,
+        message: application.message,
+        status: application.status,
+        rejection_reason: application.rejectionReason,
+        created_at: application.createdAt,
+        reviewed_at: application.reviewedAt,
+        applicant: {
+          profile_id: applicantProfileId,
+        },
+        reviewed_by: application.user_reviewedById
+          ? {
+              profile_id: reviewerProfileId,
+            }
+          : null,
+        attachments: application.attachments.map((att) => ({
+          id: att.id,
+          image_id: att.imageId,
+          image_url: addImageUrl(att.image),
+          created_at: att.createdAt,
+        })),
+      });
     },
   );

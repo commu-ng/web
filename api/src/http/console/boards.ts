@@ -1,6 +1,5 @@
 import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
-import { AppException } from "../../exception";
 import { authMiddleware } from "../../middleware/auth";
 import {
   boardCreateRequestSchema,
@@ -55,28 +54,13 @@ export const consoleBoardsRouter = new Hono<{ Variables: AuthVariables }>()
         allow_comments: allowComments,
       } = c.req.valid("json");
 
-      try {
-        const board = await boardPostService.createBoard(
-          name,
-          slug,
-          description,
-          allowComments,
-        );
-        return c.json({ data: board }, 201);
-      } catch (error: unknown) {
-        if (error instanceof AppException) {
-          return c.json(
-            {
-              error: {
-                code: error.code,
-                message: error.message,
-              },
-            },
-            error.statusCode,
-          );
-        }
-        throw error;
-      }
+      const board = await boardPostService.createBoard(
+        name,
+        slug,
+        description,
+        allowComments,
+      );
+      return c.json({ data: board }, 201);
     },
   )
 
@@ -88,23 +72,8 @@ export const consoleBoardsRouter = new Hono<{ Variables: AuthVariables }>()
     async (c) => {
       const { board_id: boardId } = c.req.valid("param");
 
-      try {
-        const board = await boardPostService.getBoard(boardId);
-        return c.json({ data: board });
-      } catch (error: unknown) {
-        if (error instanceof AppException) {
-          return c.json(
-            {
-              error: {
-                code: error.code,
-                message: error.message,
-              },
-            },
-            error.statusCode,
-          );
-        }
-        throw error;
-      }
+      const board = await boardPostService.getBoard(boardId);
+      return c.json({ data: board });
     },
   )
 
@@ -115,23 +84,8 @@ export const consoleBoardsRouter = new Hono<{ Variables: AuthVariables }>()
     async (c) => {
       const { board_slug: boardSlug } = c.req.valid("param");
 
-      try {
-        const board = await boardPostService.getBoardBySlug(boardSlug);
-        return c.json({ data: board });
-      } catch (error: unknown) {
-        if (error instanceof AppException) {
-          return c.json(
-            {
-              error: {
-                code: error.code,
-                message: error.message,
-              },
-            },
-            error.statusCode,
-          );
-        }
-        throw error;
-      }
+      const board = await boardPostService.getBoardBySlug(boardSlug);
+      return c.json({ data: board });
     },
   )
 
@@ -142,24 +96,9 @@ export const consoleBoardsRouter = new Hono<{ Variables: AuthVariables }>()
     async (c) => {
       const { board_slug: boardSlug } = c.req.valid("param");
 
-      try {
-        const board = await boardPostService.getBoardBySlug(boardSlug);
-        const hashtags = await boardPostService.getBoardHashtags(board.id);
-        return c.json({ data: hashtags });
-      } catch (error: unknown) {
-        if (error instanceof AppException) {
-          return c.json(
-            {
-              error: {
-                code: error.code,
-                message: error.message,
-              },
-            },
-            error.statusCode,
-          );
-        }
-        throw error;
-      }
+      const board = await boardPostService.getBoardBySlug(boardSlug);
+      const hashtags = await boardPostService.getBoardHashtags(board.id);
+      return c.json({ data: hashtags });
     },
   )
 
@@ -192,29 +131,14 @@ export const consoleBoardsRouter = new Hono<{ Variables: AuthVariables }>()
         );
       }
 
-      try {
-        const board = await boardPostService.updateBoard(
-          boardId,
-          name,
-          slug,
-          description,
-          allowComments,
-        );
-        return c.json({ data: board });
-      } catch (error: unknown) {
-        if (error instanceof AppException) {
-          return c.json(
-            {
-              error: {
-                code: error.code,
-                message: error.message,
-              },
-            },
-            error.statusCode,
-          );
-        }
-        throw error;
-      }
+      const board = await boardPostService.updateBoard(
+        boardId,
+        name,
+        slug,
+        description,
+        allowComments,
+      );
+      return c.json({ data: board });
     },
   )
 
@@ -240,27 +164,12 @@ export const consoleBoardsRouter = new Hono<{ Variables: AuthVariables }>()
         );
       }
 
-      try {
-        await boardPostService.deleteBoard(boardId);
-        return c.json({
-          success: true,
-          code: BoardSuccessCode.BOARD_DELETED,
-          message: "Board deleted successfully",
-        });
-      } catch (error: unknown) {
-        if (error instanceof AppException) {
-          return c.json(
-            {
-              error: {
-                code: error.code,
-                message: error.message,
-              },
-            },
-            error.statusCode,
-          );
-        }
-        throw error;
-      }
+      await boardPostService.deleteBoard(boardId);
+      return c.json({
+        success: true,
+        code: BoardSuccessCode.BOARD_DELETED,
+        message: "Board deleted successfully",
+      });
     },
   )
 
@@ -273,41 +182,26 @@ export const consoleBoardsRouter = new Hono<{ Variables: AuthVariables }>()
       const { board_slug: boardSlug } = c.req.valid("param");
       const { limit = 20, cursor, hashtags } = c.req.valid("query");
 
-      try {
-        const board = await boardPostService.getBoardBySlug(boardSlug);
-        const hashtagsArray = hashtags
-          ? hashtags
-              .split(",")
-              .map((tag) => tag.trim())
-              .filter((tag) => tag.length > 0)
-          : undefined;
-        const result = await boardPostService.getBoardPosts(
-          board.id,
-          limit,
-          cursor,
-          hashtagsArray,
-        );
-        return c.json({
-          data: result.data,
-          pagination: {
-            nextCursor: result.nextCursor,
-            hasMore: result.hasMore,
-          },
-        });
-      } catch (error: unknown) {
-        if (error instanceof AppException) {
-          return c.json(
-            {
-              error: {
-                code: error.code,
-                message: error.message,
-              },
-            },
-            error.statusCode,
-          );
-        }
-        throw error;
-      }
+      const board = await boardPostService.getBoardBySlug(boardSlug);
+      const hashtagsArray = hashtags
+        ? hashtags
+            .split(",")
+            .map((tag) => tag.trim())
+            .filter((tag) => tag.length > 0)
+        : undefined;
+      const result = await boardPostService.getBoardPosts(
+        board.id,
+        limit,
+        cursor,
+        hashtagsArray,
+      );
+      return c.json({
+        data: result.data,
+        pagination: {
+          nextCursor: result.nextCursor,
+          hasMore: result.hasMore,
+        },
+      });
     },
   )
 
@@ -327,31 +221,16 @@ export const consoleBoardsRouter = new Hono<{ Variables: AuthVariables }>()
         hashtags,
       } = c.req.valid("json");
 
-      try {
-        const board = await boardPostService.getBoardBySlug(boardSlug);
-        const post = await boardPostService.createBoardPost(
-          board.id,
-          user.id,
-          title,
-          content,
-          imageId,
-          hashtags,
-        );
-        return c.json({ data: post }, 201);
-      } catch (error: unknown) {
-        if (error instanceof AppException) {
-          return c.json(
-            {
-              error: {
-                code: error.code,
-                message: error.message,
-              },
-            },
-            error.statusCode,
-          );
-        }
-        throw error;
-      }
+      const board = await boardPostService.getBoardBySlug(boardSlug);
+      const post = await boardPostService.createBoardPost(
+        board.id,
+        user.id,
+        title,
+        content,
+        imageId,
+        hashtags,
+      );
+      return c.json({ data: post }, 201);
     },
   )
 
@@ -363,23 +242,8 @@ export const consoleBoardsRouter = new Hono<{ Variables: AuthVariables }>()
     async (c) => {
       const { board_post_id: postId } = c.req.valid("param");
 
-      try {
-        const post = await boardPostService.getBoardPost(postId);
-        return c.json({ data: post });
-      } catch (error: unknown) {
-        if (error instanceof AppException) {
-          return c.json(
-            {
-              error: {
-                code: error.code,
-                message: error.message,
-              },
-            },
-            error.statusCode,
-          );
-        }
-        throw error;
-      }
+      const post = await boardPostService.getBoardPost(postId);
+      return c.json({ data: post });
     },
   )
 
@@ -400,30 +264,15 @@ export const consoleBoardsRouter = new Hono<{ Variables: AuthVariables }>()
         hashtags,
       } = c.req.valid("json");
 
-      try {
-        const post = await boardPostService.updateBoardPost(
-          postId,
-          user.id,
-          title,
-          content,
-          imageId,
-          hashtags,
-        );
-        return c.json({ data: post });
-      } catch (error: unknown) {
-        if (error instanceof AppException) {
-          return c.json(
-            {
-              error: {
-                code: error.code,
-                message: error.message,
-              },
-            },
-            error.statusCode,
-          );
-        }
-        throw error;
-      }
+      const post = await boardPostService.updateBoardPost(
+        postId,
+        user.id,
+        title,
+        content,
+        imageId,
+        hashtags,
+      );
+      return c.json({ data: post });
     },
   )
 
@@ -437,27 +286,12 @@ export const consoleBoardsRouter = new Hono<{ Variables: AuthVariables }>()
       const user = c.get("user");
       const { board_post_id: postId } = c.req.valid("param");
 
-      try {
-        await boardPostService.deleteBoardPost(postId, user.id);
-        return c.json({
-          success: true,
-          code: BoardSuccessCode.BOARD_POST_DELETED,
-          message: "Board post deleted successfully",
-        });
-      } catch (error: unknown) {
-        if (error instanceof AppException) {
-          return c.json(
-            {
-              error: {
-                code: error.code,
-                message: error.message,
-              },
-            },
-            error.statusCode,
-          );
-        }
-        throw error;
-      }
+      await boardPostService.deleteBoardPost(postId, user.id);
+      return c.json({
+        success: true,
+        code: BoardSuccessCode.BOARD_POST_DELETED,
+        message: "Board post deleted successfully",
+      });
     },
   )
 
@@ -471,33 +305,18 @@ export const consoleBoardsRouter = new Hono<{ Variables: AuthVariables }>()
       const { board_post_id: postId } = c.req.valid("param");
       const { limit = 20, cursor } = c.req.valid("query");
 
-      try {
-        const result = await boardPostService.getBoardPostReplies(
-          postId,
-          limit,
-          cursor,
-        );
-        return c.json({
-          data: result.data,
-          pagination: {
-            nextCursor: result.nextCursor,
-            hasMore: result.hasMore,
-          },
-        });
-      } catch (error: unknown) {
-        if (error instanceof AppException) {
-          return c.json(
-            {
-              error: {
-                code: error.code,
-                message: error.message,
-              },
-            },
-            error.statusCode,
-          );
-        }
-        throw error;
-      }
+      const result = await boardPostService.getBoardPostReplies(
+        postId,
+        limit,
+        cursor,
+      );
+      return c.json({
+        data: result.data,
+        pagination: {
+          nextCursor: result.nextCursor,
+          hasMore: result.hasMore,
+        },
+      });
     },
   )
 
@@ -513,28 +332,13 @@ export const consoleBoardsRouter = new Hono<{ Variables: AuthVariables }>()
       const { board_post_id: postId } = c.req.valid("param");
       const { content, in_reply_to_id: inReplyToId } = c.req.valid("json");
 
-      try {
-        const reply = await boardPostService.createBoardPostReply(
-          postId,
-          user.id,
-          content,
-          inReplyToId,
-        );
-        return c.json({ data: reply }, 201);
-      } catch (error: unknown) {
-        if (error instanceof AppException) {
-          return c.json(
-            {
-              error: {
-                code: error.code,
-                message: error.message,
-              },
-            },
-            error.statusCode,
-          );
-        }
-        throw error;
-      }
+      const reply = await boardPostService.createBoardPostReply(
+        postId,
+        user.id,
+        content,
+        inReplyToId,
+      );
+      return c.json({ data: reply }, 201);
     },
   )
 
@@ -551,27 +355,12 @@ export const consoleBoardsRouter = new Hono<{ Variables: AuthVariables }>()
       const { reply_id: replyId } = c.req.valid("param");
       const { content } = c.req.valid("json");
 
-      try {
-        const reply = await boardPostService.updateBoardPostReply(
-          replyId,
-          user.id,
-          content,
-        );
-        return c.json({ data: reply });
-      } catch (error: unknown) {
-        if (error instanceof AppException) {
-          return c.json(
-            {
-              error: {
-                code: error.code,
-                message: error.message,
-              },
-            },
-            error.statusCode,
-          );
-        }
-        throw error;
-      }
+      const reply = await boardPostService.updateBoardPostReply(
+        replyId,
+        user.id,
+        content,
+      );
+      return c.json({ data: reply });
     },
   )
 
@@ -586,26 +375,11 @@ export const consoleBoardsRouter = new Hono<{ Variables: AuthVariables }>()
       const user = c.get("user");
       const { reply_id: replyId } = c.req.valid("param");
 
-      try {
-        await boardPostService.deleteBoardPostReply(replyId, user.id);
-        return c.json({
-          success: true,
-          code: BoardSuccessCode.BOARD_POST_DELETED,
-          message: "Reply deleted successfully",
-        });
-      } catch (error: unknown) {
-        if (error instanceof AppException) {
-          return c.json(
-            {
-              error: {
-                code: error.code,
-                message: error.message,
-              },
-            },
-            error.statusCode,
-          );
-        }
-        throw error;
-      }
+      await boardPostService.deleteBoardPostReply(replyId, user.id);
+      return c.json({
+        success: true,
+        code: BoardSuccessCode.BOARD_POST_DELETED,
+        message: "Reply deleted successfully",
+      });
     },
   );

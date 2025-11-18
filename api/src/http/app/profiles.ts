@@ -1,7 +1,6 @@
 import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
 import { z } from "zod";
-import { AppException } from "../../exception";
 import {
   appAuthMiddleware,
   optionalAppAuthMiddleware,
@@ -40,31 +39,12 @@ export const profilesRouter = new Hono<{ Variables: AuthVariables }>()
       const community = c.get("community");
       const { profile_id: profileId } = c.req.valid("query");
 
-      // Get and validate the profile belongs to the user using helper function
-      let profile: Awaited<
-        ReturnType<typeof validateMembershipAndProfile>
-      >["profile"];
-      try {
-        const result = await validateMembershipAndProfile(
-          user.id,
-          community.id,
-          profileId,
-        );
-        profile = result.profile;
-      } catch (error) {
-        if (error instanceof AppException) {
-          return c.json({ message: error.message }, error.statusCode);
-        }
-        return c.json(
-          {
-            message:
-              error instanceof Error
-                ? error.message
-                : "프로필을 찾을 수 없거나 귀하의 소유가 아닙니다",
-          },
-          404,
-        );
-      }
+      const result = await validateMembershipAndProfile(
+        user.id,
+        community.id,
+        profileId,
+      );
+      const profile = result.profile;
 
       // Check Content-Type
       const contentType = c.req.header("content-type") || "";
@@ -84,25 +64,18 @@ export const profilesRouter = new Hono<{ Variables: AuthVariables }>()
         return c.json({ error: "업로드된 파일이 없습니다" }, 400);
       }
 
-      try {
-        const fileBuffer = await file.arrayBuffer();
-        const fileContentType = file.type || "application/octet-stream";
+      const fileBuffer = await file.arrayBuffer();
+      const fileContentType = file.type || "application/octet-stream";
 
-        const result = await profileService.uploadProfilePicture(
-          profile.id,
-          fileBuffer,
-          file.name,
-          fileContentType,
-          file.size,
-        );
+      const result2 = await profileService.uploadProfilePicture(
+        profile.id,
+        fileBuffer,
+        file.name,
+        fileContentType,
+        file.size,
+      );
 
-        return c.json(result, 201);
-      } catch (error) {
-        if (error instanceof AppException) {
-          return c.json({ error: error.message }, error.statusCode);
-        }
-        throw error;
-      }
+      return c.json(result2, 201);
     },
   )
 
@@ -145,24 +118,17 @@ export const profilesRouter = new Hono<{ Variables: AuthVariables }>()
       const { name, username, bio, is_primary, profile_picture_id } =
         c.req.valid("json");
 
-      try {
-        const result = await profileService.createProfile(
-          user.id,
-          community.id,
-          name,
-          username,
-          bio,
-          is_primary,
-          profile_picture_id,
-        );
+      const result = await profileService.createProfile(
+        user.id,
+        community.id,
+        name,
+        username,
+        bio,
+        is_primary,
+        profile_picture_id,
+      );
 
-        return c.json(result, 201);
-      } catch (error) {
-        if (error instanceof AppException) {
-          return c.json({ error: error.message }, error.statusCode);
-        }
-        throw error;
-      }
+      return c.json(result, 201);
     },
   )
   .get(
@@ -188,15 +154,8 @@ export const profilesRouter = new Hono<{ Variables: AuthVariables }>()
       const community = c.get("community");
       const { profile_id: profileId } = c.req.valid("query");
 
-      try {
-        await profileService.deleteProfile(user.id, profileId, community.id);
-        return c.json({ message: "프로필이 성공적으로 삭제되었습니다" });
-      } catch (error) {
-        if (error instanceof AppException) {
-          return c.json({ error: error.message }, error.statusCode);
-        }
-        throw error;
-      }
+      await profileService.deleteProfile(user.id, profileId, community.id);
+      return c.json({ message: "프로필이 성공적으로 삭제되었습니다" });
     },
   )
   // Online status endpoints - must be before :username routes
@@ -209,15 +168,8 @@ export const profilesRouter = new Hono<{ Variables: AuthVariables }>()
     async (c) => {
       const { profile_ids } = c.req.valid("query");
 
-      try {
-        const onlineStatus = await profileService.getOnlineStatus(profile_ids);
-        return c.json(onlineStatus);
-      } catch (error) {
-        if (error instanceof AppException) {
-          return c.json({ error: error.message }, error.statusCode);
-        }
-        throw error;
-      }
+      const onlineStatus = await profileService.getOnlineStatus(profile_ids);
+      return c.json(onlineStatus);
     },
   )
   .put(
@@ -230,19 +182,12 @@ export const profilesRouter = new Hono<{ Variables: AuthVariables }>()
       const user = c.get("user");
       const { profile_id: profileId, visible } = c.req.valid("json");
 
-      try {
-        await profileService.updateOnlineStatusVisibility(
-          user.id,
-          profileId,
-          visible,
-        );
-        return c.json({ message: "온라인 상태 설정이 변경되었습니다" });
-      } catch (error) {
-        if (error instanceof AppException) {
-          return c.json({ error: error.message }, error.statusCode);
-        }
-        throw error;
-      }
+      await profileService.updateOnlineStatusVisibility(
+        user.id,
+        profileId,
+        visible,
+      );
+      return c.json({ message: "온라인 상태 설정이 변경되었습니다" });
     },
   )
   // Parameterized routes - must be after specific routes
@@ -255,18 +200,11 @@ export const profilesRouter = new Hono<{ Variables: AuthVariables }>()
       const { username } = c.req.valid("param");
       const community = c.get("community");
 
-      try {
-        const result = await profileService.getProfileProfile(
-          username,
-          community.id,
-        );
-        return c.json(result);
-      } catch (error) {
-        if (error instanceof AppException) {
-          return c.json({ error: error.message }, error.statusCode);
-        }
-        throw error;
-      }
+      const result = await profileService.getProfileProfile(
+        username,
+        community.id,
+      );
+      return c.json(result);
     },
   )
 
@@ -282,20 +220,13 @@ export const profilesRouter = new Hono<{ Variables: AuthVariables }>()
       const { limit = 20, cursor = "0" } = c.req.valid("query");
       const offset = Number.parseInt(cursor, 10) || 0;
 
-      try {
-        const result = await profileService.getProfilePosts(
-          username,
-          community.id,
-          limit,
-          offset,
-        );
-        return c.json(result);
-      } catch (error) {
-        if (error instanceof AppException) {
-          return c.json({ error: error.message }, error.statusCode);
-        }
-        throw error;
-      }
+      const result = await profileService.getProfilePosts(
+        username,
+        community.id,
+        limit,
+        offset,
+      );
+      return c.json(result);
     },
   )
   .post(
@@ -309,19 +240,8 @@ export const profilesRouter = new Hono<{ Variables: AuthVariables }>()
       const community = c.get("community");
       const { profile_id: profileId } = c.req.valid("query");
 
-      try {
-        await profileService.setPrimaryProfile(
-          user.id,
-          profileId,
-          community.id,
-        );
-        return c.json({ message: "기본 프로필이 성공적으로 설정되었습니다" });
-      } catch (error) {
-        if (error instanceof AppException) {
-          return c.json({ error: error.message }, error.statusCode);
-        }
-        throw error;
-      }
+      await profileService.setPrimaryProfile(user.id, profileId, community.id);
+      return c.json({ message: "기본 프로필이 성공적으로 설정되었습니다" });
     },
   )
   .put(
@@ -337,23 +257,16 @@ export const profilesRouter = new Hono<{ Variables: AuthVariables }>()
       const { profile_id: profileId } = c.req.valid("query");
       const { name, username, bio, profile_picture_id } = c.req.valid("json");
 
-      try {
-        const result = await profileService.updateProfile(
-          user.id,
-          profileId,
-          community.id,
-          name,
-          username,
-          bio,
-          profile_picture_id,
-        );
-        return c.json(result);
-      } catch (error) {
-        if (error instanceof AppException) {
-          return c.json({ error: error.message }, error.statusCode);
-        }
-        throw error;
-      }
+      const result = await profileService.updateProfile(
+        user.id,
+        profileId,
+        community.id,
+        name,
+        username,
+        bio,
+        profile_picture_id,
+      );
+      return c.json(result);
     },
   )
   // Profile sharing endpoints
@@ -368,18 +281,11 @@ export const profilesRouter = new Hono<{ Variables: AuthVariables }>()
       const user = c.get("user");
       const { profile_id: profileId } = c.req.valid("param");
 
-      try {
-        const result = await profileService.getProfileSharedUsers(
-          user.id,
-          profileId,
-        );
-        return c.json(result);
-      } catch (error) {
-        if (error instanceof AppException) {
-          return c.json({ error: error.message }, error.statusCode);
-        }
-        throw error;
-      }
+      const result = await profileService.getProfileSharedUsers(
+        user.id,
+        profileId,
+      );
+      return c.json(result);
     },
   )
   .post(
@@ -406,9 +312,6 @@ export const profilesRouter = new Hono<{ Variables: AuthVariables }>()
         );
         return c.json(result);
       } catch (error) {
-        if (error instanceof AppException) {
-          return c.json({ error: error.message }, error.statusCode);
-        }
         // Handle duplicate constraint error
         type DatabaseError = Error & { cause?: { constraint?: string } };
         if (
@@ -446,27 +349,20 @@ export const profilesRouter = new Hono<{ Variables: AuthVariables }>()
       const { profile_id: profileId, shared_profile_id: sharedProfileId } =
         c.req.valid("param");
 
-      try {
-        // Look up the profile ownership to find the user ID
-        const userIds =
-          await profileService.getUserIdsFromProfile(sharedProfileId);
-        const targetUserId = userIds[0];
+      // Look up the profile ownership to find the user ID
+      const userIds =
+        await profileService.getUserIdsFromProfile(sharedProfileId);
+      const targetUserId = userIds[0];
 
-        if (!targetUserId) {
-          return c.json({ error: "프로필 소유권을 찾을 수 없습니다" }, 404);
-        }
-
-        await profileService.removeUserFromProfileSharing(
-          user.id,
-          profileId,
-          targetUserId,
-        );
-        return c.json({ message: "사용자가 성공적으로 제거되었습니다" });
-      } catch (error) {
-        if (error instanceof AppException) {
-          return c.json({ error: error.message }, error.statusCode);
-        }
-        throw error;
+      if (!targetUserId) {
+        return c.json({ error: "프로필 소유권을 찾을 수 없습니다" }, 404);
       }
+
+      await profileService.removeUserFromProfileSharing(
+        user.id,
+        profileId,
+        targetUserId,
+      );
+      return c.json({ message: "사용자가 성공적으로 제거되었습니다" });
     },
   );

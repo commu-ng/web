@@ -1,7 +1,6 @@
 import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
 import { z } from "zod";
-import { AppException } from "../../exception";
 import { appAuthMiddleware } from "../../middleware/auth";
 import { communityMiddleware } from "../../middleware/community";
 import { membershipMiddleware } from "../../middleware/membership";
@@ -54,23 +53,16 @@ export const messagesRouter = new Hono<{ Variables: AuthVariables }>()
         );
       }
 
-      try {
-        const result = await messageService.sendDirectMessage(
-          user.id,
-          senderProfile.id,
-          receiver_id,
-          community.id,
-          content,
-          image_ids,
-        );
+      const result = await messageService.sendDirectMessage(
+        user.id,
+        senderProfile.id,
+        receiver_id,
+        community.id,
+        content,
+        image_ids,
+      );
 
-        return c.json(result, 201);
-      } catch (error: unknown) {
-        if (error instanceof AppException) {
-          return c.json({ error: error.message }, error.statusCode);
-        }
-        throw error;
-      }
+      return c.json(result, 201);
     },
   )
   .delete(
@@ -101,20 +93,13 @@ export const messagesRouter = new Hono<{ Variables: AuthVariables }>()
         );
       }
 
-      try {
-        await messageService.deleteDirectMessage(
-          profile.id,
-          messageId,
-          community.id,
-        );
+      await messageService.deleteDirectMessage(
+        profile.id,
+        messageId,
+        community.id,
+      );
 
-        return c.json({ message: "메시지가 성공적으로 삭제되었습니다" });
-      } catch (error: unknown) {
-        if (error instanceof AppException) {
-          return c.json({ error: error.message }, error.statusCode);
-        }
-        throw error;
-      }
+      return c.json({ message: "메시지가 성공적으로 삭제되었습니다" });
     },
   )
   .get(
@@ -171,21 +156,14 @@ export const messagesRouter = new Hono<{ Variables: AuthVariables }>()
         return c.json({ error: "프로필에 접근할 권한이 없습니다" }, 403);
       }
 
-      try {
-        const result = await messageService.getConversationThread(
-          profileId,
-          otherProfileId,
-          community.id,
-          limit,
-          0, // TODO: Implement cursor-based pagination
-        );
-        return c.json(result);
-      } catch (error) {
-        if (error instanceof AppException) {
-          return c.json({ error: error.message }, error.statusCode);
-        }
-        throw error;
-      }
+      const result = await messageService.getConversationThread(
+        profileId,
+        otherProfileId,
+        community.id,
+        limit,
+        0, // TODO: Implement cursor-based pagination
+      );
+      return c.json(result);
     },
   )
 
@@ -214,19 +192,12 @@ export const messagesRouter = new Hono<{ Variables: AuthVariables }>()
         return c.json({ error: "프로필을 찾을 수 없습니다" }, 404);
       }
 
-      try {
-        await messageService.markConversationAsRead(
-          profileId,
-          otherProfileId,
-          community.id,
-        );
-        return c.json({ message: "메시지가 읽음으로 표시되었습니다" });
-      } catch (error) {
-        if (error instanceof AppException) {
-          return c.json({ error: error.message }, error.statusCode);
-        }
-        throw error;
-      }
+      await messageService.markConversationAsRead(
+        profileId,
+        otherProfileId,
+        community.id,
+      );
+      return c.json({ message: "메시지가 읽음으로 표시되었습니다" });
     },
   )
 
@@ -253,18 +224,8 @@ export const messagesRouter = new Hono<{ Variables: AuthVariables }>()
         return c.json({ error: "프로필을 찾을 수 없습니다" }, 404);
       }
 
-      try {
-        await messageService.markAllDirectMessagesAsRead(
-          profileId,
-          community.id,
-        );
-        return c.json({ message: "모든 메시지가 읽음으로 표시되었습니다" });
-      } catch (error) {
-        if (error instanceof AppException) {
-          return c.json({ error: error.message }, error.statusCode);
-        }
-        throw error;
-      }
+      await messageService.markAllDirectMessagesAsRead(profileId, community.id);
+      return c.json({ message: "모든 메시지가 읽음으로 표시되었습니다" });
     },
   )
 
@@ -325,21 +286,14 @@ export const messagesRouter = new Hono<{ Variables: AuthVariables }>()
         return c.json({ error: "프로필을 찾을 수 없습니다" }, 404);
       }
 
-      try {
-        const result = await messageService.createDirectMessageReaction(
-          profile.id,
-          messageId,
-          community.id,
-          emoji,
-        );
+      const result = await messageService.createDirectMessageReaction(
+        profile.id,
+        messageId,
+        community.id,
+        emoji,
+      );
 
-        return c.json(result, 201);
-      } catch (error: unknown) {
-        if (error instanceof AppException) {
-          return c.json({ error: error.message }, error.statusCode);
-        }
-        throw error;
-      }
+      return c.json(result, 201);
     },
   )
 
@@ -368,26 +322,19 @@ export const messagesRouter = new Hono<{ Variables: AuthVariables }>()
         return c.json({ error: "프로필을 찾을 수 없습니다" }, 404);
       }
 
-      try {
-        await messageService.deleteDirectMessageReaction(
-          profile.id,
-          messageId,
-          community.id,
-          emoji,
-        );
+      await messageService.deleteDirectMessageReaction(
+        profile.id,
+        messageId,
+        community.id,
+        emoji,
+      );
 
-        return c.json(
-          {
-            message: "반응이 성공적으로 제거되었습니다",
-          },
-          200,
-        );
-      } catch (error: unknown) {
-        if (error instanceof AppException) {
-          return c.json({ error: error.message }, error.statusCode);
-        }
-        throw error;
-      }
+      return c.json(
+        {
+          message: "반응이 성공적으로 제거되었습니다",
+        },
+        200,
+      );
     },
   )
 
@@ -413,20 +360,13 @@ export const messagesRouter = new Hono<{ Variables: AuthVariables }>()
         return c.json({ error: "프로필을 찾을 수 없습니다" }, 404);
       }
 
-      try {
-        const result = await messageService.listGroupChats(
-          profileId,
-          community.id,
-          limit,
-          0, // TODO: Implement cursor-based pagination
-        );
-        return c.json(result);
-      } catch (error) {
-        if (error instanceof AppException) {
-          return c.json({ error: error.message }, error.statusCode);
-        }
-        throw error;
-      }
+      const result = await messageService.listGroupChats(
+        profileId,
+        community.id,
+        limit,
+        0, // TODO: Implement cursor-based pagination
+      );
+      return c.json(result);
     },
   )
 
@@ -457,20 +397,13 @@ export const messagesRouter = new Hono<{ Variables: AuthVariables }>()
         );
       }
 
-      try {
-        const result = await messageService.createGroupChat(
-          name,
-          member_profile_ids,
-          creator_profile_id,
-          community.id,
-        );
-        return c.json(result);
-      } catch (error) {
-        if (error instanceof AppException) {
-          return c.json({ error: error.message }, error.statusCode);
-        }
-        throw error;
-      }
+      const result = await messageService.createGroupChat(
+        name,
+        member_profile_ids,
+        creator_profile_id,
+        community.id,
+      );
+      return c.json(result);
     },
   )
 
@@ -501,19 +434,12 @@ export const messagesRouter = new Hono<{ Variables: AuthVariables }>()
         );
       }
 
-      try {
-        const result = await messageService.getGroupChatDetails(
-          group_chat_id,
-          profile_id,
-          community.id,
-        );
-        return c.json(result);
-      } catch (error) {
-        if (error instanceof AppException) {
-          return c.json({ error: error.message }, error.statusCode);
-        }
-        throw error;
-      }
+      const result = await messageService.getGroupChatDetails(
+        group_chat_id,
+        profile_id,
+        community.id,
+      );
+      return c.json(result);
     },
   )
 
@@ -544,19 +470,12 @@ export const messagesRouter = new Hono<{ Variables: AuthVariables }>()
         );
       }
 
-      try {
-        const result = await messageService.getGroupChatMessages(
-          group_chat_id,
-          profile_id,
-          community.id,
-        );
-        return c.json(result);
-      } catch (error) {
-        if (error instanceof AppException) {
-          return c.json({ error: error.message }, error.statusCode);
-        }
-        throw error;
-      }
+      const result = await messageService.getGroupChatMessages(
+        group_chat_id,
+        profile_id,
+        community.id,
+      );
+      return c.json(result);
     },
   )
 
@@ -585,22 +504,15 @@ export const messagesRouter = new Hono<{ Variables: AuthVariables }>()
         return c.json({ error: "프로필에 접근할 권한이 없습니다" }, 403);
       }
 
-      try {
-        const result = await messageService.sendGroupChatMessage(
-          user.id,
-          group_chat_id,
-          profile_id,
-          content,
-          community.id,
-          image_ids,
-        );
-        return c.json(result);
-      } catch (error) {
-        if (error instanceof AppException) {
-          return c.json({ error: error.message }, error.statusCode);
-        }
-        throw error;
-      }
+      const result = await messageService.sendGroupChatMessage(
+        user.id,
+        group_chat_id,
+        profile_id,
+        content,
+        community.id,
+        image_ids,
+      );
+      return c.json(result);
     },
   )
 
@@ -632,21 +544,14 @@ export const messagesRouter = new Hono<{ Variables: AuthVariables }>()
         return c.json({ error: "프로필에 접근할 권한이 없습니다" }, 403);
       }
 
-      try {
-        const result = await messageService.createGroupChatMessageReaction(
-          profile_id,
-          message_id,
-          group_chat_id,
-          community.id,
-          emoji,
-        );
-        return c.json(result, 201);
-      } catch (error) {
-        if (error instanceof AppException) {
-          return c.json({ error: error.message }, error.statusCode);
-        }
-        throw error;
-      }
+      const result = await messageService.createGroupChatMessageReaction(
+        profile_id,
+        message_id,
+        group_chat_id,
+        community.id,
+        emoji,
+      );
+      return c.json(result, 201);
     },
   )
 
@@ -678,21 +583,14 @@ export const messagesRouter = new Hono<{ Variables: AuthVariables }>()
         return c.json({ error: "프로필에 접근할 권한이 없습니다" }, 403);
       }
 
-      try {
-        await messageService.deleteGroupChatMessageReaction(
-          profile_id,
-          message_id,
-          group_chat_id,
-          community.id,
-          emoji,
-        );
-        return c.json({ message: "반응이 성공적으로 제거되었습니다" });
-      } catch (error) {
-        if (error instanceof AppException) {
-          return c.json({ error: error.message }, error.statusCode);
-        }
-        throw error;
-      }
+      await messageService.deleteGroupChatMessageReaction(
+        profile_id,
+        message_id,
+        group_chat_id,
+        community.id,
+        emoji,
+      );
+      return c.json({ message: "반응이 성공적으로 제거되었습니다" });
     },
   )
 
@@ -721,18 +619,11 @@ export const messagesRouter = new Hono<{ Variables: AuthVariables }>()
         return c.json({ error: "프로필에 접근할 권한이 없습니다" }, 403);
       }
 
-      try {
-        await messageService.markGroupChatMessagesAsRead(
-          group_chat_id,
-          profile_id,
-          community.id,
-        );
-        return c.json({ message: "메시지가 읽음으로 표시되었습니다" });
-      } catch (error) {
-        if (error instanceof AppException) {
-          return c.json({ error: error.message }, error.statusCode);
-        }
-        throw error;
-      }
+      await messageService.markGroupChatMessagesAsRead(
+        group_chat_id,
+        profile_id,
+        community.id,
+      );
+      return c.json({ message: "메시지가 읽음으로 표시되었습니다" });
     },
   );

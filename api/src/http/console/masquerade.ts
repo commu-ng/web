@@ -1,7 +1,6 @@
 import { zValidator } from "@hono/zod-validator";
-import { setCookie } from "hono/cookie";
 import { Hono } from "hono";
-import { AppException } from "../../exception";
+import { setCookie } from "hono/cookie";
 import { authMiddleware } from "../../middleware/auth";
 import {
   masqueradeAuditLogQuerySchema,
@@ -40,35 +39,28 @@ export const consoleMasqueradeRouter = new Hono<{ Variables: AuthVariables }>()
       const user = c.get("user");
       const { target_user_id } = c.req.valid("json");
 
-      try {
-        const result = await masqueradeService.startMasquerade(
-          user.id,
-          target_user_id,
-        );
+      const result = await masqueradeService.startMasquerade(
+        user.id,
+        target_user_id,
+      );
 
-        if (!result.session) {
-          return c.json({ error: "세션 생성에 실패했습니다" }, 500);
-        }
-
-        // Set the new session cookie
-        setCookie(c, "session_token", result.session.token, {
-          httpOnly: true,
-          secure: process.env.NODE_ENV === "production",
-          sameSite: "lax",
-          path: "/",
-          maxAge: 30 * 24 * 60 * 60, // 30 days
-        });
-
-        return c.json({
-          message: "전환이 시작되었습니다",
-          targetUser: result.targetUser,
-        });
-      } catch (error: unknown) {
-        if (error instanceof AppException) {
-          return c.json({ error: error.message }, error.statusCode);
-        }
-        throw error;
+      if (!result.session) {
+        return c.json({ error: "세션 생성에 실패했습니다" }, 500);
       }
+
+      // Set the new session cookie
+      setCookie(c, "session_token", result.session.token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        path: "/",
+        maxAge: 30 * 24 * 60 * 60, // 30 days
+      });
+
+      return c.json({
+        message: "전환이 시작되었습니다",
+        targetUser: result.targetUser,
+      });
     },
   )
 
@@ -82,27 +74,20 @@ export const consoleMasqueradeRouter = new Hono<{ Variables: AuthVariables }>()
       return c.json({ error: "세션 토큰이 없습니다" }, 401);
     }
 
-    try {
-      const result = await masqueradeService.endMasquerade(sessionToken);
+    const result = await masqueradeService.endMasquerade(sessionToken);
 
-      // Set the new admin session cookie
-      setCookie(c, "session_token", result.session.token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
-        path: "/",
-        maxAge: 30 * 24 * 60 * 60, // 30 days
-      });
+    // Set the new admin session cookie
+    setCookie(c, "session_token", result.session.token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: 30 * 24 * 60 * 60, // 30 days
+    });
 
-      return c.json({
-        message: "전환이 종료되었습니다",
-      });
-    } catch (error: unknown) {
-      if (error instanceof AppException) {
-        return c.json({ error: error.message }, error.statusCode);
-      }
-      throw error;
-    }
+    return c.json({
+      message: "전환이 종료되었습니다",
+    });
   })
 
   // List users available for masquerading
@@ -114,19 +99,12 @@ export const consoleMasqueradeRouter = new Hono<{ Variables: AuthVariables }>()
       const user = c.get("user");
       const { limit, search } = c.req.valid("query");
 
-      try {
-        const users = await masqueradeService.listUsersForMasquerade(
-          user.id,
-          limit,
-          search,
-        );
-        return c.json({ users });
-      } catch (error: unknown) {
-        if (error instanceof AppException) {
-          return c.json({ error: error.message }, error.statusCode);
-        }
-        throw error;
-      }
+      const users = await masqueradeService.listUsersForMasquerade(
+        user.id,
+        limit,
+        search,
+      );
+      return c.json({ users });
     },
   )
 
@@ -139,17 +117,10 @@ export const consoleMasqueradeRouter = new Hono<{ Variables: AuthVariables }>()
       const user = c.get("user");
       const { limit } = c.req.valid("query");
 
-      try {
-        const logs = await masqueradeService.getMasqueradeAuditLogs(
-          user.id,
-          limit,
-        );
-        return c.json({ logs });
-      } catch (error: unknown) {
-        if (error instanceof AppException) {
-          return c.json({ error: error.message }, error.statusCode);
-        }
-        throw error;
-      }
+      const logs = await masqueradeService.getMasqueradeAuditLogs(
+        user.id,
+        limit,
+      );
+      return c.json({ logs });
     },
   );

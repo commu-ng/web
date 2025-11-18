@@ -1,7 +1,6 @@
 import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
 import z from "zod";
-import { AppException } from "../../exception";
 import { appAuthMiddleware } from "../../middleware/auth";
 import { communityMiddleware } from "../../middleware/community";
 import {
@@ -49,20 +48,13 @@ export const notificationsRouter = new Hono<{ Variables: AuthVariables }>()
       const community = c.get("community");
       const { profile_id: profileId } = c.req.valid("query");
 
-      try {
-        const count = await notificationService.getUnreadCount(
-          user.id,
-          community.id,
-          profileId,
-        );
+      const count = await notificationService.getUnreadCount(
+        user.id,
+        community.id,
+        profileId,
+      );
 
-        return c.json({ count });
-      } catch (error) {
-        if (error instanceof AppException) {
-          return c.json({ error: error.message }, error.statusCode);
-        }
-        throw error;
-      }
+      return c.json({ count });
     },
   )
   .post(
@@ -75,20 +67,9 @@ export const notificationsRouter = new Hono<{ Variables: AuthVariables }>()
       const community = c.get("community");
       const { profile_id: profileId } = c.req.valid("query");
 
-      try {
-        await notificationService.markAllAsRead(
-          user.id,
-          community.id,
-          profileId,
-        );
+      await notificationService.markAllAsRead(user.id, community.id, profileId);
 
-        return c.json({ message: "모든 알림이 읽음으로 표시되었습니다" });
-      } catch (error) {
-        if (error instanceof AppException) {
-          return c.json({ error: error.message }, error.statusCode);
-        }
-        throw error;
-      }
+      return c.json({ message: "모든 알림이 읽음으로 표시되었습니다" });
     },
   )
 
@@ -104,21 +85,14 @@ export const notificationsRouter = new Hono<{ Variables: AuthVariables }>()
       const { notification_id: notificationId } = c.req.valid("param");
       const { profile_id: profileId } = c.req.valid("query");
 
-      try {
-        await notificationService.markAsRead(
-          user.id,
-          community.id,
-          profileId,
-          notificationId,
-        );
+      await notificationService.markAsRead(
+        user.id,
+        community.id,
+        profileId,
+        notificationId,
+      );
 
-        return c.json({ message: "알림이 읽음으로 표시되었습니다" });
-      } catch (error) {
-        if (error instanceof AppException) {
-          return c.json({ error: error.message }, error.statusCode);
-        }
-        throw error;
-      }
+      return c.json({ message: "알림이 읽음으로 표시되었습니다" });
     },
   )
 
@@ -134,20 +108,13 @@ export const notificationsRouter = new Hono<{ Variables: AuthVariables }>()
       const { notification_id: notificationId } = c.req.valid("param");
       const { profile_id: profileId } = c.req.valid("query");
 
-      try {
-        await notificationService.markAsUnread(
-          user.id,
-          community.id,
-          profileId,
-          notificationId,
-        );
+      await notificationService.markAsUnread(
+        user.id,
+        community.id,
+        profileId,
+        notificationId,
+      );
 
-        return c.json({ message: "알림이 읽지 않음으로 표시되었습니다" });
-      } catch (error) {
-        if (error instanceof AppException) {
-          return c.json({ error: error.message }, error.statusCode);
-        }
-        throw error;
-      }
+      return c.json({ message: "알림이 읽지 않음으로 표시되었습니다" });
     },
   );

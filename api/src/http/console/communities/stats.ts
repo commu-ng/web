@@ -1,7 +1,6 @@
 import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
 import { z } from "zod";
-import { AppException } from "../../../exception";
 import { authMiddleware } from "../../../middleware/auth";
 import * as communityService from "../../../services/community.service";
 import * as membershipService from "../../../services/membership.service";
@@ -20,26 +19,19 @@ export const statsRouter = new Hono()
       const { id: slug } = c.req.valid("param");
       const user = c.get("user");
 
-      try {
-        // Validate community exists and get its ID
-        const community =
-          await communityService.validateCommunityExistsBySlug(slug);
-        const communityId = community.id;
+      // Validate community exists and get its ID
+      const community =
+        await communityService.validateCommunityExistsBySlug(slug);
+      const communityId = community.id;
 
-        // Check if user is owner or moderator
-        await membershipService.validateMembershipRole(user.id, communityId, [
-          "owner",
-          "moderator",
-        ]);
+      // Check if user is owner or moderator
+      await membershipService.validateMembershipRole(user.id, communityId, [
+        "owner",
+        "moderator",
+      ]);
 
-        const stats = await communityService.getCommunityStats(communityId);
-        return c.json(stats);
-      } catch (error) {
-        if (error instanceof AppException) {
-          return c.json({ error: error.message }, error.statusCode);
-        }
-        throw error;
-      }
+      const stats = await communityService.getCommunityStats(communityId);
+      return c.json(stats);
     },
   )
   .get(
@@ -52,28 +44,21 @@ export const statsRouter = new Hono()
       const { days } = c.req.valid("query");
       const user = c.get("user");
 
-      try {
-        // Validate community exists and get its ID
-        const community =
-          await communityService.validateCommunityExistsBySlug(slug);
-        const communityId = community.id;
+      // Validate community exists and get its ID
+      const community =
+        await communityService.validateCommunityExistsBySlug(slug);
+      const communityId = community.id;
 
-        // Check if user is owner or moderator
-        await membershipService.validateMembershipRole(user.id, communityId, [
-          "owner",
-          "moderator",
-        ]);
+      // Check if user is owner or moderator
+      await membershipService.validateMembershipRole(user.id, communityId, [
+        "owner",
+        "moderator",
+      ]);
 
-        const activityStats = await communityService.getCommunityActivityStats(
-          communityId,
-          days,
-        );
-        return c.json(activityStats);
-      } catch (error) {
-        if (error instanceof AppException) {
-          return c.json({ error: error.message }, error.statusCode);
-        }
-        throw error;
-      }
+      const activityStats = await communityService.getCommunityActivityStats(
+        communityId,
+        days,
+      );
+      return c.json(activityStats);
     },
   );

@@ -237,181 +237,162 @@ export async function updateCommunity(
     throw new AppException(404, GENERAL_ERROR_CODE, "커뮤를 찾을 수 없습니다");
   }
 
-  try {
-    // Update community in a transaction
-    const updatedCommunity = await db.transaction(async (tx) => {
-      // Update community fields
-      const sanitizedDescription = data.description
-        ? sanitizeCommunityDescription(data.description)
-        : null;
+  // Update community in a transaction
+  const updatedCommunity = await db.transaction(async (tx) => {
+    // Update community fields
+    const sanitizedDescription = data.description
+      ? sanitizeCommunityDescription(data.description)
+      : null;
 
-      const updatedCommunityResult = await tx
-        .update(communityTable)
-        .set({
-          name: data.name,
-          slug: data.slug,
-          startsAt: data.startsAt,
-          endsAt: data.endsAt,
-          isRecruiting: data.recruiting,
-          recruitingStartsAt: data.recruitingStartsAt,
-          recruitingEndsAt: data.recruitingEndsAt,
-          minimumBirthYear: data.minimumBirthYear,
-          description: sanitizedDescription,
-          muteNewMembers: data.muteNewMembers,
-        })
-        .where(eq(communityTable.id, communityId))
-        .returning();
+    const updatedCommunityResult = await tx
+      .update(communityTable)
+      .set({
+        name: data.name,
+        slug: data.slug,
+        startsAt: data.startsAt,
+        endsAt: data.endsAt,
+        isRecruiting: data.recruiting,
+        recruitingStartsAt: data.recruitingStartsAt,
+        recruitingEndsAt: data.recruitingEndsAt,
+        minimumBirthYear: data.minimumBirthYear,
+        description: sanitizedDescription,
+        muteNewMembers: data.muteNewMembers,
+      })
+      .where(eq(communityTable.id, communityId))
+      .returning();
 
-      const updated = updatedCommunityResult[0];
-      if (!updated) {
-        throw new Error("Failed to update community");
+    const updated = updatedCommunityResult[0];
+    if (!updated) {
+      throw new Error("Failed to update community");
+    }
+
+    // Update hashtags
+    if (data.hashtags) {
+      await replaceCommunityHashtags(communityId, data.hashtags, tx);
+    }
+
+    // Update banner image if provided
+    if (data.imageId) {
+      // Remove existing banner images (soft delete)
+      await tx
+        .update(communityBannerImageTable)
+        .set({ deletedAt: sql`NOW()` })
+        .where(
+          and(
+            eq(communityBannerImageTable.communityId, communityId),
+            isNull(communityBannerImageTable.deletedAt),
+          ),
+        );
+
+      // Validate that the image exists and is not deleted
+      const image = await tx.query.image.findFirst({
+        where: and(
+          eq(imageTable.id, data.imageId),
+          isNull(imageTable.deletedAt),
+        ),
+      });
+      if (!image) {
+        throw new AppException(
+          400,
+          GENERAL_ERROR_CODE,
+          `잘못된 이미지 ID입니다: ${data.imageId}`,
+        );
       }
 
-      // Update hashtags
-      if (data.hashtags) {
-        await replaceCommunityHashtags(communityId, data.hashtags, tx);
-      }
+      // Create new banner image association
+      await tx.insert(communityBannerImageTable).values({
+        communityId: communityId,
+        imageId: data.imageId,
+      });
+    }
 
-      // Update banner image if provided
-      if (data.imageId) {
-        // Remove existing banner images (soft delete)
-        await tx
-          .update(communityBannerImageTable)
-          .set({ deletedAt: sql`NOW()` })
-          .where(
-            and(
-              eq(communityBannerImageTable.communityId, communityId),
-              isNull(communityBannerImageTable.deletedAt),
-            ),
-          );
-
-        // Validate that the image exists and is not deleted
-        const image = await tx.query.image.findFirst({
+    // Update description images if provided
+    if (data.descriptionImageIds) {
+      // Get existing description images
+      const existingDescImages =
+        await tx.query.communityDescriptionImage.findMany({
           where: and(
-            eq(imageTable.id, data.imageId),
+            eq(communityDescriptionImageTable.communityId, communityId),
+            isNull(communityDescriptionImageTable.deletedAt),
+          ),
+        });
+
+      const existingImageIds = new Set(
+        existingDescImages.map((img) => img.imageId),
+      );
+      const newImageIds = new Set(data.descriptionImageIds);
+
+      // Soft delete images that are no longer in the description
+      const imagesToRemove = existingDescImages
+        .filter((img) => !newImageIds.has(img.imageId))
+        .map((img) => img.id);
+
+      if (imagesToRemove.length > 0) {
+        await tx
+          .update(communityDescriptionImageTable)
+          .set({ deletedAt: sql`NOW()` })
+          .where(inArray(communityDescriptionImageTable.id, imagesToRemove));
+      }
+
+      // Add new images
+      const newImageIdsToAdd = data.descriptionImageIds.filter(
+        (imageId) => !existingImageIds.has(imageId),
+      );
+
+      if (newImageIdsToAdd.length > 0) {
+        // Batch validate all new images exist
+        const validImages = await tx.query.image.findMany({
+          where: and(
+            inArray(imageTable.id, newImageIdsToAdd),
             isNull(imageTable.deletedAt),
           ),
         });
-        if (!image) {
+
+        if (validImages.length !== newImageIdsToAdd.length) {
+          const validImageIds = new Set(validImages.map((img) => img.id));
+          const invalidIds = newImageIdsToAdd.filter(
+            (id) => !validImageIds.has(id),
+          );
           throw new AppException(
             400,
             GENERAL_ERROR_CODE,
-            `잘못된 이미지 ID입니다: ${data.imageId}`,
+            `잘못된 이미지 ID입니다: ${invalidIds.join(", ")}`,
           );
         }
 
-        // Create new banner image association
-        await tx.insert(communityBannerImageTable).values({
-          communityId: communityId,
-          imageId: data.imageId,
-        });
-      }
-
-      // Update description images if provided
-      if (data.descriptionImageIds) {
-        // Get existing description images
-        const existingDescImages =
-          await tx.query.communityDescriptionImage.findMany({
-            where: and(
-              eq(communityDescriptionImageTable.communityId, communityId),
-              isNull(communityDescriptionImageTable.deletedAt),
-            ),
-          });
-
-        const existingImageIds = new Set(
-          existingDescImages.map((img) => img.imageId),
+        // Batch insert all new associations
+        await tx.insert(communityDescriptionImageTable).values(
+          newImageIdsToAdd.map((imageId) => ({
+            communityId: communityId,
+            imageId: imageId,
+          })),
         );
-        const newImageIds = new Set(data.descriptionImageIds);
-
-        // Soft delete images that are no longer in the description
-        const imagesToRemove = existingDescImages
-          .filter((img) => !newImageIds.has(img.imageId))
-          .map((img) => img.id);
-
-        if (imagesToRemove.length > 0) {
-          await tx
-            .update(communityDescriptionImageTable)
-            .set({ deletedAt: sql`NOW()` })
-            .where(inArray(communityDescriptionImageTable.id, imagesToRemove));
-        }
-
-        // Add new images
-        const newImageIdsToAdd = data.descriptionImageIds.filter(
-          (imageId) => !existingImageIds.has(imageId),
-        );
-
-        if (newImageIdsToAdd.length > 0) {
-          // Batch validate all new images exist
-          const validImages = await tx.query.image.findMany({
-            where: and(
-              inArray(imageTable.id, newImageIdsToAdd),
-              isNull(imageTable.deletedAt),
-            ),
-          });
-
-          if (validImages.length !== newImageIdsToAdd.length) {
-            const validImageIds = new Set(validImages.map((img) => img.id));
-            const invalidIds = newImageIdsToAdd.filter(
-              (id) => !validImageIds.has(id),
-            );
-            throw new AppException(
-              400,
-              GENERAL_ERROR_CODE,
-              `잘못된 이미지 ID입니다: ${invalidIds.join(", ")}`,
-            );
-          }
-
-          // Batch insert all new associations
-          await tx.insert(communityDescriptionImageTable).values(
-            newImageIdsToAdd.map((imageId) => ({
-              communityId: communityId,
-              imageId: imageId,
-            })),
-          );
-        }
       }
-
-      return updated;
-    });
-
-    const ownerMembership = await db.query.membership.findFirst({
-      where: and(
-        eq(membershipTable.communityId, updatedCommunity.id),
-        eq(membershipTable.role, "owner"),
-        isNotNull(membershipTable.activatedAt),
-      ),
-    });
-
-    let ownerProfileId = null;
-    if (ownerMembership?.userId) {
-      ownerProfileId = await getPrimaryProfileIdForUserInCommunity(
-        ownerMembership.userId,
-        updatedCommunity.id,
-      );
     }
 
-    return {
-      community: updatedCommunity,
-      ownerProfileId,
-    };
-  } catch (error: unknown) {
-    if (error instanceof AppException) {
-      throw error;
-    }
-    logger.service.error("Error updating community", { error });
-    if (error instanceof Error && error.message.includes("unique_slug")) {
-      throw new AppException(
-        409,
-        GENERAL_ERROR_CODE,
-        "이미 존재하는 커뮤 ID입니다",
-      );
-    }
-    throw new AppException(
-      400,
-      GENERAL_ERROR_CODE,
-      "커뮤 업데이트에 실패했습니다",
+    return updated;
+  });
+
+  const ownerMembership = await db.query.membership.findFirst({
+    where: and(
+      eq(membershipTable.communityId, updatedCommunity.id),
+      eq(membershipTable.role, "owner"),
+      isNotNull(membershipTable.activatedAt),
+    ),
+  });
+
+  let ownerProfileId = null;
+  if (ownerMembership?.userId) {
+    ownerProfileId = await getPrimaryProfileIdForUserInCommunity(
+      ownerMembership.userId,
+      updatedCommunity.id,
     );
   }
+
+  return {
+    community: updatedCommunity,
+    ownerProfileId,
+  };
 }
 
 /**
