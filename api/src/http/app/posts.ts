@@ -87,7 +87,7 @@ export const postsRouter = new Hono<{ Variables: AuthVariables }>()
 
     return c.json({ data: exports });
   })
-  .post("/upload/file", appAuthMiddleware, async (c) => {
+  .post("/upload/file", communityMiddleware, appAuthMiddleware, async (c) => {
     // Check Content-Type before parsing formData
     const contentType = c.req.header("content-type") || "";
     if (!contentType.includes("multipart") && !contentType.includes("form")) {
