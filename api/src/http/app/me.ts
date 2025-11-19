@@ -21,7 +21,7 @@ export const meRouter = new Hono<{ Variables: AuthVariables }>()
     const result = await userService.getPublicInstanceInfo(community.id);
     return c.json({ data: result });
   })
-  .get("/me", appAuthMiddleware, async (c) => {
+  .get("/me", communityMiddleware, appAuthMiddleware, async (c) => {
     const user = c.get("user");
     const result = await userService.getCurrentUser(user.id);
     return c.json({ data: result });
