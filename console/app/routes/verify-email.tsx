@@ -49,7 +49,7 @@ export default function VerifyEmail() {
       if (response.ok) {
         const data = await response.json();
         setVerificationStatus("success");
-        setVerifiedEmail(data.email);
+        setVerifiedEmail(data.data.email);
         setMessage("이메일이 성공적으로 인증되었습니다!");
       } else {
         const errorData = await response.json();

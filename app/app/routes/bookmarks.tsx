@@ -100,8 +100,8 @@ export default function Bookmarks() {
 
       return {
         data: transformedData,
-        nextCursor: result.nextCursor,
-        hasMore: result.hasMore,
+        nextCursor: result.pagination.next_cursor,
+        hasMore: result.pagination.has_more,
       };
     },
     getNextPageParam: (lastPage) => {

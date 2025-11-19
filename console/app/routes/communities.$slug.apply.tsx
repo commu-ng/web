@@ -80,7 +80,8 @@ async function fetchCommunity(slug: string): Promise<Community> {
   if (!res.ok) {
     throw new Error("커뮤를 찾을 수 없습니다");
   }
-  return await res.json();
+  const result = await res.json();
+  return result.data;
 }
 
 interface UserApplication {
@@ -115,7 +116,8 @@ async function fetchMyApplications(slug: string): Promise<UserApplication[]> {
   if (!res.ok) {
     throw new Error("지원 내역을 불러올 수 없습니다");
   }
-  return await res.json();
+  const result = await res.json();
+  return result.data;
 }
 
 export default function CommunityApply({ params }: Route.ComponentProps) {

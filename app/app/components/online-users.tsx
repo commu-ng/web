@@ -17,13 +17,14 @@ export function OnlineUsers() {
         throw new Error("Failed to fetch profiles");
       }
 
-      return await response.json();
+      const result = await response.json();
+      return result.data;
     },
     staleTime: 30000, // 30 seconds
     refetchInterval: 30000, // Refetch every 30 seconds
   });
 
-  const allProfiles = Array.isArray(profilesData) ? profilesData : [];
+  const allProfiles = profilesData ?? [];
   const profileIds = allProfiles.map((profile) => profile.id);
 
   // Get online status for all profiles

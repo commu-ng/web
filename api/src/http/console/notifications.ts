@@ -9,6 +9,7 @@ import {
 } from "../../drizzle/schema";
 import { authMiddleware } from "../../middleware/auth";
 import type { AuthVariables } from "../../types";
+import { GeneralErrorCode } from "../../types/api-responses";
 
 const notificationQuerySchema = z.object({
   limit: z.coerce.number().min(1).max(100).default(20),
@@ -39,8 +40,10 @@ export const consoleNotificationsRouter = new Hono<{
       if (userProfiles.length === 0) {
         return c.json({
           data: [],
-          nextCursor: null,
-          hasMore: false,
+          pagination: {
+            next_cursor: null,
+            has_more: false,
+          },
         });
       }
 
@@ -154,8 +157,10 @@ export const consoleNotificationsRouter = new Hono<{
 
       return c.json({
         data,
-        next_cursor: nextCursor,
-        has_more: hasMore,
+        pagination: {
+          next_cursor: nextCursor,
+          has_more: hasMore,
+        },
       });
     },
   )
@@ -170,7 +175,7 @@ export const consoleNotificationsRouter = new Hono<{
       .where(eq(profileOwnershipTable.userId, user.id));
 
     if (userProfiles.length === 0) {
-      return c.json({ count: 0 });
+      return c.json({ data: { count: 0 } });
     }
 
     const profileIds = userProfiles.map((p) => p.profileId);
@@ -188,7 +193,7 @@ export const consoleNotificationsRouter = new Hono<{
         ),
       );
 
-    return c.json({ count: result[0]?.count || 0 });
+    return c.json({ data: { count: result[0]?.count || 0 } });
   })
 
   .post("/notifications/mark-all-read", authMiddleware, async (c) => {
@@ -201,7 +206,7 @@ export const consoleNotificationsRouter = new Hono<{
       .where(eq(profileOwnershipTable.userId, user.id));
 
     if (userProfiles.length === 0) {
-      return c.json({ message: "No notifications to mark as read" });
+      return c.json({ data: { marked_all_read: true, count: 0 } });
     }
 
     const profileIds = userProfiles.map((p) => p.profileId);
@@ -217,7 +222,9 @@ export const consoleNotificationsRouter = new Hono<{
         ),
       );
 
-    return c.json({ message: "All notifications marked as read" });
+    return c.json({
+      data: { marked_all_read: true, marked_at: new Date().toISOString() },
+    });
   })
 
   .post(
@@ -238,7 +245,15 @@ export const consoleNotificationsRouter = new Hono<{
       });
 
       if (!notification) {
-        return c.json({ error: "Notification not found" }, 404);
+        return c.json(
+          {
+            error: {
+              code: GeneralErrorCode.NOTIFICATION_NOT_FOUND,
+              message: "Notification not found",
+            },
+          },
+          404,
+        );
       }
 
       // Check if user owns the recipient profile
@@ -250,7 +265,15 @@ export const consoleNotificationsRouter = new Hono<{
       });
 
       if (!ownership) {
-        return c.json({ error: "Unauthorized" }, 403);
+        return c.json(
+          {
+            error: {
+              code: GeneralErrorCode.FORBIDDEN,
+              message: "Unauthorized",
+            },
+          },
+          403,
+        );
       }
 
       // Mark as read
@@ -259,6 +282,12 @@ export const consoleNotificationsRouter = new Hono<{
         .set({ readAt: new Date().toISOString() })
         .where(eq(notificationTable.id, notification_id));
 
-      return c.json({ message: "Notification marked as read" });
+      return c.json({
+        data: {
+          id: notification_id,
+          is_read: true,
+          read_at: new Date().toISOString(),
+        },
+      });
     },
   );

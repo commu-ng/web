@@ -55,14 +55,16 @@ export const crudRouter = new Hono()
 
       return c.json(
         {
-          id: result.community.id,
-          name: result.community.name,
-          domain: result.community.slug,
-          starts_at: result.community.startsAt,
-          ends_at: result.community.endsAt,
-          is_recruiting: result.community.isRecruiting,
-          owner_profile_id: result.profile.id,
-          created_at: result.community.createdAt,
+          data: {
+            id: result.community.id,
+            name: result.community.name,
+            domain: result.community.slug,
+            starts_at: result.community.startsAt,
+            ends_at: result.community.endsAt,
+            is_recruiting: result.community.isRecruiting,
+            owner_profile_id: result.profile.id,
+            created_at: result.community.createdAt,
+          },
         },
         201,
       );
@@ -77,7 +79,7 @@ export const crudRouter = new Hono()
     const user = c.get("user");
     const result =
       await communityService.getRecruitingCommunitiesWithUserContext(user?.id);
-    return c.json(result);
+    return c.json({ data: result });
   })
   .get(
     "/:id",
@@ -95,7 +97,7 @@ export const crudRouter = new Hono()
         community.id,
         user?.id,
       );
-      return c.json(result);
+      return c.json({ data: result });
     },
   )
   .put(
@@ -150,18 +152,20 @@ export const crudRouter = new Hono()
         });
 
       return c.json({
-        id: updatedCommunity.id,
-        name: updatedCommunity.name,
-        domain: updatedCommunity.slug,
-        starts_at: updatedCommunity.startsAt,
-        ends_at: updatedCommunity.endsAt,
-        is_recruiting: updatedCommunity.isRecruiting,
-        recruiting_starts_at: updatedCommunity.recruitingStartsAt,
-        recruiting_ends_at: updatedCommunity.recruitingEndsAt,
-        minimum_birth_year: updatedCommunity.minimumBirthYear,
-        owner_profile_id: ownerProfileId,
-        created_at: updatedCommunity.createdAt,
-        updated_at: updatedCommunity.updatedAt,
+        data: {
+          id: updatedCommunity.id,
+          name: updatedCommunity.name,
+          domain: updatedCommunity.slug,
+          starts_at: updatedCommunity.startsAt,
+          ends_at: updatedCommunity.endsAt,
+          is_recruiting: updatedCommunity.isRecruiting,
+          recruiting_starts_at: updatedCommunity.recruitingStartsAt,
+          recruiting_ends_at: updatedCommunity.recruitingEndsAt,
+          minimum_birth_year: updatedCommunity.minimumBirthYear,
+          owner_profile_id: ownerProfileId,
+          created_at: updatedCommunity.createdAt,
+          updated_at: updatedCommunity.updatedAt,
+        },
       });
     },
   )
@@ -184,6 +188,6 @@ export const crudRouter = new Hono()
       ]);
 
       await communityService.deleteCommunity(communityId);
-      return c.json({ message: "커뮤가 성공적으로 삭제되었습니다" });
+      return c.body(null, 204);
     },
   );

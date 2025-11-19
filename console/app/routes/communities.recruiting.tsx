@@ -49,7 +49,8 @@ interface RecruitingCommunity {
 
 async function fetchRecruitingCommunities(): Promise<RecruitingCommunity[]> {
   const res = await api.console.communities.recruiting.$get();
-  return await res.json();
+  const result = await res.json();
+  return result.data;
 }
 
 export default function RecruitingCommunities() {

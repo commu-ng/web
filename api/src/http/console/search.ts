@@ -17,6 +17,6 @@ export const consoleSearchRouter = new Hono().get(
   async (c) => {
     const { q: query } = c.req.valid("query");
     const result = await searchService.searchHashtags(query || "", 10);
-    return c.json(result);
+    return c.json({ data: result });
   },
 );

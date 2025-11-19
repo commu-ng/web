@@ -1,4 +1,4 @@
-import { and, desc, eq, isNull, sql } from "drizzle-orm";
+import { and, count, desc, eq, isNull, sql } from "drizzle-orm";
 import { db } from "../db";
 import {
   notification as notificationTable,
@@ -47,42 +47,55 @@ export async function getNotificationsForProfile(
     );
   }
 
-  // Build where conditions
-  const conditions = [eq(notificationTable.recipientId, profile.id)];
+  // Build base condition for count query
+  const baseCondition = eq(notificationTable.recipientId, profile.id);
+
+  // Build query conditions (with cursor)
+  const queryConditions = [baseCondition];
   if (cursor) {
-    conditions.push(sql`${notificationTable.id} < ${cursor}`);
+    queryConditions.push(sql`${notificationTable.id} < ${cursor}`);
   }
 
-  // Get notifications for this profile (fetch limit + 1)
-  const notificationTableList = await db.query.notification.findMany({
-    where: and(...conditions),
-    orderBy: [desc(notificationTable.id)],
-    limit: limit + 1,
-    with: {
-      profile_profileId: {
-        with: {
-          profilePictures: {
-            with: {
-              image: true,
+  // Run count and data queries in parallel
+  const [notificationTableList, totalCountResult] = await Promise.all([
+    // Get notifications for this profile (fetch limit + 1)
+    db.query.notification.findMany({
+      where: and(...queryConditions),
+      orderBy: [desc(notificationTable.id)],
+      limit: limit + 1,
+      with: {
+        profile_profileId: {
+          with: {
+            profilePictures: {
+              with: {
+                image: true,
+              },
             },
           },
         },
-      },
-      post: {
-        with: {
-          profile: {
-            with: {
-              profilePictures: {
-                with: {
-                  image: true,
+        post: {
+          with: {
+            profile: {
+              with: {
+                profilePictures: {
+                  with: {
+                    image: true,
+                  },
                 },
               },
             },
           },
         },
       },
-    },
-  });
+    }),
+    // Count total notifications
+    db
+      .select({ count: count() })
+      .from(notificationTable)
+      .where(baseCondition),
+  ]);
+
+  const totalCount = totalCountResult[0]?.count ?? 0;
 
   // Check if there are more results
   const hasMore = notificationTableList.length > limit;
@@ -151,8 +164,10 @@ export async function getNotificationsForProfile(
       id: notification.id,
       type: notification.type,
       content: notification.message,
-      readAt: notification.readAt ? new Date(notification.readAt).toISOString() : null,
-      createdAt: new Date(notification.createdAt).toISOString(),
+      read_at: notification.readAt
+        ? new Date(notification.readAt).toISOString()
+        : null,
+      created_at: new Date(notification.createdAt).toISOString(),
       sender: sender
         ? {
             id: sender.id,
@@ -167,8 +182,11 @@ export async function getNotificationsForProfile(
 
   return {
     data,
-    nextCursor,
-    hasMore,
+    pagination: {
+      next_cursor: nextCursor,
+      has_more: hasMore,
+      total_count: totalCount,
+    },
   };
 }
 

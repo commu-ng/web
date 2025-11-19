@@ -51,7 +51,16 @@ export const consoleDevicesRouter = new Hono<{ Variables: AuthVariables }>()
           },
         });
 
-      return c.json({ message: "Device registered successfully" });
+      return c.json(
+        {
+          data: {
+            push_token: body.push_token,
+            registered: true,
+            registered_at: new Date().toISOString(),
+          },
+        },
+        201,
+      );
     },
   )
 
@@ -63,6 +72,6 @@ export const consoleDevicesRouter = new Hono<{ Variables: AuthVariables }>()
 
       await db.delete(device).where(eq(device.pushToken, pushToken));
 
-      return c.json({ message: "Device deleted successfully" });
+      return c.body(null, 204);
     },
   );

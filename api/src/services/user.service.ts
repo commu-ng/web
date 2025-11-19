@@ -31,10 +31,10 @@ export async function getUserById(userId: string) {
 
   return {
     id: user.id,
-    loginName: user.loginName,
+    login_name: user.loginName,
     email: user.email,
-    createdAt: user.createdAt,
-    isAdmin: user.isAdmin,
+    created_at: user.createdAt,
+    is_admin: user.isAdmin,
   };
 }
 
@@ -60,7 +60,7 @@ export async function getCurrentUser(userId: string) {
       startsAt: communityTable.startsAt,
       endsAt: communityTable.endsAt,
       isRecruiting: communityTable.isRecruiting,
-      createdAt: communityTable.createdAt,
+      created_at: communityTable.createdAt,
       role: membershipTable.role,
       customDomain: communityTable.customDomain,
       domainVerified: communityTable.domainVerifiedAt,
@@ -84,7 +84,18 @@ export async function getCurrentUser(userId: string) {
     login_name: user.loginName,
     created_at: user.createdAt,
     is_admin: user.isAdmin,
-    instances: communitiesWithRoles,
+    instances: communitiesWithRoles.map((community) => ({
+      id: community.id,
+      name: community.name,
+      slug: community.slug,
+      starts_at: community.startsAt,
+      ends_at: community.endsAt,
+      is_recruiting: community.isRecruiting,
+      created_at: community.created_at,
+      role: community.role,
+      custom_domain: community.customDomain,
+      domain_verified: community.domainVerified,
+    })),
   };
 }
 
@@ -223,8 +234,8 @@ export async function getUserProfiles(userId: string, communityId: string) {
       name: profile.name,
       bio: profile.bio,
       profile_picture_url: profile_picture_url,
-      createdAt: profile.createdAt,
-      updatedAt: profile.updatedAt,
+      created_at: profile.createdAt,
+      updated_at: profile.updatedAt,
       activatedAt: profile.activatedAt,
       is_active: profile.activatedAt !== null,
       is_primary: profile.isPrimary,
@@ -334,8 +345,8 @@ export async function updateUserProfile(
     name: updatedProfile.name,
     bio: updatedProfile.bio,
     profile_picture_url: profile_picture_url,
-    createdAt: updatedProfile.createdAt,
-    updatedAt: updatedProfile.updatedAt,
+    created_at: updatedProfile.createdAt,
+    updated_at: updatedProfile.updatedAt,
     activatedAt: updatedProfile.activatedAt,
     is_active: updatedProfile.activatedAt !== null,
   };

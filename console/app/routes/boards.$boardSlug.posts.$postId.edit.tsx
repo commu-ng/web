@@ -47,19 +47,19 @@ interface BoardPost {
 }
 
 async function fetchBoardPost(
-	boardSlug: string,
-	postId: string,
+  boardSlug: string,
+  postId: string,
 ): Promise<BoardPost> {
-	const res = await api.console.board[":board_slug"].posts[
-		":board_post_id"
-	].$get({
-		param: { board_slug: boardSlug, board_post_id: postId },
-	});
-	if (!res.ok) {
-		throw new Error("Failed to fetch board post");
-	}
-	const json = await res.json();
-	return json.data;
+  const res = await api.console.board[":board_slug"].posts[
+    ":board_post_id"
+  ].$get({
+    param: { board_slug: boardSlug, board_post_id: postId },
+  });
+  if (!res.ok) {
+    throw new Error("Failed to fetch board post");
+  }
+  const json = await res.json();
+  return json.data;
 }
 
 export default function EditBoardPost({ params }: Route.ComponentProps) {

@@ -9,6 +9,7 @@ import {
 } from "../../schemas";
 import * as masqueradeService from "../../services/masquerade.service";
 import type { AuthVariables } from "../../types";
+import { GeneralErrorCode } from "../../types/api-responses";
 
 export const consoleMasqueradeRouter = new Hono<{ Variables: AuthVariables }>()
   // Get masquerade status for current session
@@ -18,16 +19,16 @@ export const consoleMasqueradeRouter = new Hono<{ Variables: AuthVariables }>()
       ?.match(/session_token=([^;]+)/)?.[1];
 
     if (!sessionToken) {
-      return c.json({ isMasquerading: false });
+      return c.json({ data: { isMasquerading: false } });
     }
 
     const status = await masqueradeService.getMasqueradeStatus(sessionToken);
 
     if (!status) {
-      return c.json({ isMasquerading: false });
+      return c.json({ data: { isMasquerading: false } });
     }
 
-    return c.json(status);
+    return c.json({ data: status });
   })
 
   // Start masquerading as another user
@@ -45,7 +46,15 @@ export const consoleMasqueradeRouter = new Hono<{ Variables: AuthVariables }>()
       );
 
       if (!result.session) {
-        return c.json({ error: "세션 생성에 실패했습니다" }, 500);
+        return c.json(
+          {
+            error: {
+              code: GeneralErrorCode.SESSION_CREATION_FAILED,
+              message: "세션 생성에 실패했습니다",
+            },
+          },
+          500,
+        );
       }
 
       // Set the new session cookie
@@ -58,8 +67,11 @@ export const consoleMasqueradeRouter = new Hono<{ Variables: AuthVariables }>()
       });
 
       return c.json({
-        message: "전환이 시작되었습니다",
-        targetUser: result.targetUser,
+        data: {
+          started: true,
+          target_user: result.targetUser,
+          started_at: new Date().toISOString(),
+        },
       });
     },
   )
@@ -71,7 +83,15 @@ export const consoleMasqueradeRouter = new Hono<{ Variables: AuthVariables }>()
       ?.match(/session_token=([^;]+)/)?.[1];
 
     if (!sessionToken) {
-      return c.json({ error: "세션 토큰이 없습니다" }, 401);
+      return c.json(
+        {
+          error: {
+            code: GeneralErrorCode.SESSION_REQUIRED,
+            message: "세션 토큰이 없습니다",
+          },
+        },
+        401,
+      );
     }
 
     const result = await masqueradeService.endMasquerade(sessionToken);
@@ -86,7 +106,10 @@ export const consoleMasqueradeRouter = new Hono<{ Variables: AuthVariables }>()
     });
 
     return c.json({
-      message: "전환이 종료되었습니다",
+      data: {
+        ended: true,
+        ended_at: new Date().toISOString(),
+      },
     });
   })
 
@@ -104,7 +127,7 @@ export const consoleMasqueradeRouter = new Hono<{ Variables: AuthVariables }>()
         limit,
         search,
       );
-      return c.json({ users });
+      return c.json({ data: { users } });
     },
   )
 
@@ -121,6 +144,6 @@ export const consoleMasqueradeRouter = new Hono<{ Variables: AuthVariables }>()
         user.id,
         limit,
       );
-      return c.json({ logs });
+      return c.json({ data: { logs } });
     },
   );

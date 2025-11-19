@@ -78,7 +78,8 @@ async function fetchCommunity(slug: string): Promise<Community> {
   if (!response.ok) {
     throw new Error("커뮤를 찾을 수 없습니다");
   }
-  return await response.json();
+  const result = await response.json();
+  return result.data;
 }
 
 export default function CommunityManagement() {

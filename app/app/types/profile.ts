@@ -5,16 +5,16 @@ export interface Profile {
   username: string;
   bio: string | null;
   profile_picture_url: string | null;
-  createdAt: string;
-  updatedAt: string;
+  created_at: string;
+  updated_at: string;
   active?: string | null;
   is_active?: boolean;
   is_primary?: boolean;
   user_group?: string;
   post_count?: number;
   // Online status fields
-  onlineStatusVisible?: boolean;
-  lastActiveAt?: string | null;
+  online_status_visible?: boolean;
+  last_active_at?: string | null;
   // Shared profile fields
   is_owned?: boolean;
   role?: "owner" | "admin";

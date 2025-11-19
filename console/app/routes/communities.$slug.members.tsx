@@ -41,7 +41,8 @@ async function fetchCommunity(slug: string): Promise<Community> {
   if (!response.ok) {
     throw new Error("커뮤 정보를 가져오는데 실패했습니다");
   }
-  return await response.json();
+  const result = await response.json();
+  return result.data;
 }
 
 export default function CommunityMembers() {

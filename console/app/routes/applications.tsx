@@ -75,13 +75,13 @@ interface ApplicationWithCommunity {
 
 async function fetchMyApplications() {
   const res = await api.console["my-applications"].$get();
-  const data = await res.json();
+  const result = await res.json();
 
-  if (!Array.isArray(data)) {
+  if (!result.data || !Array.isArray(result.data)) {
     throw new Error("Failed to fetch applications");
   }
 
-  return data as ApplicationWithCommunity[];
+  return result.data as ApplicationWithCommunity[];
 }
 
 const formatDate = (dateString: string) => {

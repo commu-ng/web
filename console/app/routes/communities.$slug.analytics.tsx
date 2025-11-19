@@ -81,7 +81,8 @@ export default function CommunityAnalytics() {
       if (!response.ok) {
         throw new Error("Failed to fetch activity data");
       }
-      return response.json() as Promise<ActivityData>;
+      const result = await response.json();
+      return result.data as ActivityData;
     },
     enabled: !!slug,
   });

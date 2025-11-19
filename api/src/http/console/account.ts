@@ -16,6 +16,7 @@ import * as authService from "../../services/auth.service";
 import * as emailService from "../../services/email.service";
 import * as membershipService from "../../services/membership.service";
 import * as userService from "../../services/user.service";
+import { GeneralErrorCode } from "../../types/api-responses";
 import { addImageUrl } from "../../utils/r2";
 
 const passwordChangeRequestSchema = z.object({
@@ -32,10 +33,12 @@ export const consoleAccountRouter = new Hono()
     const currentUser = await userService.getCurrentUser(user.id);
 
     return c.json({
-      ...currentUser,
-      email: user.email,
-      email_verified: user.emailVerifiedAt !== null,
-      email_verified_at: user.emailVerifiedAt,
+      data: {
+        ...currentUser,
+        email: user.email,
+        email_verified: user.emailVerifiedAt !== null,
+        email_verified_at: user.emailVerifiedAt,
+      },
     });
   })
   .post(
@@ -49,7 +52,12 @@ export const consoleAccountRouter = new Hono()
       // Block password changes during masquerade
       if (isMasquerading) {
         return c.json(
-          { error: "전환 중에는 비밀번호를 변경할 수 없습니다" },
+          {
+            error: {
+              code: GeneralErrorCode.CANNOT_DELETE_WHILE_TRANSITIONING,
+              message: "전환 중에는 비밀번호를 변경할 수 없습니다",
+            },
+          },
           403,
         );
       }
@@ -61,7 +69,9 @@ export const consoleAccountRouter = new Hono()
         current_password,
         new_password,
       );
-      return c.json({ message: "비밀번호가 성공적으로 변경되었습니다" });
+      return c.json({
+        data: { password_changed: true, changed_at: new Date().toISOString() },
+      });
     },
   )
   .post(
@@ -75,7 +85,12 @@ export const consoleAccountRouter = new Hono()
       // Block email changes during masquerade
       if (isMasquerading) {
         return c.json(
-          { error: "전환 중에는 이메일을 변경할 수 없습니다" },
+          {
+            error: {
+              code: GeneralErrorCode.CANNOT_DELETE_WHILE_TRANSITIONING,
+              message: "전환 중에는 이메일을 변경할 수 없습니다",
+            },
+          },
           403,
         );
       }
@@ -84,7 +99,7 @@ export const consoleAccountRouter = new Hono()
 
       await userService.requestEmailUpdate(user.id, email);
       return c.json({
-        message: "인증 이메일이 전송되었습니다. 이메일을 확인해주세요.",
+        data: { email_sent: true, sent_at: new Date().toISOString() },
       });
     },
   )
@@ -97,8 +112,11 @@ export const consoleAccountRouter = new Hono()
       const result = await emailService.verifyEmail(token);
 
       return c.json({
-        message: "이메일이 성공적으로 인증되었습니다",
-        email: result.email,
+        data: {
+          email: result.email,
+          verified: true,
+          verified_at: new Date().toISOString(),
+        },
       });
     },
   )
@@ -114,7 +132,7 @@ export const consoleAccountRouter = new Hono()
     });
 
     // Return user data with session token (for mobile clients)
-    return c.json({ ...user, session_token: session.token });
+    return c.json({ data: { ...user, session_token: session.token } });
   })
   .post("/signup", zValidator("json", userSignupSchema), async (c) => {
     const { login_name: loginName, password } = c.req.valid("json");
@@ -128,7 +146,7 @@ export const consoleAccountRouter = new Hono()
     });
 
     // Return user data with session token (for mobile clients)
-    return c.json({ ...user, session_token: session.token }, 201);
+    return c.json({ data: { ...user, session_token: session.token } }, 201);
   })
   .delete("/users/me", authMiddleware, async (c) => {
     const user = c.get("user");
@@ -136,7 +154,15 @@ export const consoleAccountRouter = new Hono()
 
     // Block account deletion during masquerade
     if (isMasquerading) {
-      return c.json({ error: "전환 중에는 계정을 삭제할 수 없습니다" }, 403);
+      return c.json(
+        {
+          error: {
+            code: GeneralErrorCode.CANNOT_DELETE_WHILE_TRANSITIONING,
+            message: "전환 중에는 계정을 삭제할 수 없습니다",
+          },
+        },
+        403,
+      );
     }
 
     // Check if user owns any active communities
@@ -147,8 +173,11 @@ export const consoleAccountRouter = new Hono()
       const communityNames = communities.map((comm) => comm.name);
       return c.json(
         {
-          error: "활성 커뮤를 소유하고 있는 동안 계정을 삭제할 수 없습니다",
-          communities: communityNames,
+          error: {
+            code: GeneralErrorCode.OPERATION_NOT_ALLOWED,
+            message: "활성 커뮤를 소유하고 있는 동안 계정을 삭제할 수 없습니다",
+            details: { communities: communityNames },
+          },
         },
         400,
       );
@@ -158,16 +187,18 @@ export const consoleAccountRouter = new Hono()
     if (user.emailVerifiedAt && user.email) {
       await emailService.sendAccountDeletionEmail(user.id, user.email);
       return c.json({
-        message:
-          "계정 삭제 확인 이메일이 전송되었습니다. 이메일을 확인하여 삭제를 완료해주세요.",
-        requiresEmailConfirmation: true,
+        data: {
+          requires_email_confirmation: true,
+          email_sent: true,
+          sent_at: new Date().toISOString(),
+        },
       });
     }
 
     // If no verified email, delete immediately
     await userService.deleteUserAccount(user.id);
 
-    return c.json({ message: "계정이 성공적으로 삭제되었습니다" });
+    return c.json({ data: { id: user.id, deleted: true } });
   })
   .get(
     "/verify-delete-token/:token",
@@ -182,8 +213,10 @@ export const consoleAccountRouter = new Hono()
       const user = await userService.getUserById(userId);
 
       return c.json({
-        login_name: user.loginName,
-        email: user.email || "",
+        data: {
+          login_name: user.login_name,
+          email: user.email || "",
+        },
       });
     },
   )
@@ -199,7 +232,7 @@ export const consoleAccountRouter = new Hono()
       // Delete the user account
       await userService.deleteUserAccount(result.userId);
 
-      return c.json({ message: "계정이 성공적으로 삭제되었습니다" });
+      return c.json({ data: { id: result.userId, deleted: true } });
     },
   )
   .get("/my-applications", authMiddleware, async (c) => {
@@ -209,8 +242,8 @@ export const consoleAccountRouter = new Hono()
       user.id,
     );
 
-    return c.json(
-      applications.map((app) => ({
+    return c.json({
+      data: applications.map((app) => ({
         id: app.id,
         status: app.status,
         profile_name: app.profileName,
@@ -231,7 +264,7 @@ export const consoleAccountRouter = new Hono()
           created_at: att.createdAt,
         })),
       })),
-    );
+    });
   })
   .post(
     "/request-password-reset",
@@ -241,7 +274,7 @@ export const consoleAccountRouter = new Hono()
 
       await emailService.sendPasswordResetEmail(email);
       return c.json({
-        message: "비밀번호 재설정 이메일이 전송되었습니다.",
+        data: { email_sent: true, sent_at: new Date().toISOString() },
       });
     },
   )
@@ -252,7 +285,7 @@ export const consoleAccountRouter = new Hono()
       const { token } = c.req.valid("param");
 
       await emailService.checkPasswordResetToken(token);
-      return c.json({ valid: true });
+      return c.json({ data: { valid: true } });
     },
   )
   .post(
@@ -272,8 +305,11 @@ export const consoleAccountRouter = new Hono()
 
       // Return success message with session token (for mobile clients)
       return c.json({
-        message: "비밀번호가 성공적으로 재설정되었습니다.",
-        session_token: result.session.token,
+        data: {
+          password_reset: true,
+          session_token: result.session.token,
+          reset_at: new Date().toISOString(),
+        },
       });
     },
   );

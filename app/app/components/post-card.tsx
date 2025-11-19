@@ -181,11 +181,12 @@ export const PostCard = memo(function PostCard({
             const errorData = await response.json();
             const errorMessage =
               errorData && typeof errorData === "object"
-                ? "error" in errorData && typeof errorData.error === "string"
-                  ? errorData.error
-                  : "message" in errorData &&
-                      typeof errorData.message === "string"
-                    ? errorData.message
+                ? "error" in errorData &&
+                  typeof errorData.error === "object" &&
+                  errorData.error?.message
+                  ? errorData.error.message
+                  : "error" in errorData && typeof errorData.error === "string"
+                    ? errorData.error
                     : undefined
                 : undefined;
             toast.error(errorMessage || "반응을 추가할 수 없습니다");
@@ -222,11 +223,12 @@ export const PostCard = memo(function PostCard({
             const errorData = await response.json();
             const errorMessage =
               errorData && typeof errorData === "object"
-                ? "error" in errorData && typeof errorData.error === "string"
-                  ? errorData.error
-                  : "message" in errorData &&
-                      typeof errorData.message === "string"
-                    ? errorData.message
+                ? "error" in errorData &&
+                  typeof errorData.error === "object" &&
+                  errorData.error?.message
+                  ? errorData.error.message
+                  : "error" in errorData && typeof errorData.error === "string"
+                    ? errorData.error
                     : undefined
                 : undefined;
             toast.error(errorMessage || "반응을 제거할 수 없습니다");
@@ -282,8 +284,8 @@ export const PostCard = memo(function PostCard({
         <PostCardHeader
           postId={post.id}
           author={post.author}
-          createdAt={post.createdAt}
-          updatedAt={post.updatedAt}
+          createdAt={post.created_at}
+          updatedAt={post.updated_at}
           isAnnouncement={post.announcement}
           isPinned={!!post.pinned_at}
           isReply={isReply}

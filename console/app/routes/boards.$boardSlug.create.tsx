@@ -33,14 +33,14 @@ interface Board {
 }
 
 async function fetchBoard(boardSlug: string): Promise<Board> {
-	const res = await api.console.board[":board_slug"].$get({
-		param: { board_slug: boardSlug },
-	});
-	if (!res.ok) {
-		throw new Error("Failed to fetch board");
-	}
-	const json = await res.json();
-	return json.data;
+  const res = await api.console.board[":board_slug"].$get({
+    param: { board_slug: boardSlug },
+  });
+  if (!res.ok) {
+    throw new Error("Failed to fetch board");
+  }
+  const json = await res.json();
+  return json.data;
 }
 
 export default function CreateBoardPost({ params }: Route.ComponentProps) {

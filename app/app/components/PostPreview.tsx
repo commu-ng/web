@@ -8,7 +8,7 @@ import { Skeleton } from "./ui/skeleton";
 interface Post {
   id: string;
   content: string;
-  createdAt: string;
+  created_at: string;
   author: {
     id: string;
     username: string;
@@ -56,8 +56,8 @@ export function PostPreview({ postUrl, currentProfileId }: PostPreviewProps) {
         });
 
         if (response.ok) {
-          const postData = await response.json();
-          setPost(postData);
+          const result = await response.json();
+          setPost(result.data);
         } else {
           setError("게시물을 불러올 수 없습니다");
         }
@@ -143,7 +143,7 @@ export function PostPreview({ postUrl, currentProfileId }: PostPreviewProps) {
             </p>
             <p className="text-xs text-muted-foreground">·</p>
             <p className="text-xs text-muted-foreground">
-              {formatDate(post.createdAt)}
+              {formatDate(post.created_at)}
             </p>
           </div>
           <p className="text-sm text-foreground mt-1 whitespace-pre-wrap break-words">

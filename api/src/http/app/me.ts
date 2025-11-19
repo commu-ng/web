@@ -12,18 +12,19 @@ import {
 } from "../../schemas";
 import * as userService from "../../services/user.service";
 import type { AuthVariables } from "../../types";
+import { GeneralErrorCode } from "../../types/api-responses";
 import { canManageProfile } from "../../utils/profile-ownership";
 
 export const meRouter = new Hono<{ Variables: AuthVariables }>()
   .get("/instance", communityMiddleware, async (c) => {
     const community = c.get("community");
     const result = await userService.getPublicInstanceInfo(community.id);
-    return c.json(result);
+    return c.json({ data: result });
   })
   .get("/me", appAuthMiddleware, async (c) => {
     const user = c.get("user");
     const result = await userService.getCurrentUser(user.id);
-    return c.json(result);
+    return c.json({ data: result });
   })
   .get("/me/instance", communityMiddleware, appAuthMiddleware, async (c) => {
     const user = c.get("user");
@@ -32,7 +33,7 @@ export const meRouter = new Hono<{ Variables: AuthVariables }>()
       user.id,
       community.id,
     );
-    return c.json(result);
+    return c.json({ data: result });
   })
 
   .put(
@@ -52,7 +53,12 @@ export const meRouter = new Hono<{ Variables: AuthVariables }>()
       const canManage = await canManageProfile(user.id, profileId);
       if (!canManage) {
         return c.json(
-          { message: "프로필을 찾을 수 없거나 접근할 수 없습니다" },
+          {
+            error: {
+              code: GeneralErrorCode.PROFILE_NOT_FOUND,
+              message: "프로필을 찾을 수 없거나 접근할 수 없습니다",
+            },
+          },
           404,
         );
       }
@@ -66,7 +72,7 @@ export const meRouter = new Hono<{ Variables: AuthVariables }>()
           bio,
           profile_picture_id,
         );
-        return c.json(result);
+        return c.json({ data: result });
       } catch (error: unknown) {
         // Check for unique constraint violation on username
         const causeMessage =
@@ -81,18 +87,39 @@ export const meRouter = new Hono<{ Variables: AuthVariables }>()
             causeMessage.includes("duplicate key value"))
         ) {
           return c.json(
-            { message: "이 커뮤에서 이미 사용 중인 사용자명입니다" },
-            400,
+            {
+              error: {
+                code: GeneralErrorCode.USERNAME_TAKEN,
+                message: "이 커뮤에서 이미 사용 중인 사용자명입니다",
+              },
+            },
+            409,
           );
         }
         if (
           error instanceof Error &&
           error.message === "Invalid profile picture ID"
         ) {
-          return c.json({ error: "잘못된 프로필 사진 ID입니다" }, 400);
+          return c.json(
+            {
+              error: {
+                code: GeneralErrorCode.INVALID_PROFILE_PICTURE,
+                message: "잘못된 프로필 사진 ID입니다",
+              },
+            },
+            400,
+          );
         }
         if (error instanceof Error && error.message === "Profile not found") {
-          return c.json({ message: "프로필을 찾을 수 없습니다" }, 404);
+          return c.json(
+            {
+              error: {
+                code: GeneralErrorCode.PROFILE_NOT_FOUND,
+                message: "프로필을 찾을 수 없습니다",
+              },
+            },
+            404,
+          );
         }
         throw error;
       }
@@ -106,6 +133,6 @@ export const meRouter = new Hono<{ Variables: AuthVariables }>()
       const user = c.get("user");
       const community = c.get("community");
       const result = await userService.getUserProfiles(user.id, community.id);
-      return c.json(result);
+      return c.json({ data: result });
     },
   );

@@ -24,8 +24,8 @@ async function fetchCurrentUser(): Promise<User | null> {
     const response = await api.console.me.$get();
 
     if (response.ok) {
-      const data = await response.json();
-      return data;
+      const result = await response.json();
+      return result.data;
     } else {
       return null;
     }

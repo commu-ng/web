@@ -60,19 +60,11 @@ interface BoardPost {
   updated_at: string;
 }
 
-interface BoardPostsResponse {
-  data: BoardPost[];
-  pagination: {
-    nextCursor: string | null;
-    hasMore: boolean;
-  };
-}
-
 async function fetchBoardPosts(
   boardSlug: string,
   cursor?: string,
   hashtags?: string[],
-): Promise<BoardPostsResponse> {
+) {
   const res = await api.console.board[":board_slug"].posts.$get({
     param: { board_slug: boardSlug },
     query: {
@@ -105,7 +97,9 @@ export function BoardPostList({ boardSlug, hashtags }: BoardPostListProps) {
     queryKey: ["board-posts", boardSlug, hashtags],
     queryFn: ({ pageParam }) => fetchBoardPosts(boardSlug, pageParam, hashtags),
     getNextPageParam: (lastPage) =>
-      lastPage.pagination.hasMore ? lastPage.pagination.nextCursor : undefined,
+      lastPage.pagination.has_more
+        ? lastPage.pagination.next_cursor
+        : undefined,
     initialPageParam: undefined as string | undefined,
   });
 

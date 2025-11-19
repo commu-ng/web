@@ -142,7 +142,8 @@ async function fetchCommunity(slug: string): Promise<Community> {
   if (!response.ok) {
     throw new Error("커뮤 정보를 가져오는데 실패했습니다");
   }
-  return await response.json();
+  const result = await response.json();
+  return result.data;
 }
 
 async function fetchLinks(slug: string): Promise<CommunityLink[]> {
@@ -152,7 +153,8 @@ async function fetchLinks(slug: string): Promise<CommunityLink[]> {
   if (!response.ok) {
     throw new Error("커뮤 링크를 가져오는데 실패했습니다");
   }
-  return await response.json();
+  const result = await response.json();
+  return result.data;
 }
 
 async function fetchMyApplications(slug: string): Promise<Application[]> {
@@ -164,7 +166,8 @@ async function fetchMyApplications(slug: string): Promise<Application[]> {
   if (!response.ok) {
     return [];
   }
-  return await response.json();
+  const result = await response.json();
+  return result.data;
 }
 
 async function fetchStats(slug: string): Promise<CommunityStats> {
@@ -174,7 +177,8 @@ async function fetchStats(slug: string): Promise<CommunityStats> {
   if (!response.ok) {
     throw new Error("커뮤 통계를 가져오는데 실패했습니다");
   }
-  return await response.json();
+  const result = await response.json();
+  return result.data;
 }
 
 export default function CommunityDetails() {

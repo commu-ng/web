@@ -31,7 +31,7 @@ export const statsRouter = new Hono()
       ]);
 
       const stats = await communityService.getCommunityStats(communityId);
-      return c.json(stats);
+      return c.json({ data: stats });
     },
   )
   .get(
@@ -59,6 +59,6 @@ export const statsRouter = new Hono()
         communityId,
         days,
       );
-      return c.json(activityStats);
+      return c.json({ data: activityStats });
     },
   );

@@ -35,12 +35,12 @@ export function AppLayout({ children }: AppLayoutProps) {
 
       if (notificationResponse.ok) {
         const notificationData = await notificationResponse.json();
-        setUnreadCount(notificationData.count);
+        setUnreadCount(notificationData.data.count);
       }
 
       if (messageResponse.ok) {
         const messageData = await messageResponse.json();
-        setUnreadMessageCount(messageData.count);
+        setUnreadMessageCount(messageData.data.count);
       }
     } catch (err) {
       console.error("Failed to fetch unread counts:", err);

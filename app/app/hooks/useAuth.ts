@@ -11,13 +11,13 @@ interface Instance {
   id: string;
   name: string;
   slug: string;
-  startsAt: string;
-  endsAt: string;
-  isRecruiting: boolean;
-  createdAt: string;
+  starts_at: string;
+  ends_at: string;
+  is_recruiting: boolean;
+  created_at: string;
   role: string;
-  customDomain: string | null;
-  domainVerified: string | null;
+  custom_domain: string | null;
+  domain_verified: string | null;
 }
 
 interface User {
@@ -48,7 +48,8 @@ async function fetchCurrentUser(): Promise<User | null> {
     const response = await client.app.me.$get();
 
     if (response.ok) {
-      return await response.json();
+      const result = await response.json();
+      return result.data;
     } else {
       return null;
     }
@@ -65,7 +66,8 @@ async function fetchMyProfiles(currentSlug: string | null): Promise<Profile[]> {
     const response = await client.app.me.profiles.$get();
 
     if (response.ok) {
-      return await response.json();
+      const result = await response.json();
+      return result.data;
     } else {
       return [];
     }
@@ -229,11 +231,11 @@ export function useAuth(): AuthState {
       const response = await client.app.profiles.$post({ json: profileData });
 
       if (response.ok) {
-        const newProfile = await response.json();
+        const result = await response.json();
         // Refresh profile data
         queryClient.invalidateQueries({ queryKey: ["auth", "myProfiles"] });
         toast.success("프로필이 성공적으로 생성되었습니다!");
-        return newProfile;
+        return result.data;
       } else {
         const errorData = await response.json();
         throw new Error(

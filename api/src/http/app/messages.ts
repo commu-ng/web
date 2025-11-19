@@ -23,6 +23,7 @@ import {
 import * as messageService from "../../services/message.service";
 import * as profileService from "../../services/profile.service";
 import type { AuthVariables } from "../../types";
+import { GeneralErrorCode } from "../../types/api-responses";
 
 export const messagesRouter = new Hono<{ Variables: AuthVariables }>()
   .post(
@@ -48,7 +49,12 @@ export const messagesRouter = new Hono<{ Variables: AuthVariables }>()
 
       if (!senderProfile) {
         return c.json(
-          { message: "송신자 프로필을 찾을 수 없거나 귀하의 소유가 아닙니다" },
+          {
+            error: {
+              code: GeneralErrorCode.PROFILE_NOT_FOUND,
+              message: "송신자 프로필을 찾을 수 없거나 귀하의 소유가 아닙니다",
+            },
+          },
           404,
         );
       }
@@ -62,7 +68,7 @@ export const messagesRouter = new Hono<{ Variables: AuthVariables }>()
         image_ids,
       );
 
-      return c.json(result, 201);
+      return c.json({ data: result }, 201);
     },
   )
   .delete(
@@ -88,7 +94,12 @@ export const messagesRouter = new Hono<{ Variables: AuthVariables }>()
 
       if (!profile) {
         return c.json(
-          { message: "프로필을 찾을 수 없거나 귀하의 소유가 아닙니다" },
+          {
+            error: {
+              code: GeneralErrorCode.PROFILE_NOT_FOUND,
+              message: "프로필을 찾을 수 없거나 귀하의 소유가 아닙니다",
+            },
+          },
           404,
         );
       }
@@ -99,7 +110,7 @@ export const messagesRouter = new Hono<{ Variables: AuthVariables }>()
         community.id,
       );
 
-      return c.json({ message: "메시지가 성공적으로 삭제되었습니다" });
+      return c.json({ data: { id: messageId, deleted: true } });
     },
   )
   .get(
@@ -121,7 +132,15 @@ export const messagesRouter = new Hono<{ Variables: AuthVariables }>()
       );
 
       if (!profile) {
-        return c.json({ error: "프로필을 찾을 수 없습니다" }, 404);
+        return c.json(
+          {
+            error: {
+              code: GeneralErrorCode.PROFILE_NOT_FOUND,
+              message: "프로필을 찾을 수 없습니다",
+            },
+          },
+          404,
+        );
       }
 
       const count = await messageService.getUnreadCount(
@@ -129,7 +148,7 @@ export const messagesRouter = new Hono<{ Variables: AuthVariables }>()
         community.id,
       );
 
-      return c.json({ count });
+      return c.json({ data: { count } });
     },
   )
   .get(
@@ -153,7 +172,15 @@ export const messagesRouter = new Hono<{ Variables: AuthVariables }>()
       );
 
       if (!profile) {
-        return c.json({ error: "프로필에 접근할 권한이 없습니다" }, 403);
+        return c.json(
+          {
+            error: {
+              code: GeneralErrorCode.FORBIDDEN,
+              message: "프로필에 접근할 권한이 없습니다",
+            },
+          },
+          403,
+        );
       }
 
       const result = await messageService.getConversationThread(
@@ -163,7 +190,7 @@ export const messagesRouter = new Hono<{ Variables: AuthVariables }>()
         limit,
         0, // TODO: Implement cursor-based pagination
       );
-      return c.json(result);
+      return c.json({ data: result });
     },
   )
 
@@ -189,7 +216,15 @@ export const messagesRouter = new Hono<{ Variables: AuthVariables }>()
       );
 
       if (!profile) {
-        return c.json({ error: "프로필을 찾을 수 없습니다" }, 404);
+        return c.json(
+          {
+            error: {
+              code: GeneralErrorCode.PROFILE_NOT_FOUND,
+              message: "프로필을 찾을 수 없습니다",
+            },
+          },
+          404,
+        );
       }
 
       await messageService.markConversationAsRead(
@@ -197,7 +232,13 @@ export const messagesRouter = new Hono<{ Variables: AuthVariables }>()
         otherProfileId,
         community.id,
       );
-      return c.json({ message: "메시지가 읽음으로 표시되었습니다" });
+      return c.json({
+        data: {
+          conversation_with: otherProfileId,
+          is_read: true,
+          read_at: new Date().toISOString(),
+        },
+      });
     },
   )
 
@@ -221,11 +262,24 @@ export const messagesRouter = new Hono<{ Variables: AuthVariables }>()
       );
 
       if (!profile) {
-        return c.json({ error: "프로필을 찾을 수 없습니다" }, 404);
+        return c.json(
+          {
+            error: {
+              code: GeneralErrorCode.PROFILE_NOT_FOUND,
+              message: "프로필을 찾을 수 없습니다",
+            },
+          },
+          404,
+        );
       }
 
       await messageService.markAllDirectMessagesAsRead(profileId, community.id);
-      return c.json({ message: "모든 메시지가 읽음으로 표시되었습니다" });
+      return c.json({
+        data: {
+          all_read: true,
+          read_at: new Date().toISOString(),
+        },
+      });
     },
   )
 
@@ -248,7 +302,15 @@ export const messagesRouter = new Hono<{ Variables: AuthVariables }>()
       );
 
       if (!profile) {
-        return c.json({ error: "프로필을 찾을 수 없습니다" }, 404);
+        return c.json(
+          {
+            error: {
+              code: GeneralErrorCode.PROFILE_NOT_FOUND,
+              message: "프로필을 찾을 수 없습니다",
+            },
+          },
+          404,
+        );
       }
 
       const result = await messageService.getConversations(
@@ -257,7 +319,7 @@ export const messagesRouter = new Hono<{ Variables: AuthVariables }>()
         limit,
       );
 
-      return c.json(result);
+      return c.json({ data: result });
     },
   )
 
@@ -283,7 +345,15 @@ export const messagesRouter = new Hono<{ Variables: AuthVariables }>()
       );
 
       if (!profile) {
-        return c.json({ error: "프로필을 찾을 수 없습니다" }, 404);
+        return c.json(
+          {
+            error: {
+              code: GeneralErrorCode.PROFILE_NOT_FOUND,
+              message: "프로필을 찾을 수 없습니다",
+            },
+          },
+          404,
+        );
       }
 
       const result = await messageService.createDirectMessageReaction(
@@ -293,7 +363,7 @@ export const messagesRouter = new Hono<{ Variables: AuthVariables }>()
         emoji,
       );
 
-      return c.json(result, 201);
+      return c.json({ data: result }, 201);
     },
   )
 
@@ -319,7 +389,15 @@ export const messagesRouter = new Hono<{ Variables: AuthVariables }>()
       );
 
       if (!profile) {
-        return c.json({ error: "프로필을 찾을 수 없습니다" }, 404);
+        return c.json(
+          {
+            error: {
+              code: GeneralErrorCode.PROFILE_NOT_FOUND,
+              message: "프로필을 찾을 수 없습니다",
+            },
+          },
+          404,
+        );
       }
 
       await messageService.deleteDirectMessageReaction(
@@ -329,12 +407,9 @@ export const messagesRouter = new Hono<{ Variables: AuthVariables }>()
         emoji,
       );
 
-      return c.json(
-        {
-          message: "반응이 성공적으로 제거되었습니다",
-        },
-        200,
-      );
+      return c.json({
+        data: { message_id: messageId, emoji, deleted: true },
+      });
     },
   )
 
@@ -357,7 +432,15 @@ export const messagesRouter = new Hono<{ Variables: AuthVariables }>()
       );
 
       if (!profile) {
-        return c.json({ error: "프로필을 찾을 수 없습니다" }, 404);
+        return c.json(
+          {
+            error: {
+              code: GeneralErrorCode.PROFILE_NOT_FOUND,
+              message: "프로필을 찾을 수 없습니다",
+            },
+          },
+          404,
+        );
       }
 
       const result = await messageService.listGroupChats(
@@ -366,7 +449,7 @@ export const messagesRouter = new Hono<{ Variables: AuthVariables }>()
         limit,
         0, // TODO: Implement cursor-based pagination
       );
-      return c.json(result);
+      return c.json({ data: result });
     },
   )
 
@@ -392,7 +475,12 @@ export const messagesRouter = new Hono<{ Variables: AuthVariables }>()
 
       if (!creatorProfile) {
         return c.json(
-          { message: "생성자 프로필을 찾을 수 없거나 권한이 없습니다" },
+          {
+            error: {
+              code: GeneralErrorCode.FORBIDDEN,
+              message: "생성자 프로필을 찾을 수 없거나 권한이 없습니다",
+            },
+          },
           403,
         );
       }
@@ -403,7 +491,7 @@ export const messagesRouter = new Hono<{ Variables: AuthVariables }>()
         creator_profile_id,
         community.id,
       );
-      return c.json(result);
+      return c.json({ data: result }, 201);
     },
   )
 
@@ -429,7 +517,12 @@ export const messagesRouter = new Hono<{ Variables: AuthVariables }>()
 
       if (!profile) {
         return c.json(
-          { message: "프로필을 찾을 수 없거나 권한이 없습니다" },
+          {
+            error: {
+              code: GeneralErrorCode.FORBIDDEN,
+              message: "프로필을 찾을 수 없거나 권한이 없습니다",
+            },
+          },
           403,
         );
       }
@@ -439,7 +532,7 @@ export const messagesRouter = new Hono<{ Variables: AuthVariables }>()
         profile_id,
         community.id,
       );
-      return c.json(result);
+      return c.json({ data: result });
     },
   )
 
@@ -465,7 +558,12 @@ export const messagesRouter = new Hono<{ Variables: AuthVariables }>()
 
       if (!profile) {
         return c.json(
-          { message: "프로필을 찾을 수 없거나 권한이 없습니다" },
+          {
+            error: {
+              code: GeneralErrorCode.FORBIDDEN,
+              message: "프로필을 찾을 수 없거나 권한이 없습니다",
+            },
+          },
           403,
         );
       }
@@ -475,7 +573,7 @@ export const messagesRouter = new Hono<{ Variables: AuthVariables }>()
         profile_id,
         community.id,
       );
-      return c.json(result);
+      return c.json({ data: result });
     },
   )
 
@@ -501,7 +599,15 @@ export const messagesRouter = new Hono<{ Variables: AuthVariables }>()
       );
 
       if (!profile) {
-        return c.json({ error: "프로필에 접근할 권한이 없습니다" }, 403);
+        return c.json(
+          {
+            error: {
+              code: GeneralErrorCode.FORBIDDEN,
+              message: "프로필에 접근할 권한이 없습니다",
+            },
+          },
+          403,
+        );
       }
 
       const result = await messageService.sendGroupChatMessage(
@@ -512,7 +618,7 @@ export const messagesRouter = new Hono<{ Variables: AuthVariables }>()
         community.id,
         image_ids,
       );
-      return c.json(result);
+      return c.json({ data: result }, 201);
     },
   )
 
@@ -541,7 +647,15 @@ export const messagesRouter = new Hono<{ Variables: AuthVariables }>()
       );
 
       if (!profile) {
-        return c.json({ error: "프로필에 접근할 권한이 없습니다" }, 403);
+        return c.json(
+          {
+            error: {
+              code: GeneralErrorCode.FORBIDDEN,
+              message: "프로필에 접근할 권한이 없습니다",
+            },
+          },
+          403,
+        );
       }
 
       const result = await messageService.createGroupChatMessageReaction(
@@ -551,7 +665,7 @@ export const messagesRouter = new Hono<{ Variables: AuthVariables }>()
         community.id,
         emoji,
       );
-      return c.json(result, 201);
+      return c.json({ data: result }, 201);
     },
   )
 
@@ -580,7 +694,15 @@ export const messagesRouter = new Hono<{ Variables: AuthVariables }>()
       );
 
       if (!profile) {
-        return c.json({ error: "프로필에 접근할 권한이 없습니다" }, 403);
+        return c.json(
+          {
+            error: {
+              code: GeneralErrorCode.FORBIDDEN,
+              message: "프로필에 접근할 권한이 없습니다",
+            },
+          },
+          403,
+        );
       }
 
       await messageService.deleteGroupChatMessageReaction(
@@ -590,7 +712,9 @@ export const messagesRouter = new Hono<{ Variables: AuthVariables }>()
         community.id,
         emoji,
       );
-      return c.json({ message: "반응이 성공적으로 제거되었습니다" });
+      return c.json({
+        data: { message_id, emoji, deleted: true },
+      });
     },
   )
 
@@ -616,7 +740,15 @@ export const messagesRouter = new Hono<{ Variables: AuthVariables }>()
       );
 
       if (!profile) {
-        return c.json({ error: "프로필에 접근할 권한이 없습니다" }, 403);
+        return c.json(
+          {
+            error: {
+              code: GeneralErrorCode.FORBIDDEN,
+              message: "프로필에 접근할 권한이 없습니다",
+            },
+          },
+          403,
+        );
       }
 
       await messageService.markGroupChatMessagesAsRead(
@@ -624,6 +756,12 @@ export const messagesRouter = new Hono<{ Variables: AuthVariables }>()
         profile_id,
         community.id,
       );
-      return c.json({ message: "메시지가 읽음으로 표시되었습니다" });
+      return c.json({
+        data: {
+          group_chat_id,
+          is_read: true,
+          read_at: new Date().toISOString(),
+        },
+      });
     },
   );

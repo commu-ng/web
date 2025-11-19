@@ -6,6 +6,7 @@ import { env } from "../config/env";
 import { optionalAuthMiddleware } from "../middleware/auth";
 import { ssoQuerySchema, tokenExchangeSchema } from "../schemas";
 import * as authService from "../services/auth.service";
+import { createErrorResponse, GeneralErrorCode } from "../types/api-responses";
 
 export const auth = new Hono()
   .post("/logout", async (c) => {
@@ -21,7 +22,13 @@ export const auth = new Hono()
     }
 
     if (!sessionToken) {
-      return c.json({ error: "세션 토큰이 필요합니다" }, 400);
+      return c.json(
+        createErrorResponse(
+          GeneralErrorCode.SESSION_REQUIRED,
+          "세션 토큰이 필요합니다",
+        ),
+        400,
+      );
     }
 
     await authService.logoutUser(sessionToken);
@@ -29,7 +36,7 @@ export const auth = new Hono()
     // Clear cookie if it exists
     deleteCookie(c, "session_token");
 
-    return c.json({ message: "성공적으로 로그아웃되었습니다" });
+    return c.json({ data: { logged_out: true } });
   })
   .get(
     "/sso",
@@ -76,5 +83,5 @@ export const auth = new Hono()
     const { token, domain } = c.req.valid("json");
 
     const session = await authService.exchangeTokenForSession(token, domain);
-    return c.json({ message: "SSO 성공", session_token: session.token });
+    return c.json({ data: { session_token: session.token } });
   });

@@ -29,8 +29,8 @@ export function useProfileSharing(profileId: string) {
         throw new Error("Failed to fetch shared users");
       }
 
-      const data = await response.json();
-      const users = (data.users || []).map(
+      const result = await response.json();
+      const users = (result.data.users || []).map(
         (user: ApiSharedUser): SharedUser => ({
           ...user,
           primary_profile_id: user.primary_profile_id ?? null,
@@ -61,9 +61,13 @@ export function useProfileSharing(profileId: string) {
         return;
       }
       const errorData = await response.json();
-      throw new Error(
-        "error" in errorData ? errorData.error : "Failed to add user",
-      );
+      const errorMsg =
+        "error" in errorData &&
+        typeof errorData.error === "object" &&
+        errorData.error?.message
+          ? errorData.error.message
+          : "Failed to add user";
+      throw new Error(errorMsg);
     }
 
     await fetchSharedUsers();
@@ -82,9 +86,13 @@ export function useProfileSharing(profileId: string) {
         return;
       }
       const errorData = await response.json();
-      throw new Error(
-        "error" in errorData ? errorData.error : "Failed to remove user",
-      );
+      const errorMsg =
+        "error" in errorData &&
+        typeof errorData.error === "object" &&
+        errorData.error?.message
+          ? errorData.error.message
+          : "Failed to remove user";
+      throw new Error(errorMsg);
     }
 
     await fetchSharedUsers();

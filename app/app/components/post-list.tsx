@@ -58,7 +58,9 @@ export const PostList = forwardRef<PostListRef>((_props, ref) => {
     },
     getNextPageParam: (lastPage) => {
       // Use cursor from API response
-      return lastPage.hasMore ? lastPage.nextCursor : undefined;
+      return lastPage.pagination.has_more
+        ? lastPage.pagination.next_cursor
+        : undefined;
     },
     initialPageParam: undefined as string | undefined,
     staleTime: 2 * 60 * 1000, // 2 minutes - posts are dynamic but can be cached briefly

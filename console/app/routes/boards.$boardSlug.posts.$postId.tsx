@@ -319,10 +319,7 @@ export default function BoardPostDetail({ params }: Route.ComponentProps) {
   const [editingReplyId, setEditingReplyId] = useState<string | null>(null);
   const [editingReplyContent, setEditingReplyContent] = useState("");
 
-  const {
-    data: board,
-    isLoading: boardLoading,
-  } = useQuery({
+  const { data: board, isLoading: boardLoading } = useQuery({
     queryKey: ["board", boardSlug],
     queryFn: () => fetchBoard(boardSlug),
   });
@@ -337,10 +334,7 @@ export default function BoardPostDetail({ params }: Route.ComponentProps) {
     queryFn: () => fetchBoardPost(boardSlug, postId),
   });
 
-  const {
-    data: replies = [],
-    isLoading: repliesLoading,
-  } = useQuery({
+  const { data: replies = [], isLoading: repliesLoading } = useQuery({
     queryKey: ["board-post-replies", boardSlug, postId],
     queryFn: () => fetchBoardPostReplies(boardSlug, postId),
     enabled: !!board && board.allow_comments,

@@ -119,7 +119,7 @@ export async function uploadProfilePicture(
     width: newImage.width,
     height: newImage.height,
     url: addImageUrl(newImage).url,
-    createdAt: newProfilePicture.createdAt,
+    created_at: newProfilePicture.createdAt,
   };
 }
 
@@ -227,8 +227,8 @@ export async function listProfilesByUser(communityId: string) {
         name: profile.name,
         bio: profile.bio,
         profile_picture_url: getProfilePictureUrl(profile.profilePictures),
-        createdAt: profile.createdAt,
-        updatedAt: profile.updatedAt,
+        created_at: profile.createdAt,
+        updated_at: profile.updatedAt,
         activatedAt: profile.activatedAt,
         is_primary: profile.isPrimary,
         user_group_key: userGroupKey,
@@ -366,8 +366,8 @@ export async function createProfile(
     name: newProfile.name,
     bio: newProfile.bio,
     profile_picture_url,
-    createdAt: newProfile.createdAt,
-    updatedAt: newProfile.updatedAt,
+    created_at: newProfile.createdAt,
+    updated_at: newProfile.updatedAt,
     activatedAt: newProfile.activatedAt,
     primary: newProfile.isPrimary,
   };
@@ -592,8 +592,8 @@ export async function getProfileProfile(username: string, communityId: string) {
     name: profile.name,
     bio: profile.bio,
     profile_picture_url: getProfilePictureUrl(profile.profilePictures),
-    createdAt: profile.createdAt,
-    updatedAt: profile.updatedAt,
+    created_at: profile.createdAt,
+    updated_at: profile.updatedAt,
     post_count: postCount,
   };
 }
@@ -709,8 +709,8 @@ export async function getProfilePosts(
     return {
       id: post.id,
       content: post.content,
-      createdAt: post.createdAt,
-      updatedAt: post.updatedAt,
+      created_at: post.createdAt,
+      updated_at: post.updatedAt,
       announcement: post.announcement,
       content_warning: post.contentWarning,
       pinned_at: post.pinnedAt,
@@ -836,8 +836,8 @@ export async function updateProfile(
     username: updatedProfile.username,
     bio: updatedProfile.bio,
     is_primary: updatedProfile.isPrimary,
-    createdAt: updatedProfile.createdAt,
-    updatedAt: updatedProfile.updatedAt,
+    created_at: updatedProfile.createdAt,
+    updated_at: updatedProfile.updatedAt,
     profile_picture_url: profileWithProfilePicture
       ? getProfilePictureUrl(profileWithProfilePicture.profilePictures)
       : null,

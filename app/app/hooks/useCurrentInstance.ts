@@ -27,7 +27,8 @@ export function useCurrentInstance() {
     queryFn: async (): Promise<CurrentInstance | null> => {
       const response = await client.app.me.instance.$get();
       if (!response.ok) return null;
-      return await response.json();
+      const result = await response.json();
+      return result.data;
     },
     initialData: publicInstance
       ? () => publicInstance as CurrentInstance

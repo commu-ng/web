@@ -24,8 +24,8 @@ const TEMPLATES_DIR = join(__dirname, "../templates");
 interface ExportPost {
   id: string;
   content: string;
-  createdAt: string;
-  updatedAt: string;
+  createdAt: string | null;
+  updatedAt: string | null;
   announcement: boolean;
   contentWarning: string | null;
   author: {
@@ -140,8 +140,8 @@ async function* streamPostsForExport(
       exportBatch.push({
         id: post.id,
         content: post.content,
-        createdAt: post.createdAt,
-        updatedAt: post.updatedAt,
+        createdAt: post.created_at,
+        updatedAt: post.updated_at,
         announcement: post.announcement,
         contentWarning: post.content_warning || null,
         author: {
@@ -163,8 +163,8 @@ async function* streamPostsForExport(
     // Yield batch and free memory
     yield exportBatch;
 
-    if (!result.hasMore) break;
-    cursor = result.nextCursor ?? undefined;
+    if (!result.pagination.has_more) break;
+    cursor = result.pagination.next_cursor ?? undefined;
   }
 }
 
@@ -174,8 +174,8 @@ async function* streamPostsForExport(
 function convertReply(reply: {
   id: string;
   content: string;
-  createdAt: string;
-  updatedAt: string;
+  created_at: string | null;
+  updated_at: string | null;
   announcement: boolean;
   content_warning?: string | null;
   author: {
@@ -206,8 +206,8 @@ function convertReply(reply: {
   return {
     id: reply.id,
     content: reply.content,
-    createdAt: reply.createdAt,
-    updatedAt: reply.updatedAt,
+    createdAt: reply.created_at,
+    updatedAt: reply.updated_at,
     announcement: reply.announcement,
     contentWarning: reply.content_warning || null,
     author: {
@@ -259,8 +259,25 @@ async function getAllGroupChatsForExport(
     userProfileIds,
   );
 
-  // Type conversion to match export interface
-  return groupChats as ExportGroupChat[];
+  // Convert snake_case service response to camelCase export format
+  return groupChats.map((chat) => ({
+    id: chat.id,
+    name: chat.name,
+    createdAt: chat.created_at,
+    messages: chat.messages.map((msg) => ({
+      id: msg.id,
+      content: msg.content,
+      createdAt: msg.created_at,
+      sender: {
+        id: msg.sender.id,
+        name: msg.sender.name,
+        username: msg.sender.username,
+        profilePictureUrl: msg.sender.profilePictureUrl,
+      },
+      images: msg.images,
+      reactions: msg.reactions,
+    })),
+  }));
 }
 
 /**

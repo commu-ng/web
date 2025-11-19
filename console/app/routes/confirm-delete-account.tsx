@@ -53,8 +53,8 @@ export default function ConfirmDeleteAccount() {
         });
 
         if (response.ok) {
-          const data = await response.json();
-          setUserInfo(data);
+          const result = await response.json();
+          setUserInfo(result.data);
         } else {
           const errorData = await response.json();
           setConfirmationStatus("error");

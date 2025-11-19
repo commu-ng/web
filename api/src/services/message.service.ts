@@ -219,8 +219,8 @@ export async function sendDirectMessage(
   return {
     id: message.id,
     content: message.content,
-    createdAt: message.createdAt,
-    readAt: message.readAt,
+    created_at: message.createdAt,
+    read_at: message.readAt,
     is_sender: true,
     sender: {
       id: senderProfile.id,
@@ -496,7 +496,7 @@ export async function getConversations(
       last_message: {
         id: lastMessage.id,
         content: lastMessage.content,
-        createdAt: lastMessage.createdAt,
+        created_at: lastMessage.createdAt,
         is_sender: lastMessage.senderId === profileId,
       },
       unread_count: String(unreadCountMap.get(otherProfileId) || 0),
@@ -616,8 +616,8 @@ export async function getConversationThread(
     return {
       id: message.id,
       content: message.content,
-      createdAt: message.createdAt,
-      readAt: message.readAt,
+      created_at: message.createdAt,
+      read_at: message.readAt,
       sender: {
         id: sender.id,
         name: sender.name,
@@ -854,7 +854,7 @@ export async function listGroupChats(
       lastMessageData = {
         id: lastMessage.id,
         content: lastMessage.content,
-        createdAt: lastMessage.createdAt,
+        created_at: lastMessage.createdAt,
         sender: {
           id: sender.id,
           name: sender.name,
@@ -883,8 +883,8 @@ export async function listGroupChats(
     result.push({
       id: groupChat?.id,
       name: groupChat?.name,
-      createdAt: groupChat?.createdAt,
-      updatedAt: groupChat?.updatedAt,
+      created_at: groupChat?.createdAt,
+      updated_at: groupChat?.updatedAt,
       created_by_id: groupChat?.createdById,
       last_message: lastMessageData,
       members,
@@ -965,8 +965,8 @@ export async function createGroupChat(
   return {
     id: newGroupChat.id,
     name: newGroupChat.name,
-    createdAt: newGroupChat.createdAt,
-    updatedAt: newGroupChat.updatedAt,
+    created_at: newGroupChat.createdAt,
+    updated_at: newGroupChat.updatedAt,
     created_by_id: newGroupChat.createdById,
     member_count: memberProfileIds.length,
     unread_count: 0, // New group chat has no messages yet
@@ -1044,8 +1044,8 @@ export async function getGroupChatDetails(
   return {
     id: groupChat.id,
     name: groupChat.name,
-    createdAt: groupChat.createdAt,
-    updatedAt: groupChat.updatedAt,
+    created_at: groupChat.createdAt,
+    updated_at: groupChat.updatedAt,
     created_by_id: groupChat.createdById,
     members,
     member_count: members.length,
@@ -1187,7 +1187,7 @@ export async function getGroupChatMessages(
     return {
       id: message.id,
       content: message.content,
-      createdAt: message.createdAt,
+      created_at: message.createdAt,
       sender: {
         id: message.profile.id,
         name: message.profile.name,
@@ -1343,7 +1343,7 @@ export async function sendGroupChatMessage(
   return {
     id: newMessage.id,
     content: newMessage.content,
-    createdAt: newMessage.createdAt,
+    created_at: newMessage.createdAt,
     sender: {
       id: profile.id,
       name: profile.name,
@@ -1687,7 +1687,7 @@ export async function getAllConversationsForExport(
     conversationMap.get(conversationKey)?.push({
       id: message.id,
       content: message.content,
-      createdAt: message.createdAt,
+      created_at: message.createdAt,
       sender: {
         id: sender.id,
         name: sender.name,
@@ -1784,7 +1784,7 @@ export async function getAllGroupChatsForExport(
     exportGroupChats.push({
       id: chat.id,
       name: chat.name,
-      createdAt: chat.createdAt,
+      created_at: chat.createdAt,
       messages: messagesWithSender
         .filter((m) => m.profile !== null)
         .map((m) => {
@@ -1793,7 +1793,7 @@ export async function getAllGroupChatsForExport(
           return {
             id: m.id,
             content: m.content,
-            createdAt: m.createdAt,
+            created_at: m.createdAt,
             sender: {
               id: m.profile.id,
               name: m.profile.name,

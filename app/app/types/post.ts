@@ -31,8 +31,8 @@ export interface PostHistoryEntry {
 export interface Post {
   id: string;
   content: string;
-  createdAt: string;
-  updatedAt: string;
+  created_at: string;
+  updated_at: string;
   announcement: boolean;
   content_warning: string | null;
   scheduled_at?: string | null;

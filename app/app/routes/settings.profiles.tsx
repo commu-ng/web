@@ -32,7 +32,8 @@ export default function ProfilesManagement() {
     queryFn: async () => {
       const response = await client.app.me.instance.$get();
       if (response.ok) {
-        return await response.json();
+        const result = await response.json();
+        return result.data;
       }
       return null;
     },
@@ -58,8 +59,8 @@ export default function ProfilesManagement() {
 
       let postCount = 0;
       if (postCountResponse.ok) {
-        const data = await postCountResponse.json();
-        postCount = data.post_count;
+        const result = await postCountResponse.json();
+        postCount = result.data.post_count;
       }
 
       // If profile has posts, ask for confirmation
@@ -252,7 +253,7 @@ export default function ProfilesManagement() {
                           )}
                           <p className="text-xs text-muted-foreground mt-1">
                             생성일:{" "}
-                            {new Date(avatarItem.createdAt).toLocaleDateString(
+                            {new Date(avatarItem.created_at).toLocaleDateString(
                               "ko-KR",
                             )}
                           </p>

@@ -69,8 +69,8 @@ async function fetchApplication(
     throw new Error("Failed to fetch application");
   }
 
-  const data = await res.json();
-  return data;
+  const result = await res.json();
+  return result.data;
 }
 
 async function fetchCommunity(slug: string) {
@@ -80,7 +80,8 @@ async function fetchCommunity(slug: string) {
   if (!res.ok) {
     throw new Error("커뮤를 찾을 수 없습니다");
   }
-  return await res.json();
+  const result = await res.json();
+  return result.data;
 }
 
 export default function ApplicationView() {

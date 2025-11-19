@@ -1,4 +1,14 @@
-import { and, asc, desc, eq, inArray, isNull, lt, sql } from "drizzle-orm";
+import {
+  and,
+  asc,
+  count,
+  desc,
+  eq,
+  inArray,
+  isNull,
+  lt,
+  sql,
+} from "drizzle-orm";
 import { db } from "../db";
 import {
   board as boardTable,
@@ -240,14 +250,11 @@ export async function getBoardPosts(
   cursor?: string,
   hashtags?: string[],
 ) {
-  const conditions = [isNull(boardPostTable.deletedAt)];
+  // Build base conditions (without cursor) for count query
+  const baseConditions = [isNull(boardPostTable.deletedAt)];
 
   if (boardId) {
-    conditions.push(eq(boardPostTable.boardId, boardId));
-  }
-
-  if (cursor) {
-    conditions.push(sql`${boardPostTable.id} < ${cursor}`);
+    baseConditions.push(eq(boardPostTable.boardId, boardId));
   }
 
   // If hashtags filter is provided, filter posts that have ALL of the hashtags (AND logic)
@@ -266,17 +273,32 @@ export async function getBoardPosts(
         sql`COUNT(DISTINCT ${boardHashtagTable.id}) = ${normalizedHashtags.length}`,
       );
 
-    conditions.push(inArray(boardPostTable.id, postIdsWithAllHashtags));
+    baseConditions.push(inArray(boardPostTable.id, postIdsWithAllHashtags));
   }
 
-  const posts = await db
-    .select()
-    .from(boardPostTable)
-    .leftJoin(userTable, eq(boardPostTable.authorId, userTable.id))
-    .leftJoin(boardTable, eq(boardPostTable.boardId, boardTable.id))
-    .where(and(...conditions))
-    .orderBy(desc(boardPostTable.id))
-    .limit(limit + 1);
+  // Build query conditions (with cursor)
+  const queryConditions = [...baseConditions];
+  if (cursor) {
+    queryConditions.push(sql`${boardPostTable.id} < ${cursor}`);
+  }
+
+  // Run count and data queries in parallel
+  const [posts, totalCountResult] = await Promise.all([
+    db
+      .select()
+      .from(boardPostTable)
+      .leftJoin(userTable, eq(boardPostTable.authorId, userTable.id))
+      .leftJoin(boardTable, eq(boardPostTable.boardId, boardTable.id))
+      .where(and(...queryConditions))
+      .orderBy(desc(boardPostTable.id))
+      .limit(limit + 1),
+    db
+      .select({ count: count() })
+      .from(boardPostTable)
+      .where(and(...baseConditions)),
+  ]);
+
+  const totalCount = totalCountResult[0]?.count ?? 0;
 
   // Check if there are more results
   const hasMore = posts.length > limit;
@@ -372,8 +394,11 @@ export async function getBoardPosts(
 
   return {
     data: result,
-    nextCursor,
-    hasMore,
+    pagination: {
+      next_cursor: nextCursor,
+      has_more: hasMore,
+      total_count: totalCount,
+    },
   };
 }
 
@@ -760,8 +785,8 @@ function buildReplyTree(
     depth: number;
     authorId: string;
     authorLoginName: string;
-    createdAt: string;
-    updatedAt: string;
+    created_at: string;
+    updated_at: string;
   }[],
 ) {
   const replyMap = new Map<string, unknown>();
@@ -777,8 +802,8 @@ function buildReplyTree(
         id: reply.authorId,
         login_name: reply.authorLoginName,
       },
-      created_at: reply.createdAt,
-      updated_at: reply.updatedAt,
+      created_at: reply.created_at,
+      updated_at: reply.updated_at,
       replies: [] as unknown[],
     };
     replyMap.set(reply.id, replyObj);
@@ -837,24 +862,35 @@ export async function getBoardPostReplies(
   }
 
   // Get top-level replies (depth 0) with pagination
-  const conditions = [
+  // Build base conditions (without cursor) for count query
+  const baseConditions = [
     eq(boardPostReplyTable.boardPostId, boardPostId),
     eq(boardPostReplyTable.depth, 0),
     isNull(boardPostReplyTable.deletedAt),
   ];
 
+  // Build query conditions (with cursor)
+  const queryConditions = [...baseConditions];
   if (cursor) {
-    conditions.push(lt(boardPostReplyTable.id, cursor));
+    queryConditions.push(lt(boardPostReplyTable.id, cursor));
   }
 
-  const topLevelReplies = await db
-    .select()
-    .from(boardPostReplyTable)
-    .leftJoin(userTable, eq(boardPostReplyTable.authorId, userTable.id))
-    .where(and(...conditions))
-    .orderBy(desc(boardPostReplyTable.id))
-    .limit(limit + 1);
+  // Run count and data queries in parallel
+  const [topLevelReplies, totalCountResult] = await Promise.all([
+    db
+      .select()
+      .from(boardPostReplyTable)
+      .leftJoin(userTable, eq(boardPostReplyTable.authorId, userTable.id))
+      .where(and(...queryConditions))
+      .orderBy(desc(boardPostReplyTable.id))
+      .limit(limit + 1),
+    db
+      .select({ count: count() })
+      .from(boardPostReplyTable)
+      .where(and(...baseConditions)),
+  ]);
 
+  const totalCount = totalCountResult[0]?.count ?? 0;
   const hasMore = topLevelReplies.length > limit;
   const repliesToReturn = hasMore
     ? topLevelReplies.slice(0, limit)
@@ -873,8 +909,11 @@ export async function getBoardPostReplies(
   if (topLevelIds.length === 0) {
     return {
       data: [],
-      nextCursor: null,
-      hasMore: false,
+      pagination: {
+        next_cursor: null,
+        has_more: false,
+        total_count: totalCount,
+      },
     };
   }
 
@@ -900,8 +939,8 @@ export async function getBoardPostReplies(
       depth: r.board_post_reply?.depth || 0,
       authorId: r.user?.id || "",
       authorLoginName: r.user?.loginName || "",
-      createdAt: r.board_post_reply?.createdAt || "",
-      updatedAt: r.board_post_reply?.updatedAt || "",
+      created_at: r.board_post_reply?.createdAt || "",
+      updated_at: r.board_post_reply?.updatedAt || "",
     })),
     ...nestedReplies.map((r) => ({
       id: r.board_post_reply?.id || "",
@@ -910,8 +949,8 @@ export async function getBoardPostReplies(
       depth: r.board_post_reply?.depth || 0,
       authorId: r.user?.id || "",
       authorLoginName: r.user?.loginName || "",
-      createdAt: r.board_post_reply?.createdAt || "",
-      updatedAt: r.board_post_reply?.updatedAt || "",
+      created_at: r.board_post_reply?.createdAt || "",
+      updated_at: r.board_post_reply?.updatedAt || "",
     })),
   ];
 
@@ -919,8 +958,11 @@ export async function getBoardPostReplies(
 
   return {
     data: tree,
-    nextCursor,
-    hasMore,
+    pagination: {
+      next_cursor: nextCursor,
+      has_more: hasMore,
+      total_count: totalCount,
+    },
   };
 }
 

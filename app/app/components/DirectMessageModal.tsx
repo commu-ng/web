@@ -72,10 +72,12 @@ export function DirectMessageModal({
         const errorData = await response.json();
         const errorMessage =
           errorData && typeof errorData === "object"
-            ? "error" in errorData && typeof errorData.error === "string"
-              ? errorData.error
-              : "message" in errorData && typeof errorData.message === "string"
-                ? errorData.message
+            ? "error" in errorData &&
+              typeof errorData.error === "object" &&
+              errorData.error?.message
+              ? errorData.error.message
+              : "error" in errorData && typeof errorData.error === "string"
+                ? errorData.error
                 : undefined
             : undefined;
         toast.error(errorMessage || "메시지 전송에 실패했습니다");

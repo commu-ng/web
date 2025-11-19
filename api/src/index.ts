@@ -10,6 +10,7 @@ import { appRouter } from "./http/app/index";
 import { auth } from "./http/auth";
 import { consoleRouter } from "./http/console";
 import { startScheduler } from "./services/scheduler.service";
+import { GeneralErrorCode } from "./types/api-responses";
 
 // Configure logger
 await configureLogger();
@@ -58,7 +59,16 @@ const app = new Hono()
   .onError((err, c) => {
     if (err instanceof AppException) {
       logger.http.warn("AppException: {message}", { message: err.message });
-      return c.json({ error: err.message }, err.statusCode);
+      return c.json(
+        {
+          error: {
+            code: err.code,
+            message: err.message,
+            ...(err.details && { details: err.details }),
+          },
+        },
+        err.statusCode,
+      );
     }
 
     logger.http.error("Unhandled error: {message} {stack}", {
@@ -67,7 +77,15 @@ const app = new Hono()
     });
     Sentry.captureException(err);
 
-    return c.json({ error: "Internal Server Error" }, 500);
+    return c.json(
+      {
+        error: {
+          code: GeneralErrorCode.INTERNAL_SERVER_ERROR,
+          message: "Internal Server Error",
+        },
+      },
+      500,
+    );
   });
 
 const port = env.port;

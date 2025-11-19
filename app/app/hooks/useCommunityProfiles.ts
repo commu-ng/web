@@ -7,7 +7,7 @@ export interface CommunityProfile {
   username: string;
   bio: string | null;
   profile_picture_url: string | null;
-  createdAt: string;
+  created_at: string;
   is_primary: boolean;
   user_group_key: string;
   user_role: "owner" | "moderator" | "member";

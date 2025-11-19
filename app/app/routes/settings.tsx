@@ -14,7 +14,8 @@ export default function Settings() {
     queryFn: async () => {
       const response = await client.app.me.instance.$get();
       if (response.ok) {
-        return await response.json();
+        const result = await response.json();
+        return result.data;
       }
       return null;
     },

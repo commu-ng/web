@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import sharp from "sharp";
 import { authMiddleware } from "../../middleware/auth";
 import * as imageService from "../../services/image.service";
+import { GeneralErrorCode } from "../../types/api-responses";
 import {
   getFileUrl,
   uploadFileDirect,
@@ -22,8 +23,11 @@ export const uploadRouter = new Hono().post(
     ) {
       return c.json(
         {
-          error:
-            'Content-Type은 "multipart/form-data" 또는 "application/x-www-form-urlencoded"여야 합니다',
+          error: {
+            code: GeneralErrorCode.INVALID_CONTENT_TYPE,
+            message:
+              'Content-Type은 "multipart/form-data" 또는 "application/x-www-form-urlencoded"여야 합니다',
+          },
         },
         400,
       );
@@ -33,14 +37,30 @@ export const uploadRouter = new Hono().post(
     const file = formData.get("file") as File | null;
 
     if (!file) {
-      return c.json({ error: "업로드된 파일이 없습니다" }, 400);
+      return c.json(
+        {
+          error: {
+            code: GeneralErrorCode.NO_FILE_UPLOADED,
+            message: "업로드된 파일이 없습니다",
+          },
+        },
+        400,
+      );
     }
     const fileBuffer = await file.arrayBuffer();
     const contentType = file.type || "application/octet-stream";
 
     const [isValid, errorMessage] = validateImageFile(contentType, file.size);
     if (!isValid) {
-      return c.json({ error: errorMessage }, 400);
+      return c.json(
+        {
+          error: {
+            code: GeneralErrorCode.INVALID_FILE,
+            message: errorMessage,
+          },
+        },
+        400,
+      );
     }
 
     const uniqueKey = await uploadFileDirect(
@@ -66,13 +86,15 @@ export const uploadRouter = new Hono().post(
 
     return c.json(
       {
-        id: newImage.id,
-        filename: newImage.filename,
-        width: newImage.width,
-        height: newImage.height,
-        url: getFileUrl(newImage.key),
-        key: uniqueKey,
-        created_at: newImage.createdAt,
+        data: {
+          id: newImage.id,
+          filename: newImage.filename,
+          width: newImage.width,
+          height: newImage.height,
+          url: getFileUrl(newImage.key),
+          key: uniqueKey,
+          created_at: newImage.createdAt,
+        },
       },
       201,
     );

@@ -4,18 +4,27 @@ import { env } from "./env";
 
 // API response types
 export interface ApiErrorResponse {
-  error?: string;
-  message?: string;
+  error: {
+    code: string;
+    message: string;
+    details?: Record<string, unknown>;
+  };
 }
 
-export interface ApiSuccessResponse {
-  message?: string;
+export interface ApiSuccessResponse<T> {
+  data: T;
 }
 
 // Helper function to extract error message from API response
 export function getErrorMessage(errorData: unknown, fallback: string): string {
-  const data = errorData as { error?: string };
-  return data.error || fallback;
+  const data = errorData as { error?: { message?: string } | string };
+  if (typeof data.error === "object" && data.error?.message) {
+    return data.error.message;
+  }
+  if (typeof data.error === "string") {
+    return data.error;
+  }
+  return fallback;
 }
 
 // Since the type resolution is causing issues, let's use a runtime solution
@@ -51,5 +60,6 @@ export async function uploadImage(
     throw new Error(getErrorMessage(errorData, "이미지 업로드에 실패했습니다"));
   }
 
-  return response.json();
+  const result = await response.json();
+  return result.data;
 }

@@ -81,7 +81,7 @@ export default function ProfileSettings() {
       setNewName(currentProfile.name || "");
       setNewUsername(currentProfile.username || "");
       setNewBio(currentProfile.bio || "");
-      setOnlineStatusVisible(currentProfile.onlineStatusVisible ?? true);
+      setOnlineStatusVisible(currentProfile.online_status_visible ?? true);
       setProfilePicturePreview(currentProfile.profile_picture_url || null);
       // Validate initial username
       const error = validateUsername(currentProfile.username);
@@ -193,7 +193,8 @@ export default function ProfileSettings() {
       });
 
       if (response.ok) {
-        const updatedProfile = await response.json();
+        const result = await response.json();
+        const updatedProfile = result.data;
         // Merge with existing profile to preserve missing properties
         const fullUpdatedProfile = { ...profile, ...updatedProfile };
         setProfile(fullUpdatedProfile);
@@ -227,7 +228,7 @@ export default function ProfileSettings() {
       setNewName(profile.name || "");
       setNewUsername(profile.username || "");
       setNewBio(profile.bio || "");
-      setOnlineStatusVisible(profile.onlineStatusVisible ?? true);
+      setOnlineStatusVisible(profile.online_status_visible ?? true);
       setProfilePicturePreview(profile.profile_picture_url || null);
       setUsernameError(""); // Clear username validation error
     }

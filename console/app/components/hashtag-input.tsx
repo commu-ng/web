@@ -51,10 +51,10 @@ export function HashtagInput({
         query: { q: query },
       });
       if (response.ok) {
-        const data = await response.json();
-        setSuggestions(data);
+        const result = await response.json();
+        setSuggestions(result.data);
         setSelectedSuggestionIndex(0);
-        setShowSuggestions(data.length > 0);
+        setShowSuggestions(result.data.length > 0);
       } else {
         setSuggestions([]);
         setShowSuggestions(false);

@@ -1,4 +1,13 @@
-import { and, desc, eq, inArray, isNotNull, isNull, sql } from "drizzle-orm";
+import {
+  and,
+  count,
+  desc,
+  eq,
+  inArray,
+  isNotNull,
+  isNull,
+  sql,
+} from "drizzle-orm";
 import sharp from "sharp";
 import { db } from "../db";
 import {
@@ -20,6 +29,7 @@ import {
 import { AppException } from "../exception";
 import { GENERAL_ERROR_CODE } from "../types/api-responses";
 import { validateCommunityActive } from "../utils/community-validation";
+import { formatISODate } from "../utils/datetime";
 import { batchLoadProfilePictures } from "../utils/profile-picture-helper";
 import { addImageUrl, uploadFileDirect, validateImageFile } from "../utils/r2";
 import * as membershipService from "./membership.service";
@@ -118,31 +128,52 @@ export async function getScheduledPosts(
   limit: number = 20,
   cursor?: string,
 ) {
-  // Build where conditions
-  const conditions = [
+  // Build where conditions for count (without cursor)
+  const baseConditions = [
     eq(postTable.authorId, profileId),
     eq(postTable.communityId, communityId),
     isNotNull(postTable.scheduledAt),
     isNull(postTable.publishedAt),
     isNull(postTable.deletedAt),
+  ];
+
+  // Build where conditions for query (with cursor)
+  const queryConditions = [
+    ...baseConditions,
     eq(profileTable.communityId, communityId),
   ];
 
   if (cursor) {
-    conditions.push(sql`${postTable.id} < ${cursor}`);
+    queryConditions.push(sql`${postTable.id} < ${cursor}`);
   }
 
-  const scheduledPosts = await db
-    .select()
-    .from(postTable)
-    .leftJoin(profileTable, eq(postTable.authorId, profileTable.id))
-    .where(and(...conditions))
-    .orderBy(desc(postTable.id)) // Use ID for cursor consistency
-    .limit(limit + 1);
+  // Run count and data queries in parallel
+  const [scheduledPosts, totalCountResult] = await Promise.all([
+    db
+      .select()
+      .from(postTable)
+      .leftJoin(profileTable, eq(postTable.authorId, profileTable.id))
+      .where(and(...queryConditions))
+      .orderBy(desc(postTable.id))
+      .limit(limit + 1),
+    db
+      .select({ count: count() })
+      .from(postTable)
+      .where(and(...baseConditions)),
+  ]);
+
+  const totalCount = totalCountResult[0]?.count ?? 0;
 
   // Early return if no scheduled posts
   if (scheduledPosts.length === 0) {
-    return { data: [], nextCursor: null, hasMore: false };
+    return {
+      data: [],
+      pagination: {
+        next_cursor: null,
+        has_more: false,
+        total_count: totalCount,
+      },
+    };
   }
 
   // Check if there are more results
@@ -219,12 +250,12 @@ export async function getScheduledPosts(
     result.push({
       id: post.id,
       content: post.content,
-      createdAt: post.createdAt,
-      updatedAt: post.updatedAt,
+      created_at: formatISODate(post.createdAt),
+      updated_at: formatISODate(post.updatedAt),
       announcement: post.announcement,
       content_warning: post.contentWarning,
-      scheduled_at: post.scheduledAt,
-      published_at: post.publishedAt,
+      scheduled_at: formatISODate(post.scheduledAt),
+      published_at: formatISODate(post.publishedAt),
       author: {
         id: profile.id,
         username: profile.username,
@@ -250,8 +281,11 @@ export async function getScheduledPosts(
 
   return {
     data: result,
-    nextCursor,
-    hasMore,
+    pagination: {
+      next_cursor: nextCursor,
+      has_more: hasMore,
+      total_count: totalCount,
+    },
   };
 }
 
@@ -309,7 +343,7 @@ export async function uploadImage(
     height: newImage.height,
     url: newImage.key,
     key: uniqueKey,
-    createdAt: newImage.createdAt,
+    created_at: formatISODate(newImage.createdAt),
   };
 }
 
@@ -409,8 +443,8 @@ export async function getAnnouncements(communityId: string) {
     result.push({
       id: post.id,
       content: post.content,
-      createdAt: post.createdAt,
-      updatedAt: post.updatedAt,
+      created_at: formatISODate(post.createdAt),
+      updated_at: formatISODate(post.updatedAt),
       images: images,
       author: {
         id: profile.id,
@@ -516,8 +550,8 @@ export async function getBookmarks(
       return {
         id: post.id,
         content: post.content,
-        createdAt: post.createdAt,
-        updatedAt: post.updatedAt,
+        created_at: formatISODate(post.createdAt),
+        updated_at: formatISODate(post.updatedAt),
         announcement: post.announcement,
         content_warning: post.contentWarning,
         author: {
@@ -527,7 +561,7 @@ export async function getBookmarks(
           profile_picture_url: profile_picture_url,
         },
         images: imageTableData,
-        bookmarked_at: bookmark.createdAt,
+        bookmarked_at: formatISODate(bookmark.createdAt),
         reactions:
           post.postReactions?.map((reaction) => ({
             emoji: reaction.emoji,
@@ -542,8 +576,10 @@ export async function getBookmarks(
 
   return {
     data,
-    nextCursor,
-    hasMore,
+    pagination: {
+      next_cursor: nextCursor,
+      has_more: hasMore,
+    },
   };
 }
 
@@ -865,33 +901,50 @@ export async function getPosts(
   cursor?: string,
   profileId?: string,
 ) {
-  // Build where conditions
-  const conditions = [
+  // Build base conditions (without cursor) for count query
+  const baseConditions = [
     isNull(postTable.deletedAt),
     isNotNull(postTable.publishedAt),
     eq(postTable.depth, 0), // Only root posts
     eq(postTable.communityId, communityId), // Direct community filter on post
-    eq(profileTable.communityId, communityId), // Also filter by author's community
   ];
 
-  // Add cursor condition if provided (for pagination)
+  // Build query conditions (with cursor)
+  const queryConditions = [...baseConditions];
   if (cursor) {
-    conditions.push(sql`${postTable.id} < ${cursor}`);
+    queryConditions.push(sql`${postTable.id} < ${cursor}`);
   }
 
-  // Only get root posts (depth = 0) for the main feed from this community
-  // Fetch limit + 1 to determine if there are more pages
-  const posts = await db
-    .select()
-    .from(postTable)
-    .leftJoin(profileTable, eq(postTable.authorId, profileTable.id))
-    .where(and(...conditions))
-    .orderBy(desc(postTable.id)) // Use ID for consistent ordering (UUIDv7 is time-ordered)
-    .limit(limit + 1);
+  // Run count and data queries in parallel
+  const [posts, totalCountResult] = await Promise.all([
+    // Only get root posts (depth = 0) for the main feed from this community
+    // Fetch limit + 1 to determine if there are more pages
+    db
+      .select()
+      .from(postTable)
+      .leftJoin(profileTable, eq(postTable.authorId, profileTable.id))
+      .where(and(...queryConditions, eq(profileTable.communityId, communityId)))
+      .orderBy(desc(postTable.id)) // Use ID for consistent ordering (UUIDv7 is time-ordered)
+      .limit(limit + 1),
+    // Count total posts
+    db
+      .select({ count: count() })
+      .from(postTable)
+      .where(and(...baseConditions)),
+  ]);
+
+  const totalCount = totalCountResult[0]?.count ?? 0;
 
   // Early return if no posts
   if (posts.length === 0) {
-    return { data: [], nextCursor: null, hasMore: false };
+    return {
+      data: [],
+      pagination: {
+        next_cursor: null,
+        has_more: false,
+        total_count: totalCount,
+      },
+    };
   }
 
   // Check if there are more posts beyond the limit
@@ -1015,8 +1068,8 @@ export async function getPosts(
     result.push({
       id: post.id,
       content: post.content,
-      createdAt: post.createdAt,
-      updatedAt: post.updatedAt,
+      created_at: formatISODate(post.createdAt),
+      updated_at: formatISODate(post.updatedAt),
       announcement: post.announcement,
       content_warning: post.contentWarning,
       author: {
@@ -1045,8 +1098,11 @@ export async function getPosts(
 
   return {
     data: result,
-    nextCursor,
-    hasMore,
+    pagination: {
+      next_cursor: nextCursor,
+      has_more: hasMore,
+      total_count: totalCount,
+    },
   };
 }
 
@@ -1064,39 +1120,59 @@ export async function searchPosts(
   const trimmedQuery = searchQuery.trim();
 
   if (!trimmedQuery || trimmedQuery.length < 2) {
-    return { data: [], nextCursor: null, hasMore: false };
+    return {
+      data: [],
+      pagination: { next_cursor: null, has_more: false, total_count: 0 },
+    };
   }
 
-  // Build where conditions
-  const conditions = [
+  // Build base conditions (without cursor) for count query
+  const baseConditions = [
     isNull(postTable.deletedAt),
     isNotNull(postTable.publishedAt),
     eq(postTable.depth, 0), // Only root posts
     eq(postTable.communityId, communityId),
-    eq(profileTable.communityId, communityId),
     sql`${postTable.content} ILIKE ${`%${trimmedQuery}%`}`,
   ];
 
-  // Add cursor condition if provided (for pagination)
+  // Build query conditions (with cursor)
+  const queryConditions = [...baseConditions];
   if (cursor) {
-    conditions.push(sql`${postTable.id} < ${cursor}`);
+    queryConditions.push(sql`${postTable.id} < ${cursor}`);
   }
 
-  // Search posts
-  const posts = await db
-    .select({
-      post: postTable,
-      profile: profileTable,
-    })
-    .from(postTable)
-    .leftJoin(profileTable, eq(postTable.authorId, profileTable.id))
-    .where(and(...conditions))
-    .orderBy(desc(postTable.id))
-    .limit(limit + 1);
+  // Run count and data queries in parallel
+  const [posts, totalCountResult] = await Promise.all([
+    // Search posts
+    db
+      .select({
+        post: postTable,
+        profile: profileTable,
+      })
+      .from(postTable)
+      .leftJoin(profileTable, eq(postTable.authorId, profileTable.id))
+      .where(and(...queryConditions, eq(profileTable.communityId, communityId)))
+      .orderBy(desc(postTable.id))
+      .limit(limit + 1),
+    // Count total matching posts
+    db
+      .select({ count: count() })
+      .from(postTable)
+      .where(and(...baseConditions)),
+  ]);
+
+  const totalCount = totalCountResult[0]?.count ?? 0;
 
   // Early return if no posts
   if (posts.length === 0) {
-    return { data: [], nextCursor: null, hasMore: false };
+    return {
+      data: [],
+      pagination: {
+        next_cursor: null,
+        has_more: false,
+        total_count: totalCount,
+      },
+    };
   }
 
   // Check if there are more posts beyond the limit
@@ -1207,8 +1283,8 @@ export async function searchPosts(
     result.push({
       id: post.id,
       content: post.content,
-      createdAt: post.createdAt,
-      updatedAt: post.updatedAt,
+      created_at: formatISODate(post.createdAt),
+      updated_at: formatISODate(post.updatedAt),
       announcement: post.announcement,
       content_warning: post.contentWarning,
       author: {
@@ -1237,8 +1313,11 @@ export async function searchPosts(
 
   return {
     data: result,
-    nextCursor,
-    hasMore,
+    pagination: {
+      next_cursor: nextCursor,
+      has_more: hasMore,
+      total_count: totalCount,
+    },
   };
 }
 
@@ -1248,8 +1327,8 @@ export async function searchPosts(
 type ReplyData = {
   id: string;
   content: string;
-  createdAt: string;
-  updatedAt: string;
+  created_at: string | null;
+  updated_at: string | null;
   announcement: boolean;
   content_warning: string | null;
   author: {
@@ -1446,11 +1525,11 @@ async function buildThreadedRepliesForMultiplePosts(
 
     const reactions = reactionsByPostId.get(row.id) || [];
 
-    const reply = {
+    const reply: ReplyData = {
       id: row.id,
       content: row.content,
-      createdAt: row.created_at,
-      updatedAt: row.updated_at,
+      created_at: formatISODate(row.created_at),
+      updated_at: formatISODate(row.updated_at),
       announcement: row.announcement,
       content_warning: row.content_warning,
       author: {
@@ -1629,8 +1708,8 @@ async function getParentThread(
     parentThread.push({
       id: row.id,
       content: row.content,
-      createdAt: row.created_at,
-      updatedAt: row.updated_at,
+      created_at: formatISODate(row.created_at),
+      updated_at: formatISODate(row.updated_at),
       announcement: row.announcement,
       content_warning: row.content_warning,
       author: {
@@ -1762,8 +1841,8 @@ export async function getPost(
   return {
     id: post.id,
     content: post.content,
-    createdAt: post.createdAt,
-    updatedAt: post.updatedAt,
+    created_at: formatISODate(post.createdAt),
+    updated_at: formatISODate(post.updatedAt),
     announcement: post.announcement,
     content_warning: post.contentWarning,
     author: {
@@ -2201,8 +2280,8 @@ export async function createPost(
   return {
     id: createdPost?.id,
     content: createdPost?.content,
-    createdAt: createdPost?.createdAt,
-    updatedAt: createdPost?.updatedAt,
+    created_at: formatISODate(createdPost?.createdAt),
+    updated_at: formatISODate(createdPost?.updatedAt),
     announcement: createdPost?.announcement,
     content_warning: createdPost?.contentWarning,
     in_reply_to_id: createdPost?.inReplyToId,
@@ -2555,8 +2634,8 @@ export async function updatePost(
   return {
     id: updatedPost?.id,
     content: updatedPost?.content,
-    createdAt: updatedPost?.createdAt,
-    updatedAt: updatedPost?.updatedAt,
+    created_at: formatISODate(updatedPost?.createdAt),
+    updated_at: formatISODate(updatedPost?.updatedAt),
     announcement: updatedPost?.announcement,
     content_warning: updatedPost?.contentWarning,
     in_reply_to_id: updatedPost?.inReplyToId,
@@ -2623,7 +2702,7 @@ export async function getPostHistory(postId: string, communityId: string) {
     id: entry.id,
     content: entry.content,
     content_warning: entry.contentWarning,
-    edited_at: entry.editedAt,
+    edited_at: formatISODate(entry.editedAt),
     edited_by: {
       id: entry.profile.id,
       name: entry.profile.name,

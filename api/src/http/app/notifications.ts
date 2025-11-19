@@ -54,7 +54,7 @@ export const notificationsRouter = new Hono<{ Variables: AuthVariables }>()
         profileId,
       );
 
-      return c.json({ count });
+      return c.json({ data: { count } });
     },
   )
   .post(
@@ -69,7 +69,13 @@ export const notificationsRouter = new Hono<{ Variables: AuthVariables }>()
 
       await notificationService.markAllAsRead(user.id, community.id, profileId);
 
-      return c.json({ message: "모든 알림이 읽음으로 표시되었습니다" });
+      return c.json({
+        data: {
+          profile_id: profileId,
+          all_read: true,
+          read_at: new Date().toISOString(),
+        },
+      });
     },
   )
 
@@ -92,7 +98,13 @@ export const notificationsRouter = new Hono<{ Variables: AuthVariables }>()
         notificationId,
       );
 
-      return c.json({ message: "알림이 읽음으로 표시되었습니다" });
+      return c.json({
+        data: {
+          id: notificationId,
+          is_read: true,
+          read_at: new Date().toISOString(),
+        },
+      });
     },
   )
 
@@ -115,6 +127,11 @@ export const notificationsRouter = new Hono<{ Variables: AuthVariables }>()
         notificationId,
       );
 
-      return c.json({ message: "알림이 읽지 않음으로 표시되었습니다" });
+      return c.json({
+        data: {
+          id: notificationId,
+          is_read: false,
+        },
+      });
     },
   );

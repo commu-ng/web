@@ -29,7 +29,10 @@ export const ScheduledPostsList = forwardRef<ScheduledPostsListRef>(
       queryKey: ["scheduledPosts", currentProfile?.id],
       queryFn: async ({ pageParam }: { pageParam: string | undefined }) => {
         if (!currentProfile?.id) {
-          return { data: [], nextCursor: null, hasMore: false };
+          return {
+            data: [],
+            pagination: { next_cursor: null, has_more: false, total_count: 0 },
+          };
         }
 
         const response = await client.app["scheduled-posts"].$get({
@@ -50,7 +53,9 @@ export const ScheduledPostsList = forwardRef<ScheduledPostsListRef>(
         return result;
       },
       getNextPageParam: (lastPage) => {
-        return lastPage.hasMore ? lastPage.nextCursor : undefined;
+        return lastPage.pagination.has_more
+          ? lastPage.pagination.next_cursor
+          : undefined;
       },
       initialPageParam: undefined as string | undefined,
       enabled: !!currentProfile?.id,

@@ -17,7 +17,7 @@ import {
 } from "../../schemas";
 import * as boardPostService from "../../services/board-post.service";
 import type { AuthVariables } from "../../types";
-import { BoardErrorCode, BoardSuccessCode } from "../../types/api-responses";
+import { BoardErrorCode } from "../../types/api-responses";
 
 export const consoleBoardsRouter = new Hono<{ Variables: AuthVariables }>()
   // Get all boards (public)
@@ -165,11 +165,7 @@ export const consoleBoardsRouter = new Hono<{ Variables: AuthVariables }>()
       }
 
       await boardPostService.deleteBoard(boardId);
-      return c.json({
-        success: true,
-        code: BoardSuccessCode.BOARD_DELETED,
-        message: "Board deleted successfully",
-      });
+      return c.body(null, 204);
     },
   )
 
@@ -198,8 +194,9 @@ export const consoleBoardsRouter = new Hono<{ Variables: AuthVariables }>()
       return c.json({
         data: result.data,
         pagination: {
-          nextCursor: result.nextCursor,
-          hasMore: result.hasMore,
+          next_cursor: result.pagination.next_cursor,
+          has_more: result.pagination.has_more,
+          total_count: result.pagination.total_count,
         },
       });
     },
@@ -287,11 +284,7 @@ export const consoleBoardsRouter = new Hono<{ Variables: AuthVariables }>()
       const { board_post_id: postId } = c.req.valid("param");
 
       await boardPostService.deleteBoardPost(postId, user.id);
-      return c.json({
-        success: true,
-        code: BoardSuccessCode.BOARD_POST_DELETED,
-        message: "Board post deleted successfully",
-      });
+      return c.body(null, 204);
     },
   )
 
@@ -313,8 +306,9 @@ export const consoleBoardsRouter = new Hono<{ Variables: AuthVariables }>()
       return c.json({
         data: result.data,
         pagination: {
-          nextCursor: result.nextCursor,
-          hasMore: result.hasMore,
+          next_cursor: result.pagination.next_cursor,
+          has_more: result.pagination.has_more,
+          total_count: result.pagination.total_count,
         },
       });
     },
@@ -376,10 +370,6 @@ export const consoleBoardsRouter = new Hono<{ Variables: AuthVariables }>()
       const { reply_id: replyId } = c.req.valid("param");
 
       await boardPostService.deleteBoardPostReply(replyId, user.id);
-      return c.json({
-        success: true,
-        code: BoardSuccessCode.BOARD_POST_DELETED,
-        message: "Reply deleted successfully",
-      });
+      return c.body(null, 204);
     },
   );

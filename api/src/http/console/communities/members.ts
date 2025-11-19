@@ -24,7 +24,7 @@ export const membersRouter = new Hono()
         await communityService.validateCommunityExistsBySlug(slug);
 
       await membershipService.removeMember(community.id, membershipId, user.id);
-      return c.json({ message: "회원이 성공적으로 제거되었습니다" });
+      return c.body(null, 204);
     },
   )
   .delete(
@@ -40,7 +40,7 @@ export const membersRouter = new Hono()
         await communityService.validateCommunityExistsBySlug(slug);
 
       await membershipService.leaveCommunity(user.id, community.id);
-      return c.json({ message: "커뮤에서 성공적으로 나갔습니다" });
+      return c.body(null, 204);
     },
   )
   .get(
@@ -69,7 +69,7 @@ export const membersRouter = new Hono()
         { limit, offset },
       );
 
-      return c.json(result);
+      return c.json({ data: result });
     },
   )
   .put(
@@ -100,9 +100,22 @@ export const membersRouter = new Hono()
         "transferred" in result &&
         result.transferred
       ) {
-        return c.json({ message: "소유권이 성공적으로 이전되었습니다" });
+        return c.json({
+          data: {
+            membership_id: membershipId,
+            role: newRole,
+            ownership_transferred: true,
+            updated_at: new Date().toISOString(),
+          },
+        });
       }
 
-      return c.json({ message: "회원 역할이 성공적으로 업데이트되었습니다" });
+      return c.json({
+        data: {
+          membership_id: membershipId,
+          role: newRole,
+          updated_at: new Date().toISOString(),
+        },
+      });
     },
   );

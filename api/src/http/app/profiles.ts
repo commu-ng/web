@@ -11,6 +11,7 @@ import {
   moderatorOrOwnerMiddleware,
   ownerOnlyMiddleware,
 } from "../../middleware/membership";
+import { GeneralErrorCode } from "../../types/api-responses";
 import {
   onlineStatusQuerySchema,
   onlineStatusVisibilitySchema,
@@ -51,7 +52,10 @@ export const profilesRouter = new Hono<{ Variables: AuthVariables }>()
       if (!contentType.includes("multipart") && !contentType.includes("form")) {
         return c.json(
           {
-            message: 'Content-Type must contain "multipart" or "form"',
+            error: {
+              code: GeneralErrorCode.INVALID_CONTENT_TYPE,
+              message: 'Content-Type must contain "multipart" or "form"',
+            },
           },
           400,
         );
@@ -61,7 +65,15 @@ export const profilesRouter = new Hono<{ Variables: AuthVariables }>()
       const file = formData.get("file") as File | null;
 
       if (!file) {
-        return c.json({ error: "업로드된 파일이 없습니다" }, 400);
+        return c.json(
+          {
+            error: {
+              code: GeneralErrorCode.NO_FILE_UPLOADED,
+              message: "업로드된 파일이 없습니다",
+            },
+          },
+          400,
+        );
       }
 
       const fileBuffer = await file.arrayBuffer();
@@ -75,7 +87,7 @@ export const profilesRouter = new Hono<{ Variables: AuthVariables }>()
         file.size,
       );
 
-      return c.json(result2, 201);
+      return c.json({ data: result2 }, 201);
     },
   )
 
@@ -93,7 +105,7 @@ export const profilesRouter = new Hono<{ Variables: AuthVariables }>()
         community.id,
       );
 
-      return c.json(result);
+      return c.json({ data: result });
     },
   )
 
@@ -102,7 +114,7 @@ export const profilesRouter = new Hono<{ Variables: AuthVariables }>()
 
     const result = await profileService.listProfilesByUser(community.id);
 
-    return c.json(result);
+    return c.json({ data: result });
   })
 
   .post(
@@ -128,7 +140,7 @@ export const profilesRouter = new Hono<{ Variables: AuthVariables }>()
         profile_picture_id,
       );
 
-      return c.json(result, 201);
+      return c.json({ data: result }, 201);
     },
   )
   .get(
@@ -140,7 +152,7 @@ export const profilesRouter = new Hono<{ Variables: AuthVariables }>()
     async (c) => {
       const { profile_id: profileId } = c.req.valid("query");
       const postCount = await profileService.getProfilePostCount(profileId);
-      return c.json({ post_count: postCount });
+      return c.json({ data: { post_count: postCount } });
     },
   )
   .delete(
@@ -155,7 +167,7 @@ export const profilesRouter = new Hono<{ Variables: AuthVariables }>()
       const { profile_id: profileId } = c.req.valid("query");
 
       await profileService.deleteProfile(user.id, profileId, community.id);
-      return c.json({ message: "프로필이 성공적으로 삭제되었습니다" });
+      return c.json({ data: { id: profileId, deleted: true } });
     },
   )
   // Online status endpoints - must be before :username routes
@@ -169,7 +181,7 @@ export const profilesRouter = new Hono<{ Variables: AuthVariables }>()
       const { profile_ids } = c.req.valid("query");
 
       const onlineStatus = await profileService.getOnlineStatus(profile_ids);
-      return c.json(onlineStatus);
+      return c.json({ data: onlineStatus });
     },
   )
   .put(
@@ -187,7 +199,13 @@ export const profilesRouter = new Hono<{ Variables: AuthVariables }>()
         profileId,
         visible,
       );
-      return c.json({ message: "온라인 상태 설정이 변경되었습니다" });
+      return c.json({
+        data: {
+          profile_id: profileId,
+          visible,
+          updated_at: new Date().toISOString(),
+        },
+      });
     },
   )
   // Parameterized routes - must be after specific routes
@@ -204,7 +222,7 @@ export const profilesRouter = new Hono<{ Variables: AuthVariables }>()
         username,
         community.id,
       );
-      return c.json(result);
+      return c.json({ data: result });
     },
   )
 
@@ -226,7 +244,7 @@ export const profilesRouter = new Hono<{ Variables: AuthVariables }>()
         limit,
         offset,
       );
-      return c.json(result);
+      return c.json({ data: result });
     },
   )
   .post(
@@ -241,7 +259,13 @@ export const profilesRouter = new Hono<{ Variables: AuthVariables }>()
       const { profile_id: profileId } = c.req.valid("query");
 
       await profileService.setPrimaryProfile(user.id, profileId, community.id);
-      return c.json({ message: "기본 프로필이 성공적으로 설정되었습니다" });
+      return c.json({
+        data: {
+          profile_id: profileId,
+          is_primary: true,
+          updated_at: new Date().toISOString(),
+        },
+      });
     },
   )
   .put(
@@ -266,7 +290,7 @@ export const profilesRouter = new Hono<{ Variables: AuthVariables }>()
         bio,
         profile_picture_id,
       );
-      return c.json(result);
+      return c.json({ data: result });
     },
   )
   // Profile sharing endpoints
@@ -285,7 +309,7 @@ export const profilesRouter = new Hono<{ Variables: AuthVariables }>()
         user.id,
         profileId,
       );
-      return c.json(result);
+      return c.json({ data: result });
     },
   )
   .post(
@@ -322,9 +346,13 @@ export const profilesRouter = new Hono<{ Variables: AuthVariables }>()
         ) {
           return c.json(
             {
-              error: "사용자가 이미 이 프로필에 액세스 권한을 가지고 있습니다",
+              error: {
+                code: GeneralErrorCode.DUPLICATE_ENTRY,
+                message:
+                  "사용자가 이미 이 프로필에 액세스 권한을 가지고 있습니다",
+              },
             },
-            400,
+            409,
           );
         }
         throw error;
@@ -355,7 +383,15 @@ export const profilesRouter = new Hono<{ Variables: AuthVariables }>()
       const targetUserId = userIds[0];
 
       if (!targetUserId) {
-        return c.json({ error: "프로필 소유권을 찾을 수 없습니다" }, 404);
+        return c.json(
+          {
+            error: {
+              code: GeneralErrorCode.OWNERSHIP_NOT_FOUND,
+              message: "프로필 소유권을 찾을 수 없습니다",
+            },
+          },
+          404,
+        );
       }
 
       await profileService.removeUserFromProfileSharing(
@@ -363,6 +399,12 @@ export const profilesRouter = new Hono<{ Variables: AuthVariables }>()
         profileId,
         targetUserId,
       );
-      return c.json({ message: "사용자가 성공적으로 제거되었습니다" });
+      return c.json({
+        data: {
+          profile_id: profileId,
+          shared_profile_id: sharedProfileId,
+          deleted: true,
+        },
+      });
     },
   );

@@ -56,8 +56,8 @@ async function fetchUsers(search?: string): Promise<User[]> {
     throw new Error("Failed to fetch users");
   }
   const data = await res.json();
-  if ("users" in data) {
-    return data.users;
+  if ("data" in data && "users" in data.data) {
+    return data.data.users;
   }
   return [];
 }
@@ -104,7 +104,9 @@ export default function AdminMasquerade() {
       return await res.json();
     },
     onSuccess: (data) => {
-      toast.success(`${data.targetUser.login_name} 사용자로 전환되었습니다`);
+      toast.success(
+        `${data.data.target_user.login_name} 사용자로 전환되었습니다`,
+      );
       // Invalidate queries and reload
       queryClient.invalidateQueries({ queryKey: ["auth"] });
       queryClient.invalidateQueries({ queryKey: ["masquerade"] });

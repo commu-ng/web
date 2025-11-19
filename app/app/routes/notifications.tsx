@@ -39,8 +39,8 @@ interface Notification {
   id: string;
   type: string;
   content: string;
-  readAt: string | null;
-  createdAt: string;
+  read_at: string | null;
+  created_at: string;
   sender: {
     id: string;
     name: string;
@@ -108,7 +108,12 @@ export default function Notifications() {
       return result;
     },
     getNextPageParam: (lastPage) => {
-      return lastPage.hasMore ? lastPage.nextCursor : undefined;
+      if ("pagination" in lastPage) {
+        return lastPage.pagination.has_more
+          ? lastPage.pagination.next_cursor
+          : undefined;
+      }
+      return undefined;
     },
     initialPageParam: undefined as string | undefined,
     enabled: isAuthenticated && !!instanceSlug && !!currentProfile,
@@ -326,7 +331,7 @@ export default function Notifications() {
 
           {/* Mark All as Read Button */}
           {notifications.length > 0 &&
-            notifications.some((n) => n.readAt === null) && (
+            notifications.some((n) => n.read_at === null) && (
               <div className="mb-4">
                 <button
                   type="button"
@@ -360,7 +365,7 @@ export default function Notifications() {
                 const cardContent = (
                   <Card
                     className={`transition-all hover:shadow-lg ${
-                      notification.readAt === null
+                      notification.read_at === null
                         ? "bg-blue-50 dark:bg-blue-950 border-blue-300 dark:border-blue-700"
                         : ""
                     }`}
@@ -379,7 +384,7 @@ export default function Notifications() {
                                 </h3>
                                 <div
                                   className={`w-2 h-2 rounded-full flex-shrink-0 ${
-                                    notification.readAt !== null
+                                    notification.read_at !== null
                                       ? "bg-gray-300 dark:bg-gray-600"
                                       : "bg-blue-500 dark:bg-blue-400"
                                   }`}
@@ -397,13 +402,13 @@ export default function Notifications() {
                                   )}
                                   <span>•</span>
                                   <span>
-                                    {formatTime(notification.createdAt)}
+                                    {formatTime(notification.created_at)}
                                   </span>
                                 </div>
                               )}
                             </div>
                             <div className="flex items-start gap-1 flex-shrink-0">
-                              {notification.readAt === null ? (
+                              {notification.read_at === null ? (
                                 <button
                                   type="button"
                                   onClick={(e) => {
@@ -476,7 +481,7 @@ export default function Notifications() {
                         to={notificationLink}
                         className="block"
                         onClick={() => {
-                          if (notification.readAt === null) {
+                          if (notification.read_at === null) {
                             markAsRead(notification.id);
                           }
                         }}

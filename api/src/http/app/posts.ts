@@ -24,7 +24,7 @@ import * as exportJobService from "../../services/export-job.service";
 import * as postService from "../../services/post.service";
 import * as profileService from "../../services/profile.service";
 import type { AuthVariables } from "../../types";
-import { getFileUrl } from "../../utils/r2";
+import { GeneralErrorCode } from "../../types/api-responses";
 
 const exportJobIdParamSchema = z.object({
   job_id: z.string().uuid(),
@@ -44,9 +44,11 @@ export const postsRouter = new Hono<{ Variables: AuthVariables }>()
 
       return c.json(
         {
-          job_id: job.id,
-          status: job.status,
-          created_at: job.createdAt,
+          data: {
+            job_id: job.id,
+            status: job.status,
+            created_at: job.created_at,
+          },
         },
         202,
       );
@@ -63,13 +65,15 @@ export const postsRouter = new Hono<{ Variables: AuthVariables }>()
       const job = await exportJobService.getExportJobStatus(jobId, user.id);
 
       return c.json({
-        id: job.id,
-        status: job.status,
-        download_url: job.r2Key ? getFileUrl(job.r2Key) : null,
-        expires_at: job.expiresAt,
-        error: job.errorMessage,
-        created_at: job.createdAt,
-        completed_at: job.completedAt,
+        data: {
+          id: job.id,
+          status: job.status,
+          download_url: job.download_url,
+          expires_at: job.expires_at,
+          error: job.error_message,
+          created_at: job.created_at,
+          completed_at: job.completed_at,
+        },
       });
     },
   )
@@ -81,7 +85,7 @@ export const postsRouter = new Hono<{ Variables: AuthVariables }>()
       community.id,
     );
 
-    return c.json(exports);
+    return c.json({ data: exports });
   })
   .post("/upload/file", appAuthMiddleware, async (c) => {
     // Check Content-Type before parsing formData
@@ -89,7 +93,10 @@ export const postsRouter = new Hono<{ Variables: AuthVariables }>()
     if (!contentType.includes("multipart") && !contentType.includes("form")) {
       return c.json(
         {
-          message: 'Content-Type must contain "multipart" or "form"',
+          error: {
+            code: GeneralErrorCode.INVALID_CONTENT_TYPE,
+            message: 'Content-Type must contain "multipart" or "form"',
+          },
         },
         400,
       );
@@ -99,7 +106,15 @@ export const postsRouter = new Hono<{ Variables: AuthVariables }>()
     const file = formData.get("file") as File | null;
 
     if (!file) {
-      return c.json({ error: "업로드된 파일이 없습니다" }, 400);
+      return c.json(
+        {
+          error: {
+            code: GeneralErrorCode.NO_FILE_UPLOADED,
+            message: "업로드된 파일이 없습니다",
+          },
+        },
+        400,
+      );
     }
 
     const fileBuffer = await file.arrayBuffer();
@@ -112,7 +127,7 @@ export const postsRouter = new Hono<{ Variables: AuthVariables }>()
       file.size,
     );
 
-    return c.json(result, 201);
+    return c.json({ data: result }, 201);
   })
   .get(
     "/announcements",
@@ -123,7 +138,7 @@ export const postsRouter = new Hono<{ Variables: AuthVariables }>()
 
       const result = await postService.getAnnouncements(community.id);
 
-      return c.json(result);
+      return c.json({ data: result });
     },
   )
   .get(
@@ -149,7 +164,12 @@ export const postsRouter = new Hono<{ Variables: AuthVariables }>()
 
       if (!profile) {
         return c.json(
-          { message: "프로필을 찾을 수 없거나 귀하의 소유가 아닙니다" },
+          {
+            error: {
+              code: GeneralErrorCode.PROFILE_NOT_FOUND,
+              message: "프로필을 찾을 수 없거나 귀하의 소유가 아닙니다",
+            },
+          },
           404,
         );
       }
@@ -236,7 +256,12 @@ export const postsRouter = new Hono<{ Variables: AuthVariables }>()
 
       if (!profile) {
         return c.json(
-          { message: "프로필을 찾을 수 없거나 귀하의 소유가 아닙니다" },
+          {
+            error: {
+              code: GeneralErrorCode.PROFILE_NOT_FOUND,
+              message: "프로필을 찾을 수 없거나 귀하의 소유가 아닙니다",
+            },
+          },
           404,
         );
       }
@@ -281,7 +306,12 @@ export const postsRouter = new Hono<{ Variables: AuthVariables }>()
 
       if (!profile) {
         return c.json(
-          { message: "프로필을 찾을 수 없거나 귀하의 소유가 아닙니다" },
+          {
+            error: {
+              code: GeneralErrorCode.PROFILE_NOT_FOUND,
+              message: "프로필을 찾을 수 없거나 귀하의 소유가 아닙니다",
+            },
+          },
           404,
         );
       }
@@ -305,7 +335,7 @@ export const postsRouter = new Hono<{ Variables: AuthVariables }>()
         community.endsAt,
       );
 
-      return c.json(result, 201);
+      return c.json({ data: result }, 201);
     },
   )
 
@@ -321,7 +351,7 @@ export const postsRouter = new Hono<{ Variables: AuthVariables }>()
       const { profile_id: profileId } = c.req.valid("query");
 
       const post = await postService.getPost(postId, community.id, profileId);
-      return c.json(post);
+      return c.json({ data: post });
     },
   )
 
@@ -335,7 +365,7 @@ export const postsRouter = new Hono<{ Variables: AuthVariables }>()
       const community = c.get("community");
 
       const history = await postService.getPostHistory(postId, community.id);
-      return c.json(history);
+      return c.json({ data: history });
     },
   )
 
@@ -362,14 +392,19 @@ export const postsRouter = new Hono<{ Variables: AuthVariables }>()
 
       if (!profile) {
         return c.json(
-          { message: "프로필을 찾을 수 없거나 귀하의 소유가 아닙니다" },
+          {
+            error: {
+              code: GeneralErrorCode.PROFILE_NOT_FOUND,
+              message: "프로필을 찾을 수 없거나 귀하의 소유가 아닙니다",
+            },
+          },
           404,
         );
       }
 
       await postService.deletePost(user.id, profile.id, postId, community.id);
 
-      return c.json({ message: "게시물이 성공적으로 삭제되었습니다" });
+      return c.json({ data: { id: postId, deleted: true } });
     },
   )
   .patch(
@@ -397,7 +432,12 @@ export const postsRouter = new Hono<{ Variables: AuthVariables }>()
 
       if (!profile) {
         return c.json(
-          { message: "프로필을 찾을 수 없거나 귀하의 소유가 아닙니다" },
+          {
+            error: {
+              code: GeneralErrorCode.PROFILE_NOT_FOUND,
+              message: "프로필을 찾을 수 없거나 귀하의 소유가 아닙니다",
+            },
+          },
           404,
         );
       }
@@ -412,7 +452,7 @@ export const postsRouter = new Hono<{ Variables: AuthVariables }>()
         content_warning,
       );
 
-      return c.json(result);
+      return c.json({ data: result });
     },
   )
   .post(
@@ -438,7 +478,12 @@ export const postsRouter = new Hono<{ Variables: AuthVariables }>()
 
       if (!profile) {
         return c.json(
-          { message: "프로필을 찾을 수 없거나 귀하의 소유가 아닙니다" },
+          {
+            error: {
+              code: GeneralErrorCode.PROFILE_NOT_FOUND,
+              message: "프로필을 찾을 수 없거나 귀하의 소유가 아닙니다",
+            },
+          },
           404,
         );
       }
@@ -449,7 +494,7 @@ export const postsRouter = new Hono<{ Variables: AuthVariables }>()
         community.id,
       );
 
-      return c.json(result, 201);
+      return c.json({ data: result }, 201);
     },
   )
   .delete(
@@ -474,14 +519,19 @@ export const postsRouter = new Hono<{ Variables: AuthVariables }>()
 
       if (!profile) {
         return c.json(
-          { message: "프로필을 찾을 수 없거나 귀하의 소유가 아닙니다" },
+          {
+            error: {
+              code: GeneralErrorCode.PROFILE_NOT_FOUND,
+              message: "프로필을 찾을 수 없거나 귀하의 소유가 아닙니다",
+            },
+          },
           404,
         );
       }
 
       await postService.deleteBookmark(profile.id, postId, community.id);
 
-      return c.json({ message: "북마크가 성공적으로 제거되었습니다" });
+      return c.json({ data: { post_id: postId, bookmarked: false } });
     },
   )
   .post(
@@ -505,7 +555,15 @@ export const postsRouter = new Hono<{ Variables: AuthVariables }>()
       );
 
       if (!profile) {
-        return c.json({ error: "프로필을 찾을 수 없습니다" }, 404);
+        return c.json(
+          {
+            error: {
+              code: GeneralErrorCode.PROFILE_NOT_FOUND,
+              message: "프로필을 찾을 수 없습니다",
+            },
+          },
+          404,
+        );
       }
 
       const result = await postService.createReaction(
@@ -516,7 +574,7 @@ export const postsRouter = new Hono<{ Variables: AuthVariables }>()
         profile.name,
       );
 
-      return c.json(result, 201);
+      return c.json({ data: result }, 201);
     },
   )
 
@@ -540,17 +598,22 @@ export const postsRouter = new Hono<{ Variables: AuthVariables }>()
       );
 
       if (!profile) {
-        return c.json({ error: "프로필을 찾을 수 없습니다" }, 404);
+        return c.json(
+          {
+            error: {
+              code: GeneralErrorCode.PROFILE_NOT_FOUND,
+              message: "프로필을 찾을 수 없습니다",
+            },
+          },
+          404,
+        );
       }
 
       await postService.deleteReaction(profile.id, postId, community.id, emoji);
 
-      return c.json(
-        {
-          message: "반응이 성공적으로 제거되었습니다",
-        },
-        200,
-      );
+      return c.json({
+        data: { post_id: postId, emoji, deleted: true },
+      });
     },
   )
   .post(
@@ -567,7 +630,13 @@ export const postsRouter = new Hono<{ Variables: AuthVariables }>()
       const community = c.get("community");
 
       await postService.pinPost(user.id, profileId, postId, community.id);
-      return c.json({ message: "게시물이 성공적으로 고정되었습니다" });
+      return c.json({
+        data: {
+          post_id: postId,
+          pinned: true,
+          pinned_at: new Date().toISOString(),
+        },
+      });
     },
   )
   .delete(
@@ -584,6 +653,6 @@ export const postsRouter = new Hono<{ Variables: AuthVariables }>()
       const community = c.get("community");
 
       await postService.unpinPost(user.id, profileId, postId, community.id);
-      return c.json({ message: "게시물 고정이 성공적으로 해제되었습니다" });
+      return c.json({ data: { post_id: postId, pinned: false } });
     },
   );

@@ -37,8 +37,8 @@ export function meta({ params }: Route.MetaArgs) {
 interface Message {
   id: string;
   content: string;
-  createdAt: string;
-  readAt: string | null;
+  created_at: string;
+  read_at: string | null;
   is_sender: boolean;
   sender: {
     id: string;
@@ -122,13 +122,35 @@ export default function MessageConversation() {
           query: { profile_id: currentProfile.id },
         });
         if (messagesResponse.ok) {
-          const messagesData = await messagesResponse.json();
-          const transformedMessages: Message[] = messagesData.map(
-            (message) => ({
+          const messagesResult = await messagesResponse.json();
+          const transformedMessages: Message[] = messagesResult.data.map(
+            (message: {
+              id: string;
+              content: string;
+              created_at: string;
+              read_at: string | null;
+              is_sender: boolean;
+              sender: {
+                id: string;
+                username: string;
+                name: string;
+                profile_picture_url: string | null;
+              };
+              reactions: Array<{
+                emoji: string;
+                user: { id: string; username: string; name: string };
+              }>;
+              images: Array<{
+                id: string;
+                url: string;
+                width: number;
+                height: number;
+              }>;
+            }) => ({
               id: message.id,
               content: message.content,
-              createdAt: message.createdAt,
-              readAt: message.readAt,
+              created_at: message.created_at,
+              read_at: message.read_at,
               is_sender: message.is_sender,
               sender: {
                 id: message.sender.id,
@@ -181,7 +203,8 @@ export default function MessageConversation() {
           setError("사용자를 찾을 수 없습니다");
           return;
         }
-        const profileData = await profileResponse.json();
+        const profileResult = await profileResponse.json();
+        const profileData = profileResult.data;
         setOtherProfile(profileData);
 
         // Get conversation messages
@@ -202,14 +225,36 @@ export default function MessageConversation() {
           query: { profile_id: currentProfile.id },
         });
         if (messagesResponse.ok) {
-          const messagesData = await messagesResponse.json();
+          const messagesResult = await messagesResponse.json();
           // Transform API response to match Message interface
-          const transformedMessages: Message[] = messagesData.map(
-            (message) => ({
+          const transformedMessages: Message[] = messagesResult.data.map(
+            (message: {
+              id: string;
+              content: string;
+              created_at: string;
+              read_at: string | null;
+              is_sender: boolean;
+              sender: {
+                id: string;
+                username: string;
+                name: string;
+                profile_picture_url: string | null;
+              };
+              reactions: Array<{
+                emoji: string;
+                user: { id: string; username: string; name: string };
+              }>;
+              images: Array<{
+                id: string;
+                url: string;
+                width: number;
+                height: number;
+              }>;
+            }) => ({
               id: message.id,
               content: message.content,
-              createdAt: message.createdAt,
-              readAt: message.readAt,
+              created_at: message.created_at,
+              read_at: message.read_at,
               is_sender: message.is_sender,
               sender: {
                 id: message.sender.id,
@@ -371,7 +416,22 @@ export default function MessageConversation() {
       });
 
       if (response.ok) {
-        const sentMessage = await response.json();
+        const result = await response.json();
+        const sentMessage = {
+          id: result.data.id,
+          content: result.data.content,
+          created_at: result.data.created_at,
+          read_at: result.data.read_at,
+          is_sender: result.data.is_sender,
+          sender: {
+            id: result.data.sender.id,
+            username: result.data.sender.username,
+            name: result.data.sender.name,
+            profile_picture_url: result.data.sender.profile_picture_url || null,
+          },
+          reactions: [],
+          images: result.data.images || [],
+        };
         setMessages((prev) => [...prev, sentMessage]);
         setNewMessage("");
         setImages([]);
@@ -475,14 +535,36 @@ export default function MessageConversation() {
             query: { profile_id: currentProfile.id },
           });
           if (messagesResponse.ok) {
-            const messagesData = await messagesResponse.json();
+            const messagesResult = await messagesResponse.json();
             // Transform API response to match Message interface
-            const transformedMessages: Message[] = messagesData.map(
-              (message) => ({
+            const transformedMessages: Message[] = messagesResult.data.map(
+              (message: {
+                id: string;
+                content: string;
+                created_at: string;
+                read_at: string | null;
+                is_sender: boolean;
+                sender: {
+                  id: string;
+                  username: string;
+                  name: string;
+                  profile_picture_url: string | null;
+                };
+                reactions: Array<{
+                  emoji: string;
+                  user: { id: string; username: string; name: string };
+                }>;
+                images: Array<{
+                  id: string;
+                  url: string;
+                  width: number;
+                  height: number;
+                }>;
+              }) => ({
                 id: message.id,
                 content: message.content,
-                createdAt: message.createdAt,
-                readAt: message.readAt,
+                created_at: message.created_at,
+                read_at: message.read_at,
                 is_sender: message.is_sender,
                 sender: {
                   id: message.sender.id,
@@ -503,11 +585,12 @@ export default function MessageConversation() {
           const errorData = await response.json();
           const errorMessage =
             errorData && typeof errorData === "object"
-              ? "error" in errorData && typeof errorData.error === "string"
-                ? errorData.error
-                : "message" in errorData &&
-                    typeof errorData.message === "string"
-                  ? errorData.message
+              ? "error" in errorData &&
+                typeof errorData.error === "object" &&
+                errorData.error?.message
+                ? errorData.error.message
+                : "error" in errorData && typeof errorData.error === "string"
+                  ? errorData.error
                   : undefined
               : undefined;
           toast.error(errorMessage || "반응을 추가할 수 없습니다");
@@ -544,13 +627,35 @@ export default function MessageConversation() {
             query: { profile_id: currentProfile.id },
           });
           if (messagesResponse.ok) {
-            const messagesData = await messagesResponse.json();
-            const transformedMessages: Message[] = messagesData.map(
-              (message) => ({
+            const messagesResult = await messagesResponse.json();
+            const transformedMessages: Message[] = messagesResult.data.map(
+              (message: {
+                id: string;
+                content: string;
+                created_at: string;
+                read_at: string | null;
+                is_sender: boolean;
+                sender: {
+                  id: string;
+                  username: string;
+                  name: string;
+                  profile_picture_url: string | null;
+                };
+                reactions: Array<{
+                  emoji: string;
+                  user: { id: string; username: string; name: string };
+                }>;
+                images: Array<{
+                  id: string;
+                  url: string;
+                  width: number;
+                  height: number;
+                }>;
+              }) => ({
                 id: message.id,
                 content: message.content,
-                createdAt: message.createdAt,
-                readAt: message.readAt,
+                created_at: message.created_at,
+                read_at: message.read_at,
                 is_sender: message.is_sender,
                 sender: {
                   id: message.sender.id,
@@ -571,11 +676,12 @@ export default function MessageConversation() {
           const errorData = await response.json();
           const errorMessage =
             errorData && typeof errorData === "object"
-              ? "error" in errorData && typeof errorData.error === "string"
-                ? errorData.error
-                : "message" in errorData &&
-                    typeof errorData.message === "string"
-                  ? errorData.message
+              ? "error" in errorData &&
+                typeof errorData.error === "object" &&
+                errorData.error?.message
+                ? errorData.error.message
+                : "error" in errorData && typeof errorData.error === "string"
+                  ? errorData.error
                   : undefined
               : undefined;
           toast.error(errorMessage || "반응을 제거할 수 없습니다");
@@ -744,21 +850,21 @@ export default function MessageConversation() {
               </div>
             ) : (
               messages
-                .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
+                .sort((a, b) => a.created_at.localeCompare(b.created_at))
                 .map((message, index) => {
                   const prevMessage = messages[index - 1];
                   const showDate =
                     index === 0 ||
                     !prevMessage ||
-                    formatDate(message.createdAt) !==
-                      formatDate(prevMessage.createdAt);
+                    formatDate(message.created_at) !==
+                      formatDate(prevMessage.created_at);
 
                   return (
                     <div key={message.id}>
                       {showDate && (
                         <div className="text-center my-4">
                           <span className="bg-muted text-muted-foreground text-xs px-3 py-1 rounded-full">
-                            {formatDate(message.createdAt)}
+                            {formatDate(message.created_at)}
                           </span>
                         </div>
                       )}
@@ -772,7 +878,7 @@ export default function MessageConversation() {
                       >
                         <MessageBubble
                           content={message.content}
-                          timestamp={formatTime(message.createdAt)}
+                          timestamp={formatTime(message.created_at)}
                           isFromMe={message.sender.id === currentProfile?.id}
                           images={message.images}
                           currentProfileId={currentProfile?.id}

@@ -26,15 +26,15 @@ export const linksRouter = new Hono()
         await communityService.validateCommunityExistsBySlug(slug);
 
       const links = await communityService.getCommunityLinks(community.id);
-      return c.json(
-        links.map((link) => ({
+      return c.json({
+        data: links.map((link) => ({
           id: link.id,
           title: link.title,
           url: link.url,
           created_at: link.createdAt,
           updated_at: link.updatedAt,
         })),
-      );
+      });
     },
   )
   .post(
@@ -61,13 +61,18 @@ export const linksRouter = new Hono()
         title,
         url,
       );
-      return c.json({
-        id: link.id,
-        title: link.title,
-        url: link.url,
-        created_at: link.createdAt,
-        updated_at: link.updatedAt,
-      });
+      return c.json(
+        {
+          data: {
+            id: link.id,
+            title: link.title,
+            url: link.url,
+            created_at: link.createdAt,
+            updated_at: link.updatedAt,
+          },
+        },
+        201,
+      );
     },
   )
   .put(
@@ -96,11 +101,13 @@ export const linksRouter = new Hono()
         url,
       );
       return c.json({
-        id: updatedLink.id,
-        title: updatedLink.title,
-        url: updatedLink.url,
-        created_at: updatedLink.createdAt,
-        updated_at: updatedLink.updatedAt,
+        data: {
+          id: updatedLink.id,
+          title: updatedLink.title,
+          url: updatedLink.url,
+          created_at: updatedLink.createdAt,
+          updated_at: updatedLink.updatedAt,
+        },
       });
     },
   )
@@ -122,6 +129,6 @@ export const linksRouter = new Hono()
       ]);
 
       await communityService.deleteCommunityLink(community.id, linkId);
-      return c.json({ message: "링크가 성공적으로 삭제되었습니다" });
+      return c.body(null, 204);
     },
   );

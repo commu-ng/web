@@ -47,8 +47,8 @@ export function PostEditHistory({ postId }: PostEditHistoryProps) {
         });
 
         if (response.ok) {
-          const data = await response.json();
-          setHistory(data as PostHistoryEntry[]);
+          const result = await response.json();
+          setHistory(result.data as PostHistoryEntry[]);
         }
       } catch (error) {
         console.error("Failed to fetch post history:", error);

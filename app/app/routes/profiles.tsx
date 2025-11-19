@@ -176,7 +176,7 @@ export default function Profiles() {
                     )}
                     <p className="text-xs text-gray-400 mt-3">
                       가입일:{" "}
-                      {new Date(profile.createdAt).toLocaleDateString("ko-KR")}
+                      {new Date(profile.created_at).toLocaleDateString("ko-KR")}
                     </p>
                   </div>
                 </div>

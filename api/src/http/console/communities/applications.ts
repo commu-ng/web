@@ -3,6 +3,7 @@ import { Hono } from "hono";
 import { authMiddleware } from "../../../middleware/auth";
 import * as communityService from "../../../services/community.service";
 import * as membershipService from "../../../services/membership.service";
+import { GeneralErrorCode } from "../../../types/api-responses";
 import { getPrimaryProfileIdForUserInCommunity } from "../../../utils/profile-ownership";
 import { addImageUrl } from "../../../utils/r2";
 import {
@@ -32,8 +33,8 @@ export const applicationsRouter = new Hono()
           community.id,
         );
 
-      return c.json(
-        applications.map((app) => ({
+      return c.json({
+        data: applications.map((app) => ({
           id: app.id,
           status: app.status,
           profile_name: app.profileName,
@@ -48,7 +49,7 @@ export const applicationsRouter = new Hono()
             created_at: att.createdAt,
           })),
         })),
-      );
+      });
     },
   )
   .post(
@@ -80,12 +81,14 @@ export const applicationsRouter = new Hono()
 
       return c.json(
         {
-          id: newApplication.id,
-          status: newApplication.status,
-          profile_name: newApplication.profileName,
-          profile_username: newApplication.profileUsername,
-          message: newApplication.message,
-          created_at: newApplication.createdAt,
+          data: {
+            id: newApplication.id,
+            status: newApplication.status,
+            profile_name: newApplication.profileName,
+            profile_username: newApplication.profileUsername,
+            message: newApplication.message,
+            created_at: newApplication.createdAt,
+          },
         },
         201,
       );
@@ -106,7 +109,15 @@ export const applicationsRouter = new Hono()
         await membershipService.getApplicationByIdSimple(applicationId);
 
       if (!application) {
-        return c.json({ error: "지원서를 찾을 수 없습니다" }, 404);
+        return c.json(
+          {
+            error: {
+              code: GeneralErrorCode.APPLICATION_NOT_FOUND,
+              message: "지원서를 찾을 수 없습니다",
+            },
+          },
+          404,
+        );
       }
 
       // Check if user has permission (community owner or moderator)
@@ -124,10 +135,13 @@ export const applicationsRouter = new Hono()
         );
 
         return c.json({
-          id: applicationId,
-          status: "approved",
-          membership_id: result.membership.id,
-          profile_id: result.profile.id,
+          data: {
+            id: applicationId,
+            status: "approved",
+            membership_id: result.membership.id,
+            profile_id: result.profile.id,
+            reviewed_at: new Date().toISOString(),
+          },
         });
       } else {
         // Use membership service to reject
@@ -139,9 +153,11 @@ export const applicationsRouter = new Hono()
           );
 
         return c.json({
-          id: updatedApplication.id,
-          status: updatedApplication.status,
-          reviewed_at: updatedApplication.reviewedAt,
+          data: {
+            id: updatedApplication.id,
+            status: updatedApplication.status,
+            reviewed_at: updatedApplication.reviewedAt,
+          },
         });
       }
     },
@@ -159,7 +175,15 @@ export const applicationsRouter = new Hono()
         await membershipService.getApplicationByIdSimple(applicationId);
 
       if (!application) {
-        return c.json({ error: "지원서를 찾을 수 없습니다" }, 404);
+        return c.json(
+          {
+            error: {
+              code: GeneralErrorCode.APPLICATION_NOT_FOUND,
+              message: "지원서를 찾을 수 없습니다",
+            },
+          },
+          404,
+        );
       }
 
       const community = application.community;
@@ -170,7 +194,13 @@ export const applicationsRouter = new Hono()
       ]);
 
       await membershipService.revokeApplicationReview(applicationId);
-      return c.json({ message: "지원서 검토가 취소되었습니다" });
+      return c.json({
+        data: {
+          id: applicationId,
+          revoked: true,
+          revoked_at: new Date().toISOString(),
+        },
+      });
     },
   )
   .get(
@@ -257,7 +287,7 @@ export const applicationsRouter = new Hono()
         };
       });
 
-      return c.json(result);
+      return c.json({ data: result });
     },
   )
   .get(
@@ -279,7 +309,15 @@ export const applicationsRouter = new Hono()
       );
 
       if (!application) {
-        return c.json({ error: "지원서를 찾을 수 없습니다" }, 404);
+        return c.json(
+          {
+            error: {
+              code: GeneralErrorCode.APPLICATION_NOT_FOUND,
+              message: "지원서를 찾을 수 없습니다",
+            },
+          },
+          404,
+        );
       }
 
       // Check if user has permission to view this application
@@ -295,7 +333,12 @@ export const applicationsRouter = new Hono()
           );
         } catch (_error) {
           return c.json(
-            { error: "이 지원서를 볼 수 있는 권한이 없습니다" },
+            {
+              error: {
+                code: GeneralErrorCode.FORBIDDEN,
+                message: "이 지원서를 볼 수 있는 권한이 없습니다",
+              },
+            },
             403,
           );
         }
@@ -327,28 +370,30 @@ export const applicationsRouter = new Hono()
       }
 
       return c.json({
-        id: application.id,
-        profile_name: application.profileName,
-        profile_username: application.profileUsername,
-        message: application.message,
-        status: application.status,
-        rejection_reason: application.rejectionReason,
-        created_at: application.createdAt,
-        reviewed_at: application.reviewedAt,
-        applicant: {
-          profile_id: applicantProfileId,
+        data: {
+          id: application.id,
+          profile_name: application.profileName,
+          profile_username: application.profileUsername,
+          message: application.message,
+          status: application.status,
+          rejection_reason: application.rejectionReason,
+          created_at: application.createdAt,
+          reviewed_at: application.reviewedAt,
+          applicant: {
+            profile_id: applicantProfileId,
+          },
+          reviewed_by: application.user_reviewedById
+            ? {
+                profile_id: reviewerProfileId,
+              }
+            : null,
+          attachments: application.attachments.map((att) => ({
+            id: att.id,
+            image_id: att.imageId,
+            image_url: addImageUrl(att.image),
+            created_at: att.createdAt,
+          })),
         },
-        reviewed_by: application.user_reviewedById
-          ? {
-              profile_id: reviewerProfileId,
-            }
-          : null,
-        attachments: application.attachments.map((att) => ({
-          id: att.id,
-          image_id: att.imageId,
-          image_url: addImageUrl(att.image),
-          created_at: att.createdAt,
-        })),
       });
     },
   );

@@ -86,7 +86,7 @@ export async function createExportJob(communityId: string, userId: string) {
   return {
     id: job.id,
     status: job.status,
-    createdAt: job.createdAt,
+    created_at: job.createdAt,
   };
 }
 
@@ -219,11 +219,11 @@ export async function getExportJobStatus(jobId: string, userId: string) {
   return {
     id: job.id,
     status: job.status,
-    r2Key: job.r2Key,
-    expiresAt: job.expiresAt,
-    errorMessage: job.errorMessage,
-    createdAt: job.createdAt,
-    completedAt: job.completedAt,
+    download_url: job.r2Key ? getFileUrl(job.r2Key) : null,
+    expires_at: job.expiresAt,
+    error_message: job.errorMessage,
+    created_at: job.createdAt,
+    completed_at: job.completedAt,
   };
 }
 
@@ -243,11 +243,11 @@ export async function getUserExports(userId: string, communityId: string) {
   return exports.map((exp) => ({
     id: exp.id,
     status: exp.status,
-    downloadUrl: exp.r2Key ? getFileUrl(exp.r2Key) : null,
-    expiresAt: exp.expiresAt,
-    createdAt: exp.createdAt,
-    completedAt: exp.completedAt,
-    errorMessage: exp.errorMessage,
+    download_url: exp.r2Key ? getFileUrl(exp.r2Key) : null,
+    expires_at: exp.expiresAt,
+    created_at: exp.createdAt,
+    completed_at: exp.completedAt,
+    error_message: exp.errorMessage,
   }));
 }
 

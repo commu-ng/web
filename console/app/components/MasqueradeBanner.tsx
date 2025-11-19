@@ -18,7 +18,8 @@ interface MasqueradeStatus {
 
 async function fetchMasqueradeStatus(): Promise<MasqueradeStatus> {
   const res = await api.console.admin.masquerade.status.$get();
-  return await res.json();
+  const result = await res.json();
+  return result.data;
 }
 
 export function MasqueradeBanner() {
@@ -77,7 +78,9 @@ export function MasqueradeBanner() {
             <AlertTriangle className="h-5 w-5 flex-shrink-0" />
             <div className="text-sm font-medium">
               <span className="font-bold">전환 모드: </span>
-              <span>{status.targetUser?.login_name} 사용자로 전환 중입니다</span>
+              <span>
+                {status.targetUser?.login_name} 사용자로 전환 중입니다
+              </span>
               {status.adminUser && (
                 <span className="ml-2 text-amber-100 dark:text-amber-200">
                   (관리자: {status.adminUser.login_name})

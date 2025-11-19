@@ -80,7 +80,8 @@ export function CommunityMemberManagement({
         throw new Error("멤버 목록을 가져오는데 실패했습니다");
       }
 
-      return await response.json();
+      const result = await response.json();
+      return result.data;
     },
     getNextPageParam: (lastPage, allPages) => {
       const totalLoaded = allPages.reduce(

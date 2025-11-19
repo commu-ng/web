@@ -139,8 +139,8 @@ export async function validateProfilesViaUsername(
           });
 
           if (response.ok) {
-            const data = await response.json();
-            const exists = data.exists;
+            const result = await response.json();
+            const exists = result.data.exists;
             profileExistsCache.set(username, exists);
             results.set(username, exists);
           } else {

@@ -66,7 +66,8 @@ export default function ProfileProfile() {
         throw new Error("사용자 정보를 불러오는 데 실패했습니다");
       }
 
-      return await response.json();
+      const result = await response.json();
+      return result.data;
     },
     enabled: !!actualUsername,
   });
@@ -243,7 +244,7 @@ export default function ProfileProfile() {
                   <div className="flex items-center gap-2 mt-3 text-blue-100">
                     <Calendar className="h-4 w-4" />
                     <span className="text-sm">
-                      {new Date(profile.createdAt).toLocaleDateString("ko-KR")}
+                      {new Date(profile.created_at).toLocaleDateString("ko-KR")}
                       에 가입
                     </span>
                   </div>

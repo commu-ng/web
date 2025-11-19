@@ -65,7 +65,7 @@ export function CommunityLinksManager({
 
       if (response.ok) {
         const data = await response.json();
-        setLinks(data);
+        setLinks(data.data);
       }
     } catch (error) {
       console.error("Failed to fetch links:", error);
@@ -92,7 +92,7 @@ export function CommunityLinksManager({
       });
       if (response.ok) {
         const createdLink = await response.json();
-        setLinks([createdLink, ...links]);
+        setLinks([createdLink.data, ...links]);
         setNewLink({ title: "", url: "" });
         setIsCreating(false);
         toast.success("링크가 추가되었습니다");
@@ -122,7 +122,7 @@ export function CommunityLinksManager({
       if (response.ok) {
         const updatedLink = await response.json();
         setLinks(
-          links.map((link) => (link.id === linkId ? updatedLink : link)),
+          links.map((link) => (link.id === linkId ? updatedLink.data : link)),
         );
         setEditingId(null);
         toast.success("링크가 수정되었습니다");

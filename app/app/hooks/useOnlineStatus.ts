@@ -28,7 +28,8 @@ export function useOnlineStatus(profileIds: string[]) {
         throw new Error("Failed to fetch online status");
       }
 
-      return await response.json();
+      const result = await response.json();
+      return result.data;
     },
     enabled: profileIds.length > 0,
     staleTime: 30000, // 30 seconds

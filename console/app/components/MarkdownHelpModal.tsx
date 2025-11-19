@@ -145,9 +145,7 @@ with multiple lines
           <section>
             <h3 className="font-semibold mb-2">Line Breaks</h3>
             <div className="space-y-2 text-muted-foreground">
-              <p>
-                To create a new paragraph, leave a blank line between text:
-              </p>
+              <p>To create a new paragraph, leave a blank line between text:</p>
               <div className="bg-muted p-3 rounded">
                 <pre className="text-xs">
                   {`First paragraph.

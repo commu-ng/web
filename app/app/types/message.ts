@@ -12,7 +12,7 @@ export interface Conversation {
   last_message?: {
     id: string;
     content: string;
-    createdAt: string;
+    created_at: string;
     is_sender: boolean;
   };
   unread_count: string;
@@ -21,11 +21,11 @@ export interface Conversation {
 export interface GroupChat {
   id: string;
   name: string;
-  createdAt: string;
+  created_at: string;
   member_count: number;
   last_message?: {
     content: string;
-    createdAt: string;
+    created_at: string;
     sender: {
       id: string;
       name: string;
@@ -38,7 +38,7 @@ export interface GroupChat {
 export interface DirectMessage {
   id: string;
   content: string;
-  createdAt: string;
+  created_at: string;
   is_sender: boolean;
   sender_profile?: {
     id: string;
@@ -51,7 +51,7 @@ export interface DirectMessage {
 export interface GroupChatMessage {
   id: string;
   content: string;
-  createdAt: string;
+  created_at: string;
   sender: {
     id: string;
     name: string;

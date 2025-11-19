@@ -77,7 +77,8 @@ export default function Messages() {
         throw new Error("대화 목록을 불러올 수 없습니다");
       }
 
-      return await response.json();
+      const result = await response.json();
+      return result.data;
     },
     getNextPageParam: (lastPage, allPages) => {
       const totalLoaded = allPages.reduce(
@@ -117,17 +118,26 @@ export default function Messages() {
         throw new Error("그룹 채팅 목록을 불러올 수 없습니다");
       }
 
-      const groupChatsData = await response.json();
+      const result = await response.json();
 
       // Transform API response to match GroupChat interface
-      return groupChatsData.map((chat) => ({
-        id: chat.id,
-        name: chat.name,
-        createdAt: chat.createdAt,
-        member_count: chat.member_count,
-        unread_count: chat.unread_count,
-        last_message: chat.last_message || null,
-      }));
+      return result.data.map(
+        (chat: {
+          id: string;
+          name: string;
+          created_at: string;
+          member_count: number;
+          unread_count: number;
+          last_message: GroupChat["last_message"];
+        }) => ({
+          id: chat.id,
+          name: chat.name,
+          created_at: chat.created_at,
+          member_count: chat.member_count,
+          unread_count: chat.unread_count,
+          last_message: chat.last_message || null,
+        }),
+      );
     },
     getNextPageParam: (lastPage, allPages) => {
       const totalLoaded = allPages.reduce(
@@ -406,7 +416,7 @@ export default function Messages() {
                     type: "direct" as const,
                     data: conv,
                     lastMessageTime:
-                      conv.last_message?.createdAt ||
+                      conv.last_message?.created_at ||
                       conv.other_profile?.username ||
                       "", // fallback for sorting
                   })),
@@ -414,7 +424,7 @@ export default function Messages() {
                   type: "group" as const,
                   data: group,
                   lastMessageTime:
-                    group.last_message?.createdAt || group.createdAt,
+                    group.last_message?.created_at || group.created_at,
                 })),
               ]
                 .sort(
@@ -466,7 +476,7 @@ export default function Messages() {
                                     <Clock className="h-3 w-3" />
                                     <span>
                                       {formatTime(
-                                        item.data.last_message.createdAt,
+                                        item.data.last_message.created_at,
                                       )}
                                     </span>
                                   </div>
@@ -532,7 +542,8 @@ export default function Messages() {
                                         <Clock className="h-3 w-3" />
                                         <span>
                                           {formatTime(
-                                            group.last_message?.createdAt || "",
+                                            group.last_message?.created_at ||
+                                              "",
                                           )}
                                         </span>
                                       </div>

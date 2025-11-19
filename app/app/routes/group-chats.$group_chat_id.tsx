@@ -8,7 +8,7 @@ import type { Route } from "./+types/group-chats.$group_chat_id";
 interface GroupChatMessage {
   id: string;
   content: string;
-  createdAt: string;
+  created_at: string;
   is_from_me: boolean;
   sender: {
     id: string;
@@ -75,8 +75,8 @@ export function meta(_args: Route.MetaArgs) {
 interface GroupChatInfo {
   id: string;
   name: string;
-  createdAt: string;
-  updatedAt: string;
+  created_at: string;
+  updated_at: string;
   created_by_id: string;
   members: GroupChatMember[];
 }
@@ -131,28 +131,57 @@ export default function GroupChatDetail() {
         });
 
         if (messagesResponse.ok) {
-          const messagesData = await messagesResponse.json();
-          const transformedMessages: GroupChatMessage[] = messagesData.map(
-            (message) => ({
-              id: message.id,
-              content: message.content,
-              createdAt: message.createdAt,
-              is_from_me: message.is_sender || false,
-              sender: {
-                id: message.sender.id,
-                name: message.sender.name,
-                username: message.sender.username,
-                profile_picture_url: message.sender.profile_picture_url || null,
-              },
-              reactions: message.reactions || [],
-              images: message.images || [],
-            }),
-          );
+          const messagesResult = await messagesResponse.json();
+          const transformedMessages: GroupChatMessage[] =
+            messagesResult.data.map(
+              (message: {
+                id: string;
+                content: string;
+                created_at: string;
+                is_sender: boolean;
+                sender: {
+                  id: string;
+                  name: string;
+                  username: string;
+                  profile_picture_url: string | null;
+                };
+                reactions: Array<{
+                  emoji: string;
+                  count: number;
+                  profiles: Array<{
+                    id: string;
+                    name: string;
+                    username: string;
+                    profile_picture_url: string | null;
+                  }>;
+                }>;
+                images: Array<{
+                  id: string;
+                  url: string;
+                  width: number;
+                  height: number;
+                }>;
+              }) => ({
+                id: message.id,
+                content: message.content,
+                created_at: message.created_at,
+                is_from_me: message.is_sender || false,
+                sender: {
+                  id: message.sender.id,
+                  name: message.sender.name,
+                  username: message.sender.username,
+                  profile_picture_url:
+                    message.sender.profile_picture_url || null,
+                },
+                reactions: message.reactions || [],
+                images: message.images || [],
+              }),
+            );
           setMessages(
             transformedMessages.sort(
               (a, b) =>
-                new Date(a.createdAt).getTime() -
-                new Date(b.createdAt).getTime(),
+                new Date(a.created_at).getTime() -
+                new Date(b.created_at).getTime(),
             ),
           );
 
@@ -206,20 +235,28 @@ export default function GroupChatDetail() {
           });
 
         if (chatResponse.ok) {
-          const chatData = await chatResponse.json();
+          const chatResult = await chatResponse.json();
+          const chatData = chatResult.data;
           // Transform API response to match GroupChatInfo interface
           const transformedChatData: GroupChatInfo = {
             id: chatData.id,
             name: chatData.name,
-            createdAt: chatData.createdAt,
-            updatedAt: chatData.updatedAt,
+            created_at: chatData.created_at,
+            updated_at: chatData.updated_at,
             created_by_id: chatData.created_by_id,
-            members: chatData.members.map((member) => ({
-              id: member.id,
-              name: member.name,
-              username: member.username,
-              profile_picture_url: member.profile_picture_url || null,
-            })),
+            members: chatData.members.map(
+              (member: {
+                id: string;
+                name: string;
+                username: string;
+                profile_picture_url: string | null;
+              }) => ({
+                id: member.id,
+                name: member.name,
+                username: member.username,
+                profile_picture_url: member.profile_picture_url || null,
+              }),
+            ),
           };
           setGroupChat(transformedChatData);
         } else {
@@ -228,29 +265,58 @@ export default function GroupChatDetail() {
         }
 
         if (messagesResponse.ok) {
-          const messagesData = await messagesResponse.json();
+          const messagesResult = await messagesResponse.json();
           // Transform API response to match GroupChatMessage interface
-          const transformedMessages: GroupChatMessage[] = messagesData.map(
-            (message) => ({
-              id: message.id,
-              content: message.content,
-              createdAt: message.createdAt,
-              is_from_me: message.is_sender || false,
-              sender: {
-                id: message.sender.id,
-                name: message.sender.name,
-                username: message.sender.username,
-                profile_picture_url: message.sender.profile_picture_url || null,
-              },
-              reactions: message.reactions || [],
-              images: message.images || [],
-            }),
-          );
+          const transformedMessages: GroupChatMessage[] =
+            messagesResult.data.map(
+              (message: {
+                id: string;
+                content: string;
+                created_at: string;
+                is_sender: boolean;
+                sender: {
+                  id: string;
+                  name: string;
+                  username: string;
+                  profile_picture_url: string | null;
+                };
+                reactions: Array<{
+                  emoji: string;
+                  count: number;
+                  profiles: Array<{
+                    id: string;
+                    name: string;
+                    username: string;
+                    profile_picture_url: string | null;
+                  }>;
+                }>;
+                images: Array<{
+                  id: string;
+                  url: string;
+                  width: number;
+                  height: number;
+                }>;
+              }) => ({
+                id: message.id,
+                content: message.content,
+                created_at: message.created_at,
+                is_from_me: message.is_sender || false,
+                sender: {
+                  id: message.sender.id,
+                  name: message.sender.name,
+                  username: message.sender.username,
+                  profile_picture_url:
+                    message.sender.profile_picture_url || null,
+                },
+                reactions: message.reactions || [],
+                images: message.images || [],
+              }),
+            );
           setMessages(
             transformedMessages.sort(
               (a, b) =>
-                new Date(a.createdAt).getTime() -
-                new Date(b.createdAt).getTime(),
+                new Date(a.created_at).getTime() -
+                new Date(b.created_at).getTime(),
             ),
           );
         } else {
@@ -291,13 +357,18 @@ export default function GroupChatDetail() {
       });
 
       if (response.ok) {
-        const messageData = await response.json();
+        const result = await response.json();
+        const messageData = result.data;
         // Transform API response to match GroupChatMessage interface
         const transformedMessage: GroupChatMessage = {
-          ...messageData,
+          id: messageData.id,
+          content: messageData.content,
+          created_at: messageData.created_at,
           is_from_me: messageData.is_sender || false,
           sender: {
-            ...messageData.sender,
+            id: messageData.sender.id,
+            name: messageData.sender.name,
+            username: messageData.sender.username,
             profile_picture_url: messageData.sender.profile_picture_url || null,
           },
           images: messageData.images || [],
@@ -613,7 +684,7 @@ export default function GroupChatDetail() {
                 >
                   <MessageBubble
                     content={message.content}
-                    timestamp={formatTime(message.createdAt)}
+                    timestamp={formatTime(message.created_at)}
                     isFromMe={message.is_from_me}
                     senderName={message.sender.name}
                     senderAvatar={

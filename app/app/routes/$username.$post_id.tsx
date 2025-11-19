@@ -33,7 +33,8 @@ export default function PostDetail() {
       });
 
       if (response.ok) {
-        const postData = await response.json();
+        const result = await response.json();
+        const postData = result.data;
 
         // Validate that the username matches the post author
         const cleanUsername = username?.startsWith("@")

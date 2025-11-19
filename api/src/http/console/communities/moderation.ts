@@ -39,7 +39,7 @@ export const moderationRouter = new Hono()
         reason,
       );
 
-      return c.json(result, 200);
+      return c.json({ data: result });
     },
   )
   .delete(
@@ -60,6 +60,6 @@ export const moderationRouter = new Hono()
         profileId,
       );
 
-      return c.json(result, 200);
+      return c.json({ data: result });
     },
   );

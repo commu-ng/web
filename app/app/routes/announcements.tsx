@@ -20,30 +20,54 @@ export default function Announcements() {
       const response = await client.app.announcements.$get();
 
       if (response.ok) {
-        const data = await response.json();
+        const result = await response.json();
         // Transform the API response to match PostCard expectations
-        const transformedData = data.map((announcement) => ({
-          id: announcement.id,
-          content: announcement.content,
-          createdAt: announcement.createdAt,
-          updatedAt: announcement.updatedAt,
-          author: {
-            id: announcement.author.id,
-            name: announcement.author.name,
-            username: announcement.author.username,
-            profile_picture_url: announcement.author.profile_picture_url,
-          },
-          images: announcement.images || [],
-          announcement: true,
-          in_reply_to_id: null,
-          depth: 0,
-          root_post_id: null,
-          content_warning: null,
-          replies: [],
-          threaded_replies: [],
-          is_bookmarked: false,
-          reactions: announcement.reactions || [],
-        }));
+        const transformedData = result.data.map(
+          (announcement: {
+            id: string;
+            content: string;
+            created_at: string;
+            updated_at: string;
+            author: {
+              id: string;
+              name: string;
+              username: string;
+              profile_picture_url: string | null;
+            };
+            images: Array<{
+              id: string;
+              url: string;
+              width: number;
+              height: number;
+              filename: string;
+            }>;
+            reactions: Array<{
+              emoji: string;
+              user: { id: string; username: string; name: string };
+            }>;
+          }) => ({
+            id: announcement.id,
+            content: announcement.content,
+            created_at: announcement.created_at,
+            updated_at: announcement.updated_at,
+            author: {
+              id: announcement.author.id,
+              name: announcement.author.name,
+              username: announcement.author.username,
+              profile_picture_url: announcement.author.profile_picture_url,
+            },
+            images: announcement.images || [],
+            announcement: true,
+            in_reply_to_id: null,
+            depth: 0,
+            root_post_id: null,
+            content_warning: null,
+            replies: [],
+            threaded_replies: [],
+            is_bookmarked: false,
+            reactions: announcement.reactions || [],
+          }),
+        );
         setAnnouncements(transformedData);
       } else {
         setError("공지사항을 불러오는 데 실패했습니다");
