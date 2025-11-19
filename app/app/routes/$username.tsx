@@ -91,7 +91,7 @@ export default function ProfileProfile() {
         param: { username: actualUsername },
         query: {
           limit: POSTS_PER_PAGE.toString(),
-          cursor: pageParam.toString(),
+          cursor: pageParam ? pageParam.toString() : undefined,
         },
       });
 
@@ -99,13 +99,13 @@ export default function ProfileProfile() {
         throw new Error(`Failed to fetch posts: ${response.status}`);
       }
 
-      const posts = await response.json();
+      const result = await response.json();
 
-      if (!Array.isArray(posts)) {
+      if (!result.data || !Array.isArray(result.data)) {
         throw new Error("예상치 못한 응답 형식");
       }
 
-      return posts;
+      return result.data;
     },
     getNextPageParam: (lastPage, allPages) => {
       const totalLoaded = allPages.reduce(
