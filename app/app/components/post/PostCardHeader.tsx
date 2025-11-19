@@ -24,8 +24,8 @@ interface PostAuthor {
 interface PostCardHeaderProps {
   postId: string;
   author: PostAuthor;
-  createdAt: string;
-  updatedAt?: string;
+  createdAt: string | null;
+  updatedAt?: string | null;
   isAnnouncement?: boolean;
   isPinned?: boolean;
   isReply?: boolean;
@@ -54,7 +54,8 @@ export function PostCardHeader({
     (currentProfileId && author.id === currentProfileId) || isModerator;
   const isOwnPost = currentProfileId && author.id === currentProfileId;
   const canEdit = isOwnPost && !isAnnouncement && onEdit;
-  const isEdited = updatedAt && new Date(updatedAt) > new Date(createdAt);
+  const isEdited =
+    updatedAt && createdAt && new Date(updatedAt) > new Date(createdAt);
 
   return (
     <div
@@ -115,7 +116,7 @@ export function PostCardHeader({
               to={`/@${author.username}/${postId}`}
               className="text-xs text-muted-foreground hover:text-foreground transition-colors"
             >
-              {new Date(createdAt).toLocaleString()}
+              {createdAt ? new Date(createdAt).toLocaleString() : ""}
             </Link>
             {isEdited && updatedAt && (
               <PostEditHistory postId={postId} updatedAt={updatedAt} />

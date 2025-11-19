@@ -8,7 +8,7 @@ import { Skeleton } from "./ui/skeleton";
 interface Post {
   id: string;
   content: string;
-  created_at: string;
+  created_at: string | null;
   author: {
     id: string;
     username: string;
@@ -143,7 +143,7 @@ export function PostPreview({ postUrl, currentProfileId }: PostPreviewProps) {
             </p>
             <p className="text-xs text-muted-foreground">·</p>
             <p className="text-xs text-muted-foreground">
-              {formatDate(post.created_at)}
+              {post.created_at ? formatDate(post.created_at) : ""}
             </p>
           </div>
           <p className="text-sm text-foreground mt-1 whitespace-pre-wrap break-words">

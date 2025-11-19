@@ -316,7 +316,6 @@ export default function ProfileProfile() {
                       post={{
                         ...post,
                         replies: [],
-                        threaded_replies: [],
                         in_reply_to_id: null,
                         depth: 0,
                         root_post_id: null,

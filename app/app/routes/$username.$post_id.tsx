@@ -201,7 +201,6 @@ export default function PostDetail() {
                     post={{
                       ...parentPost,
                       replies: [],
-                      threaded_replies: [],
                     }}
                     currentProfileId={currentProfile?.id}
                     onDelete={handleRefresh}
@@ -217,7 +216,6 @@ export default function PostDetail() {
             post={{
               ...post,
               replies: [],
-              threaded_replies: [],
             }}
             currentProfileId={currentProfile?.id}
             onDelete={handleMainPostDelete}
@@ -309,7 +307,6 @@ export default function PostDetail() {
                     post={{
                       ...reply,
                       replies: [],
-                      threaded_replies: [],
                     }}
                     currentProfileId={currentProfile?.id}
                     onDelete={handleRefresh}

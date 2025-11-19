@@ -26,8 +26,8 @@ export default function Announcements() {
           (announcement: {
             id: string;
             content: string;
-            created_at: string;
-            updated_at: string;
+            created_at: string | null;
+            updated_at: string | null;
             author: {
               id: string;
               name: string;
@@ -63,7 +63,6 @@ export default function Announcements() {
             root_post_id: null,
             content_warning: null,
             replies: [],
-            threaded_replies: [],
             is_bookmarked: false,
             reactions: announcement.reactions || [],
           }),
@@ -152,7 +151,6 @@ export default function Announcements() {
                 post={{
                   ...announcement,
                   replies: [],
-                  threaded_replies: [],
                   in_reply_to_id: announcement.in_reply_to_id ?? null,
                   depth: 0,
                   root_post_id: null,

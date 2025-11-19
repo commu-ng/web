@@ -31,8 +31,8 @@ export interface PostHistoryEntry {
 export interface Post {
   id: string;
   content: string;
-  created_at: string;
-  updated_at: string;
+  created_at: string | null;
+  updated_at: string | null;
   announcement: boolean;
   content_warning: string | null;
   scheduled_at?: string | null;
@@ -45,7 +45,6 @@ export interface Post {
   root_post_id: string | null;
   is_bookmarked: boolean;
   replies: Post[];
-  threaded_replies?: Post[];
   reactions?: Array<{
     emoji: string;
     user: {

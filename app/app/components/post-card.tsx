@@ -50,8 +50,8 @@ export const PostCard = memo(function PostCard({
     if (post.content.includes(`@${currentUsername}`)) return true;
 
     // User is part of thread if they authored any reply or are mentioned in any reply
-    if (post.threaded_replies && post.threaded_replies.length > 0) {
-      return post.threaded_replies.some(
+    if (post.replies && post.replies.length > 0) {
+      return post.replies.some(
         (reply) =>
           reply.author.id === currentProfileId ||
           reply.content.includes(`@${currentUsername}`),
@@ -64,7 +64,7 @@ export const PostCard = memo(function PostCard({
     currentProfile,
     post.author.id,
     post.content,
-    post.threaded_replies,
+    post.replies,
   ]);
 
   // Collapse thread by default if user is not part of it
@@ -74,12 +74,12 @@ export const PostCard = memo(function PostCard({
 
   // Filter replies to show only relevant ones (for collapsed view)
   const filterRelevantReplies = useCallback(() => {
-    if (!currentProfileId || !currentProfile || !post.threaded_replies) {
+    if (!currentProfileId || !currentProfile || !post.replies) {
       return [];
     }
 
     const currentUsername = currentProfile.username;
-    const replies = post.threaded_replies;
+    const replies = post.replies;
     const relevantIds = new Set<string>();
 
     // Mark directly relevant replies
@@ -108,7 +108,7 @@ export const PostCard = memo(function PostCard({
     }
 
     return replies.filter((r) => withContext.has(r.id));
-  }, [currentProfileId, currentProfile, post.threaded_replies]);
+  }, [currentProfileId, currentProfile, post.replies]);
 
   // Use the markdown hook for mention validation and rendering
   // For read-only posts, disable username validation to avoid API calls
@@ -398,16 +398,16 @@ export const PostCard = memo(function PostCard({
 
         {/* Nested replies - only show for root posts (depth 0 or undefined) to avoid infinite nesting */}
         {!showEditForm &&
-          post.threaded_replies &&
-          post.threaded_replies.length > 0 &&
+          post.replies &&
+          post.replies.length > 0 &&
           (post.depth === 0 || post.depth === undefined) &&
           (() => {
             const filteredReplies = filterRelevantReplies();
             const repliesToShow = isThreadCollapsed
               ? filteredReplies
-              : post.threaded_replies;
+              : post.replies;
             const hasHiddenReplies =
-              filteredReplies.length < post.threaded_replies.length;
+              filteredReplies.length < post.replies.length;
 
             return (
               <div className="mt-3 pt-3 border-t border-border">
@@ -420,8 +420,8 @@ export const PostCard = memo(function PostCard({
                   >
                     <span className="text-xs text-muted-foreground font-medium">
                       {isThreadCollapsed
-                        ? `답글 ${filteredReplies.length}/${post.threaded_replies.length}개`
-                        : `답글 ${post.threaded_replies.length}개`}
+                        ? `답글 ${filteredReplies.length}/${post.replies.length}개`
+                        : `답글 ${post.replies.length}개`}
                     </span>
                     {isThreadCollapsed ? (
                       <ChevronDown className="w-3 h-3 text-muted-foreground" />

@@ -93,7 +93,6 @@ export default function Bookmarks() {
           root_post_id: null,
           is_bookmarked: true,
           replies: [],
-          threaded_replies: [],
           reactions: bookmark.reactions || [],
         }),
       );
@@ -273,7 +272,6 @@ export default function Bookmarks() {
                           | undefined) || null,
                       in_reply_to_id:
                         (bookmark.in_reply_to_id as string | undefined) ?? "",
-                      threaded_replies: [],
                     } as unknown as import("~/types/post").Post
                   }
                   currentProfileId={currentProfile.id}
