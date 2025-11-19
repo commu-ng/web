@@ -1,6 +1,6 @@
+import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
-import { useAuth } from "~/hooks/useAuth";
 import { env } from "~/lib/env";
 
 export function meta() {
@@ -13,7 +13,7 @@ export function meta() {
 export default function AuthCallback() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { refetch } = useAuth();
+  const queryClient = useQueryClient();
   const [status, setStatus] = useState<"loading" | "success" | "error">(
     "loading",
   );
@@ -69,8 +69,8 @@ export default function AuthCallback() {
         // Token exchange successful
         setStatus("success");
 
-        // Refetch auth state to update the app
-        refetch();
+        // Invalidate and refetch auth queries to update the app with new session
+        await queryClient.invalidateQueries({ queryKey: ["auth"] });
 
         // Get the return path from search params, default to home
         const returnPath = searchParams.get("return_path") || "/";
@@ -95,11 +95,7 @@ export default function AuthCallback() {
     return () => {
       cancelled = true;
     };
-  }, [
-    searchParams,
-    navigate, // Refetch auth state to update the app
-    refetch,
-  ]); // Removed refetch from dependencies to prevent re-runs
+  }, [searchParams, navigate, queryClient]);
 
   // Show loading state
   if (status === "loading") {
