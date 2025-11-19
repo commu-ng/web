@@ -341,7 +341,7 @@ export async function uploadImage(
     filename: newImage.filename,
     width: newImage.width,
     height: newImage.height,
-    url: newImage.key,
+    url: addImageUrl(newImage).url,
     key: uniqueKey,
     created_at: formatISODate(newImage.createdAt),
   };
