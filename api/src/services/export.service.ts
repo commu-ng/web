@@ -154,7 +154,7 @@ async function* streamPostsForExport(
         reactions: post.reactions || [],
         depth: post.depth,
         inReplyToId: post.in_reply_to_id || null,
-        replies: (post.threaded_replies || []).map(
+        replies: (post.replies || []).map(
           (reply: Parameters<typeof convertReply>[0]) => convertReply(reply),
         ),
       });
@@ -201,7 +201,7 @@ function convertReply(reply: {
   }>;
   depth: number;
   in_reply_to_id?: string | null;
-  threaded_replies?: unknown[];
+  replies?: unknown[];
 }): ExportPost {
   return {
     id: reply.id,
@@ -220,7 +220,7 @@ function convertReply(reply: {
     reactions: reply.reactions || [],
     depth: reply.depth,
     inReplyToId: reply.in_reply_to_id || null,
-    replies: (reply.threaded_replies || []).map((r) =>
+    replies: (reply.replies || []).map((r) =>
       convertReply(r as typeof reply),
     ),
   };

@@ -1083,8 +1083,7 @@ export async function getPosts(
       depth: 0, // Root posts have depth 0
       root_post_id: null, // Root posts are the root
       is_bookmarked,
-      replies: [], // We use threaded_replies instead
-      threaded_replies,
+      replies: threaded_replies,
       reactions: reactions.map((reaction) => ({
         emoji: reaction.emoji,
         user: {
@@ -1298,8 +1297,7 @@ export async function searchPosts(
       depth: 0,
       root_post_id: null,
       is_bookmarked,
-      replies: [],
-      threaded_replies,
+      replies: threaded_replies,
       reactions: reactions.map((reaction) => ({
         emoji: reaction.emoji,
         user: {
