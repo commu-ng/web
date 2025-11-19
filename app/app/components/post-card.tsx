@@ -396,11 +396,10 @@ export const PostCard = memo(function PostCard({
           </div>
         )}
 
-        {/* Nested replies - only show for root posts (depth 0 or undefined) to avoid infinite nesting */}
+        {/* Nested replies */}
         {!showEditForm &&
           post.replies &&
           post.replies.length > 0 &&
-          (post.depth === 0 || post.depth === undefined) &&
           (() => {
             const filteredReplies = filterRelevantReplies();
             const repliesToShow = isThreadCollapsed
