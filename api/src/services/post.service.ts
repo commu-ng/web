@@ -2350,6 +2350,7 @@ export async function createPost(
       profile_picture_url,
     },
     images,
+    reactions: [],
   };
 }
 
