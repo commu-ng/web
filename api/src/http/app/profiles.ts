@@ -241,10 +241,21 @@ export const profilesRouter = new Hono<{ Variables: AuthVariables }>()
       const result = await profileService.getProfilePosts(
         username,
         community.id,
-        limit,
+        limit + 1, // Fetch one extra to determine if there's more
         offset,
       );
-      return c.json({ data: result });
+
+      const hasMore = result.length > limit;
+      const posts = hasMore ? result.slice(0, limit) : result;
+      const nextCursor = hasMore ? (offset + limit).toString() : null;
+
+      return c.json({
+        data: posts,
+        pagination: {
+          hasMore,
+          nextCursor,
+        },
+      });
     },
   )
   .post(
