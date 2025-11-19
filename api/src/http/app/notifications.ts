@@ -54,7 +54,11 @@ export const notificationsRouter = new Hono<{ Variables: AuthVariables }>()
         profileId,
       );
 
-      return c.json({ data: { count } });
+      return c.json({
+        data: {
+          count,
+        },
+      });
     },
   )
   .post(

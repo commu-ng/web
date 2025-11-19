@@ -227,7 +227,7 @@ export async function getUnreadCount(
 
   // Get unread notification count
   const unreadCount = await db
-    .select({ count: sql<number>`count(*)` })
+    .select({ count: sql<string>`count(*)` })
     .from(notificationTable)
     .where(
       and(
@@ -236,7 +236,7 @@ export async function getUnreadCount(
       ),
     );
 
-  return unreadCount[0]?.count ?? 0;
+  return Number(unreadCount[0]?.count ?? 0);
 }
 
 /**
