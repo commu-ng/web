@@ -68,14 +68,14 @@ async function fetchAllApplications(communityId: string) {
   const res = await api.console.communities[":id"].applications.$get({
     param: { id: communityId },
   });
-  const data = await res.json();
+  const json = await res.json();
 
   // Handle error response
-  if (!Array.isArray(data)) {
-    throw new Error(getErrorMessage(data, "Failed to fetch applications"));
+  if ("error" in json) {
+    throw new Error(getErrorMessage(json, "Failed to fetch applications"));
   }
 
-  return data;
+  return json.data;
 }
 
 const formatDate = (dateString: string) => {
