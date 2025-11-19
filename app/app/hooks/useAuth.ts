@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect } from "react";
+import { useCallback, useEffect } from "react";
 import { toast } from "sonner";
 import { client, getErrorMessage } from "~/lib/api-client";
 import { env } from "~/lib/env";
@@ -250,9 +250,14 @@ export function useAuth(): AuthState {
     }
   };
 
-  const refreshProfiles = () => {
+  const refreshProfiles = useCallback(() => {
     refetchProfiles();
-  };
+  }, [refetchProfiles]);
+
+  const refetch = useCallback(() => {
+    refetchUser();
+    refetchProfiles();
+  }, [refetchUser, refetchProfiles]);
 
   return {
     user: user || null,
@@ -266,9 +271,6 @@ export function useAuth(): AuthState {
     switchProfile,
     createProfile,
     refreshProfiles,
-    refetch: () => {
-      refetchUser();
-      refetchProfiles();
-    },
+    refetch,
   };
 }

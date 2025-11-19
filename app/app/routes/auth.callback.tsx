@@ -55,13 +55,15 @@ export default function AuthCallback() {
         }
 
         // Parse the response to get the session token
-        const data = await response.json();
+        const responseData = await response.json();
 
         if (cancelled) return;
 
         // Store the session token in localStorage
-        if (data.session_token) {
-          localStorage.setItem("session_token", data.session_token);
+        const sessionToken =
+          responseData.data?.session_token || responseData.session_token;
+        if (sessionToken) {
+          localStorage.setItem("session_token", sessionToken);
         }
 
         // Token exchange successful
