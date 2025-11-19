@@ -141,23 +141,27 @@ export async function getNotificationsForProfile(
     if (notification.post) {
       const post = notification.post;
       const author = post.profile;
-      const authorProfilePicture = author?.profilePictures.find(
-        (pp: ProfilePicture) => pp.deletedAt === null,
-      )?.image;
-      const author_profile_picture_url = authorProfilePicture
-        ? addImageUrl(authorProfilePicture).url
-        : null;
 
-      relatedPost = {
-        id: post.id,
-        content: post.content,
-        author: {
-          id: author.id,
-          name: author.name,
-          username: author.username,
-          profile_picture_url: author_profile_picture_url,
-        },
-      };
+      // Only include relatedPost if the author profile exists
+      if (author) {
+        const authorProfilePicture = author.profilePictures?.find(
+          (pp: ProfilePicture) => pp.deletedAt === null,
+        )?.image;
+        const author_profile_picture_url = authorProfilePicture
+          ? addImageUrl(authorProfilePicture).url
+          : null;
+
+        relatedPost = {
+          id: post.id,
+          content: post.content,
+          author: {
+            id: author.id,
+            name: author.name,
+            username: author.username,
+            profile_picture_url: author_profile_picture_url,
+          },
+        };
+      }
     }
 
     return {
