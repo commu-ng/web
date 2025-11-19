@@ -1346,7 +1346,7 @@ type ReplyData = {
   depth: number;
   root_post_id: string | null;
   is_bookmarked: boolean;
-  replies: never[];
+  replies: ReplyData[];
   reactions: {
     emoji: string;
     user: {
@@ -1541,7 +1541,7 @@ async function buildThreadedRepliesForMultiplePosts(
       depth: row.depth,
       root_post_id: row.root_post_id,
       is_bookmarked: bookmarkedPostIds.has(row.id),
-      replies: [], // Replies are already flattened and ordered by the CTE
+      replies: [],
       reactions: reactions.map((reaction) => ({
         emoji: reaction.emoji,
         user: {
@@ -1559,7 +1559,35 @@ async function buildThreadedRepliesForMultiplePosts(
     }
   }
 
-  return repliesByRootPost;
+  // Build nested tree structure for each root post
+  const nestedRepliesMap = new Map<string, ReplyData[]>();
+
+  for (const [rootId, flatReplies] of repliesByRootPost) {
+    // Create a map of all replies by ID for quick lookup
+    const replyById = new Map<string, ReplyData>();
+    for (const reply of flatReplies) {
+      replyById.set(reply.id, reply);
+    }
+
+    // Build tree: add each reply to its parent's replies array
+    const topLevelReplies: ReplyData[] = [];
+    for (const reply of flatReplies) {
+      if (reply.in_reply_to_id === rootId) {
+        // Direct reply to root post
+        topLevelReplies.push(reply);
+      } else if (reply.in_reply_to_id) {
+        // Reply to another reply
+        const parent = replyById.get(reply.in_reply_to_id);
+        if (parent) {
+          parent.replies.push(reply);
+        }
+      }
+    }
+
+    nestedRepliesMap.set(rootId, topLevelReplies);
+  }
+
+  return nestedRepliesMap;
 }
 
 /**
