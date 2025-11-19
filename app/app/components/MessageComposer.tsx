@@ -164,7 +164,9 @@ export function MessageComposer({
       });
       if (response.ok) {
         const result = await response.json();
-        const allProfiles: Profile[] = Array.isArray(result) ? result : [];
+        const allProfiles: Profile[] = Array.isArray(result?.data)
+          ? result.data
+          : [];
 
         const filteredProfiles = query
           ? allProfiles.filter(

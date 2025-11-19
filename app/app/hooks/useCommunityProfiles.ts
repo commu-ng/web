@@ -26,8 +26,8 @@ export function useCommunityProfiles() {
 
       if (response.ok) {
         const result = await response.json();
-        // API now returns an array of profiles directly (no pagination)
-        setProfiles(Array.isArray(result) ? result : []);
+        // API returns { data: [...] } wrapper
+        setProfiles(Array.isArray(result?.data) ? result.data : []);
       } else {
         console.error("Failed to fetch community profiles");
         setProfiles([]);

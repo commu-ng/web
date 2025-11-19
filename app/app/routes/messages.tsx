@@ -251,7 +251,7 @@ export default function Messages() {
       });
       if (response.ok) {
         const result = await response.json();
-        const allProfiles = Array.isArray(result) ? result : [];
+        const allProfiles = Array.isArray(result?.data) ? result.data : [];
 
         // Filter out current profile
         const otherProfiles = allProfiles.filter(
