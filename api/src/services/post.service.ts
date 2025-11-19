@@ -350,7 +350,10 @@ export async function uploadImage(
 /**
  * Get announcements for a community
  */
-export async function getAnnouncements(communityId: string) {
+export async function getAnnouncements(
+  communityId: string,
+  profileId?: string,
+) {
   const announcementsList = await db
     .select()
     .from(postTable)
@@ -382,30 +385,40 @@ export async function getAnnouncements(communityId: string) {
     }
   }
 
-  // Batch load profile pictures
-  const profilePictureMap = await batchLoadProfilePictures(
-    Array.from(profileIds),
-  );
-
-  // Batch load post images for all posts
-  const allPostImages = await db.query.postImage.findMany({
-    where: inArray(postImageTable.postId, postIds),
-    with: {
-      image: true,
-    },
-  });
-
-  // Batch load reactions for all posts
-  const allReactions = await db.query.postReaction.findMany({
-    where: inArray(postReactionTable.postId, postIds),
-    with: {
-      profile: true,
-    },
-  });
+  // Batch load all related data
+  const [profilePictureMap, allPostImages, allBookmarks, allReactions] =
+    await Promise.all([
+      // Batch load profile pictures
+      batchLoadProfilePictures(Array.from(profileIds)),
+      // Batch load post images for all posts
+      db.query.postImage.findMany({
+        where: inArray(postImageTable.postId, postIds),
+        with: {
+          image: true,
+        },
+      }),
+      // Batch load bookmarks if profileId provided
+      profileId
+        ? db.query.postBookmark.findMany({
+            where: and(
+              eq(postBookmarkTable.profileId, profileId),
+              inArray(postBookmarkTable.postId, postIds),
+            ),
+          })
+        : Promise.resolve([]),
+      // Batch load reactions for all posts
+      db.query.postReaction.findMany({
+        where: inArray(postReactionTable.postId, postIds),
+        with: {
+          profile: true,
+        },
+      }),
+    ]);
 
   // Group images and reactions by post ID
   const imagesByPostId = new Map<string, typeof allPostImages>();
   const reactionsByPostId = new Map<string, typeof allReactions>();
+  const bookmarkedPostIds = new Set(allBookmarks.map((b) => b.postId));
 
   allPostImages.forEach((pi) => {
     if (!imagesByPostId.has(pi.postId)) {
@@ -420,6 +433,14 @@ export async function getAnnouncements(communityId: string) {
     }
     reactionsByPostId.get(reaction.postId)?.push(reaction);
   });
+
+  // Batch load threaded replies for all announcements
+  const repliesMap = await buildThreadedRepliesForMultiplePosts(
+    postIds,
+    communityId,
+    10,
+    profileId,
+  );
 
   // Build result using pre-loaded data
   const result = [];
@@ -439,13 +460,22 @@ export async function getAnnouncements(communityId: string) {
     }));
 
     const reactions = reactionsByPostId.get(post.id) || [];
+    const replies = repliesMap.get(post.id) || [];
+    const is_bookmarked = bookmarkedPostIds.has(post.id);
 
     result.push({
       id: post.id,
       content: post.content,
       created_at: formatISODate(post.createdAt),
       updated_at: formatISODate(post.updatedAt),
-      images: images,
+      announcement: true,
+      content_warning: post.contentWarning,
+      pinned_at: post.pinnedAt ? formatISODate(post.pinnedAt) : null,
+      in_reply_to_id: null,
+      depth: 0,
+      root_post_id: null,
+      is_bookmarked,
+      images,
       author: {
         id: profile.id,
         username: profile.username,
@@ -460,6 +490,7 @@ export async function getAnnouncements(communityId: string) {
           name: reaction.profile.name,
         },
       })),
+      replies,
     });
   }
 
