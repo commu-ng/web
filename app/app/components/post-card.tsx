@@ -6,7 +6,7 @@ import { useAuth } from "~/hooks/useAuth";
 import { useCurrentInstance } from "~/hooks/useCurrentInstance";
 import { useMarkdownWithMentions } from "~/hooks/useMarkdownWithMentions";
 import { client } from "~/lib/api-client";
-import type { PostCardProps } from "~/types/post";
+import type { Post, PostCardProps } from "~/types/post";
 import { MessageSender } from "./message-sender";
 import { PostEditor } from "./PostEditor";
 import { ImageModal } from "./post/ImageModal";
@@ -15,6 +15,15 @@ import { PostCardContent } from "./post/PostCardContent";
 import { PostCardHeader } from "./post/PostCardHeader";
 import { PostCardImages } from "./post/PostCardImages";
 import { PostCardReactions } from "./post/PostCardReactions";
+
+// Helper function to count total replies recursively
+function countTotalReplies(replies: Post[]): number {
+  let count = replies.length;
+  for (const reply of replies) {
+    count += countTotalReplies(reply.replies || []);
+  }
+  return count;
+}
 
 export const PostCard = memo(function PostCard({
   post,
@@ -343,7 +352,7 @@ export const PostCard = memo(function PostCard({
             >
               <PostCardActions
                 postId={post.id}
-                replyCount={post.replies?.length || 0}
+                replyCount={countTotalReplies(post.replies || [])}
                 isBookmarked={post.is_bookmarked || false}
                 isPinned={!!post.pinned_at}
                 isOwnPost={post.author.id === currentProfileId}
