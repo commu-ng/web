@@ -220,9 +220,7 @@ function convertReply(reply: {
     reactions: reply.reactions || [],
     depth: reply.depth,
     inReplyToId: reply.in_reply_to_id || null,
-    replies: (reply.replies || []).map((r) =>
-      convertReply(r as typeof reply),
-    ),
+    replies: (reply.replies || []).map((r) => convertReply(r as typeof reply)),
   };
 }
 

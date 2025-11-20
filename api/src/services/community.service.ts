@@ -941,6 +941,153 @@ export async function getRecruitingCommunitiesWithUserContext(userId?: string) {
   return result;
 }
 
+export async function getOngoingCommunitiesWithUserContext(userId?: string) {
+  const ongoingCommunities = await db.query.community.findMany({
+    where: and(
+      eq(communityTable.isRecruiting, false),
+      isNull(communityTable.deletedAt),
+      sql`${communityTable.startsAt} <= NOW()`,
+      sql`${communityTable.endsAt} > NOW()`,
+    ),
+    orderBy: [desc(communityTable.createdAt)],
+    with: {
+      communityHashtags: {
+        with: {
+          hashtag: true,
+        },
+      },
+    },
+  });
+
+  // Get user applications and memberships if user is authenticated
+  const userApplications: {
+    [key: string]: typeof communityApplicationTable.$inferSelect;
+  } = {};
+  const userMemberships: Set<string> = new Set();
+  const userRoles: { [key: string]: string } = {};
+
+  if (userId) {
+    const applications = await db.query.communityApplication.findMany({
+      where: and(
+        eq(communityApplicationTable.userId, userId),
+        or(
+          eq(communityApplicationTable.status, "pending"),
+          eq(communityApplicationTable.status, "rejected"),
+        ),
+      ),
+    });
+    applications.forEach((app) => {
+      userApplications[app.communityId] = app;
+    });
+
+    const membershipTableList = await db.query.membership.findMany({
+      where: and(
+        eq(membershipTable.userId, userId),
+        isNotNull(membershipTable.activatedAt),
+      ),
+    });
+    membershipTableList.forEach((membership) => {
+      userMemberships.add(membership.communityId);
+      userRoles[membership.communityId] = membership.role;
+    });
+  }
+
+  // Collect all community IDs for batch operations
+  const communityIds = ongoingCommunities.map((c) => c.id);
+
+  // Batch fetch banner images for all communities
+  const bannerImages =
+    communityIds.length > 0
+      ? await imageService.getCommunityBannerInfo(communityIds)
+      : new Map();
+
+  // Batch fetch owner memberships for all communities
+  const ownerMemberships =
+    communityIds.length > 0
+      ? await db.query.membership.findMany({
+          where: and(
+            inArray(membershipTable.communityId, communityIds),
+            eq(membershipTable.role, "owner"),
+            isNotNull(membershipTable.activatedAt),
+          ),
+        })
+      : [];
+
+  // Build map of community ID -> owner user ID
+  const ownerUserIdMap = new Map(
+    ownerMemberships.map((m) => [m.communityId, m.userId]),
+  );
+
+  // Collect all unique owner user IDs and their communities
+  const ownerUserCommunityPairs = Array.from(ownerUserIdMap.entries()).map(
+    ([communityId, userId]) => ({ userId, communityId }),
+  );
+
+  // Batch fetch primary profile IDs for all owners
+  const ownerProfileIdsMap =
+    ownerUserCommunityPairs.length > 0
+      ? await getPrimaryProfileIdForUserInCommunity(ownerUserCommunityPairs)
+      : new Map<string, string | null>();
+
+  // Convert map keys from "userId:communityId" to just communityId
+  const ownerProfileIds = new Map<string, string | null>();
+  for (const { userId, communityId } of ownerUserCommunityPairs) {
+    const key = `${userId}:${communityId}`;
+    ownerProfileIds.set(communityId, ownerProfileIdsMap.get(key) || null);
+  }
+
+  const result = ongoingCommunities.map((community) => {
+    const bannerInfo = bannerImages.get(community.id) || null;
+
+    const hashtagTableData = community.communityHashtags.map((ch) => ({
+      id: ch.hashtag.id,
+      tag: ch.hashtag.tag,
+    }));
+
+    const hasApplied = userApplications[community.id] !== undefined;
+    const application = userApplications[community.id];
+    const applicationId = application?.id || null;
+    const applicationStatus = application?.status || null;
+    const isMember = userMemberships.has(community.id);
+    const userRole = userRoles[community.id] || null;
+
+    const ownerProfileId = ownerProfileIds.get(community.id) || null;
+
+    return {
+      id: community.id,
+      name: community.name,
+      slug: community.slug,
+      starts_at: community.startsAt,
+      ends_at: community.endsAt,
+      is_recruiting: community.isRecruiting,
+      recruiting_starts_at: community.recruitingStartsAt,
+      recruiting_ends_at: community.recruitingEndsAt,
+      minimum_birth_year: community.minimumBirthYear,
+      created_at: community.createdAt,
+      custom_domain: community.customDomain,
+      domain_verified: community.domainVerifiedAt,
+      owner_profile_id: ownerProfileId,
+      banner_image_url: bannerInfo?.url || null,
+      banner_image_width: bannerInfo?.width || null,
+      banner_image_height: bannerInfo?.height || null,
+      has_applied: hasApplied,
+      application_id: applicationId,
+      application_status: applicationStatus,
+      is_member: isMember,
+      role: userRole,
+      hashtags: hashtagTableData,
+    };
+  });
+
+  // Sort by creation date
+  result.sort(
+    (a, b) =>
+      new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+  );
+
+  return result;
+}
+
 /**
  * Get community statistics including applications and member counts
  * Returns aggregated data for community dashboard

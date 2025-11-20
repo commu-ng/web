@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Filter, Hash, X } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { CommunityCard } from "~/components/CommunityCard";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
@@ -12,19 +12,19 @@ import {
   CardTitle,
 } from "~/components/ui/card";
 import { api } from "~/lib/api-client";
-import type { Route } from "./+types/communities.recruiting";
+import type { Route } from "./+types/communities._index";
 
 export function meta(_args: Route.MetaArgs) {
   return [
-    { title: "모집 중인 커뮤" },
+    { title: "커뮤 목록" },
     {
       name: "description",
-      content: "새로운 멤버를 모집하고 있는 커뮤 목록",
+      content: "모집 중인 커뮤와 진행 중인 커뮤 목록",
     },
   ];
 }
 
-interface RecruitingCommunity {
+interface Community {
   id: string;
   name: string;
   slug: string;
@@ -47,31 +47,55 @@ interface RecruitingCommunity {
   hashtags?: { id: string; tag: string }[];
 }
 
-async function fetchRecruitingCommunities(): Promise<RecruitingCommunity[]> {
+async function fetchRecruitingCommunities(): Promise<Community[]> {
   const res = await api.console.communities.recruiting.$get();
   const result = await res.json();
   return result.data;
 }
 
-export default function RecruitingCommunities() {
+async function fetchOngoingCommunities(): Promise<Community[]> {
+  const res = await api.console.communities.ongoing.$get();
+  const result = await res.json();
+  return result.data;
+}
+
+export default function Communities() {
   const [selectedHashtags, setSelectedHashtags] = useState<string[]>([]);
 
   const {
-    data: communities,
-    isLoading,
-    error,
-    refetch,
+    data: recruitingCommunities,
+    isLoading: isLoadingRecruiting,
+    error: recruitingError,
+    refetch: refetchRecruiting,
   } = useQuery({
     queryKey: ["communities", "recruiting"],
     queryFn: fetchRecruitingCommunities,
   });
 
-  // Get top 30 most frequently used hashtags from communities
+  const {
+    data: ongoingCommunities,
+    isLoading: isLoadingOngoing,
+    error: ongoingError,
+    refetch: refetchOngoing,
+  } = useQuery({
+    queryKey: ["communities", "ongoing"],
+    queryFn: fetchOngoingCommunities,
+  });
+
+  const isLoading = isLoadingRecruiting || isLoadingOngoing;
+  const error = recruitingError || ongoingError;
+
+  // Combine all communities for hashtag extraction
+  const allCommunities = useMemo(() => {
+    return [...(recruitingCommunities || []), ...(ongoingCommunities || [])];
+  }, [recruitingCommunities, ongoingCommunities]);
+
+  // Get top 30 most frequently used hashtags from all communities
   const allHashtags = useMemo(() => {
-    if (!communities) return [];
+    if (allCommunities.length === 0) return [];
 
     const hashtagCounts = new Map<string, number>();
-    communities.forEach((community) => {
+    allCommunities.forEach((community) => {
       community.hashtags?.forEach((hashtag) => {
         hashtagCounts.set(
           hashtag.tag,
@@ -84,23 +108,37 @@ export default function RecruitingCommunities() {
       .sort((a, b) => b[1] - a[1]) // Sort by count descending
       .slice(0, 30) // Take top 30
       .map((entry) => entry[0]); // Extract hashtag names
-  }, [communities]);
+  }, [allCommunities]);
 
   // Filter communities based on selected hashtags
-  const filteredCommunities = useMemo(() => {
-    if (!communities) return [];
-    if (selectedHashtags.length === 0) return communities;
+  const filterCommunities = useCallback(
+    (communities: Community[] | undefined) => {
+      if (!communities) return [];
+      if (selectedHashtags.length === 0) return communities;
 
-    return communities.filter((community) => {
-      if (!community.hashtags || community.hashtags.length === 0) return false;
+      return communities.filter((community) => {
+        if (!community.hashtags || community.hashtags.length === 0)
+          return false;
 
-      // Check if community has ALL selected hashtags
-      const hashtags = community.hashtags;
-      return selectedHashtags.every((selectedTag) =>
-        hashtags.some((hashtag) => hashtag.tag === selectedTag),
-      );
-    });
-  }, [communities, selectedHashtags]);
+        // Check if community has ALL selected hashtags
+        const hashtags = community.hashtags;
+        return selectedHashtags.every((selectedTag) =>
+          hashtags.some((hashtag) => hashtag.tag === selectedTag),
+        );
+      });
+    },
+    [selectedHashtags],
+  );
+
+  const filteredRecruitingCommunities = useMemo(
+    () => filterCommunities(recruitingCommunities),
+    [filterCommunities, recruitingCommunities],
+  );
+
+  const filteredOngoingCommunities = useMemo(
+    () => filterCommunities(ongoingCommunities),
+    [filterCommunities, ongoingCommunities],
+  );
 
   // Toggle hashtag selection
   const toggleHashtag = (hashtag: string) => {
@@ -119,9 +157,7 @@ export default function RecruitingCommunities() {
   if (isLoading) {
     return (
       <div className="container mx-auto py-8 px-4 max-w-2xl">
-        <div className="text-center">
-          멤버를 모집 중인 커뮤를 불러오는 중...
-        </div>
+        <div className="text-center">커뮤 목록을 불러오는 중...</div>
       </div>
     );
   }
@@ -135,47 +171,62 @@ export default function RecruitingCommunities() {
             <CardDescription>커뮤 목록을 불러올 수 없습니다</CardDescription>
           </CardHeader>
           <CardContent className="text-center">
-            <Button onClick={() => refetch()}>다시 시도</Button>
+            <Button
+              onClick={() => {
+                refetchRecruiting();
+                refetchOngoing();
+              }}
+            >
+              다시 시도
+            </Button>
           </CardContent>
         </Card>
       </div>
     );
   }
 
-  if (!communities || communities.length === 0) {
+  const hasRecruitingCommunities =
+    recruitingCommunities && recruitingCommunities.length > 0;
+  const hasOngoingCommunities =
+    ongoingCommunities && ongoingCommunities.length > 0;
+  const hasAnyCommunities = hasRecruitingCommunities || hasOngoingCommunities;
+
+  if (!hasAnyCommunities) {
     return (
       <div className="container mx-auto py-8 px-4 max-w-2xl">
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-bold">모집 중인 커뮤</h1>
+            <h1 className="text-3xl font-bold">커뮤 목록</h1>
             <p className="text-muted-foreground mt-2">
-              현재 새로운 멤버를 모집하고 있는 커뮤가 없습니다.
+              현재 표시할 커뮤가 없습니다.
             </p>
           </div>
         </div>
 
         <Card className="w-full max-w-md mx-auto">
           <CardHeader className="text-center">
-            <CardTitle>모집 중인 커뮤가 없습니다</CardTitle>
-            <CardDescription>
-              현재 새로운 멤버를 모집하고 있는 커뮤가 없어요.
-            </CardDescription>
+            <CardTitle>커뮤가 없습니다</CardTitle>
+            <CardDescription>현재 표시할 커뮤가 없어요.</CardDescription>
           </CardHeader>
         </Card>
       </div>
     );
   }
 
+  const totalFiltered =
+    filteredRecruitingCommunities.length + filteredOngoingCommunities.length;
+
   return (
     <div className="container mx-auto py-8 px-4 max-w-2xl lg:max-w-6xl">
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-3xl font-bold">모집 중인 커뮤</h1>
+          <h1 className="text-3xl font-bold">커뮤 목록</h1>
           <p className="text-muted-foreground mt-2">
-            새로운 멤버를 모집하고 있는 커뮤 {communities.length}개
+            모집 중 {recruitingCommunities?.length || 0}개 · 진행 중{" "}
+            {ongoingCommunities?.length || 0}개
             {selectedHashtags.length > 0 && (
               <span className="ml-2 text-blue-600">
-                (필터 적용: {filteredCommunities.length}개)
+                (필터 적용: {totalFiltered}개)
               </span>
             )}
           </p>
@@ -233,8 +284,8 @@ export default function RecruitingCommunities() {
         </div>
       )}
 
-      {/* Filtered Results */}
-      {filteredCommunities.length === 0 && selectedHashtags.length > 0 ? (
+      {/* No Results After Filter */}
+      {totalFiltered === 0 && selectedHashtags.length > 0 ? (
         <Card className="w-full max-w-md mx-auto">
           <CardHeader className="text-center">
             <CardTitle>선택한 해시태그와 일치하는 커뮤가 없습니다</CardTitle>
@@ -249,13 +300,47 @@ export default function RecruitingCommunities() {
           </CardContent>
         </Card>
       ) : (
-        <div className="columns-1 md:columns-2 lg:columns-3 gap-4 space-y-4">
-          {filteredCommunities.map((community) => (
-            <div key={community.id} className="break-inside-avoid mb-4">
-              <CommunityCard community={community} />
+        <>
+          {/* Recruiting Communities Section */}
+          {filteredRecruitingCommunities.length > 0 && (
+            <div className="mb-12">
+              <div className="mb-6">
+                <h2 className="text-2xl font-bold">모집 중인 커뮤</h2>
+                <p className="text-muted-foreground mt-1">
+                  새로운 멤버를 모집하고 있는 커뮤 (
+                  {filteredRecruitingCommunities.length}개)
+                </p>
+              </div>
+              <div className="columns-1 md:columns-2 lg:columns-3 gap-4 space-y-4">
+                {filteredRecruitingCommunities.map((community) => (
+                  <div key={community.id} className="break-inside-avoid mb-4">
+                    <CommunityCard community={community} />
+                  </div>
+                ))}
+              </div>
             </div>
-          ))}
-        </div>
+          )}
+
+          {/* Ongoing Communities Section */}
+          {filteredOngoingCommunities.length > 0 && (
+            <div>
+              <div className="mb-6">
+                <h2 className="text-2xl font-bold">진행 중인 커뮤</h2>
+                <p className="text-muted-foreground mt-1">
+                  현재 진행 중이지만 모집하지 않는 커뮤 (
+                  {filteredOngoingCommunities.length}개)
+                </p>
+              </div>
+              <div className="columns-1 md:columns-2 lg:columns-3 gap-4 space-y-4">
+                {filteredOngoingCommunities.map((community) => (
+                  <div key={community.id} className="break-inside-avoid mb-4">
+                    <CommunityCard community={community} />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

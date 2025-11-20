@@ -81,6 +81,13 @@ export const crudRouter = new Hono()
       await communityService.getRecruitingCommunitiesWithUserContext(user?.id);
     return c.json({ data: result });
   })
+  .get("/ongoing", optionalAuthMiddleware, async (c) => {
+    const user = c.get("user");
+    const result = await communityService.getOngoingCommunitiesWithUserContext(
+      user?.id,
+    );
+    return c.json({ data: result });
+  })
   .get(
     "/:id",
     optionalAuthMiddleware,

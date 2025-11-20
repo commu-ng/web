@@ -10,9 +10,9 @@ export default [
   route("verify-email", "routes/verify-email.tsx"),
   route("confirm-delete-account", "routes/confirm-delete-account.tsx"),
   route("applications", "routes/applications.tsx"),
+  route("communities", "routes/communities._index.tsx"),
   route("communities/create", "routes/communities.create.tsx"),
   route("communities/mine", "routes/communities.mine.tsx"),
-  route("communities/recruiting", "routes/communities.recruiting.tsx"),
   route(
     "communities/:slug/applications/:applicationId",
     "routes/communities.$slug.applications.$applicationId.tsx",
