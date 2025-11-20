@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, CheckCircle, Hash, LogIn } from "lucide-react";
+import { ArrowLeft, CheckCircle, FileText, Hash, LogIn } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { toast } from "sonner";
@@ -78,7 +78,9 @@ async function fetchCommunity(slug: string): Promise<Community> {
     param: { id: slug },
   });
   if (!res.ok) {
-    throw new Error("커뮤를 찾을 수 없습니다");
+    const error = new Error("커뮤를 찾을 수 없습니다");
+    (error as { status?: number }).status = res.status;
+    throw error;
   }
   const result = await res.json();
   return result.data;
@@ -152,6 +154,8 @@ export default function CommunityApply({ params }: Route.ComponentProps) {
     queryFn: () => fetchMyApplications(slug),
     enabled: !!user && !!slug,
   });
+
+  const errorStatus = error ? (error as { status?: number }).status : undefined;
 
   // Redirect to community details if user is already a member
   useEffect(() => {
@@ -310,6 +314,31 @@ export default function CommunityApply({ params }: Route.ComponentProps) {
   }
 
   if (error || !community) {
+    // Show 404 page for not found errors
+    if (errorStatus === 404) {
+      return (
+        <div className="container mx-auto py-8 px-4 max-w-2xl">
+          <Card className="w-full max-w-md mx-auto">
+            <CardHeader className="text-center">
+              <div className="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
+                <FileText className="h-8 w-8 text-gray-400" />
+              </div>
+              <CardTitle>커뮤를 찾을 수 없습니다</CardTitle>
+              <CardDescription>
+                존재하지 않거나 삭제된 커뮤입니다
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="text-center space-y-2">
+              <Link to="/communities">
+                <Button className="w-full">커뮤 둘러보기</Button>
+              </Link>
+            </CardContent>
+          </Card>
+        </div>
+      );
+    }
+
+    // Show generic error page for other errors
     return (
       <div className="container mx-auto py-8 px-4 max-w-2xl">
         <Card className="w-full max-w-md mx-auto">
@@ -319,7 +348,7 @@ export default function CommunityApply({ params }: Route.ComponentProps) {
           </CardHeader>
           <CardContent className="text-center space-y-4">
             <Button onClick={() => refetch()}>다시 시도</Button>
-            <Link to="/communities/recruiting">
+            <Link to="/communities">
               <Button variant="outline" className="w-full">
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 다른 커뮤 찾아보기
@@ -594,7 +623,7 @@ export default function CommunityApply({ params }: Route.ComponentProps) {
         {/* Community Header */}
         <div className="text-center space-y-4">
           <div className="flex items-center justify-center gap-4 mb-6">
-            <Link to="/communities/recruiting">
+            <Link to="/communities">
               <Button variant="outline" size="sm">
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 뒤로

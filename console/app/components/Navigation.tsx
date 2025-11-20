@@ -116,9 +116,9 @@ export function Navigation() {
                 asChild
                 className="w-full md:w-auto"
               >
-                <Link to="/communities/recruiting">
+                <Link to="/communities">
                   <Search className="h-4 w-4" />
-                  모집 중인 커뮤
+                  커뮤 둘러보기
                 </Link>
               </Button>
               <Button
@@ -162,9 +162,9 @@ export function Navigation() {
                 asChild
                 className="w-full md:w-auto col-span-2"
               >
-                <Link to="/communities/recruiting">
+                <Link to="/communities">
                   <Search className="h-4 w-4" />
-                  모집 중인 커뮤
+                  커뮤 둘러보기
                 </Link>
               </Button>
               <Button

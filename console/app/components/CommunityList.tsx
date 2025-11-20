@@ -91,7 +91,7 @@ export function CommunityList({
             </EmptyMedia>
             <EmptyTitle>커뮤가 없습니다</EmptyTitle>
             <EmptyDescription>
-              새로운 커뮤를 만들거나 모집 중인 커뮤를 둘러보세요!
+              새로운 커뮤를 만들거나 커뮤를 둘러보세요!
             </EmptyDescription>
           </EmptyHeader>
           <div className="flex flex-col gap-2">
@@ -102,9 +102,9 @@ export function CommunityList({
               </Link>
             </Button>
             <Button variant="outline" asChild>
-              <Link to="/communities/recruiting">
+              <Link to="/communities">
                 <Search className="mr-2 h-4 w-4" />
-                모집 중인 커뮤 둘러보기
+                커뮤 둘러보기
               </Link>
             </Button>
           </div>

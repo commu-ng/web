@@ -140,7 +140,9 @@ async function fetchCommunity(slug: string): Promise<Community> {
     param: { id: slug },
   });
   if (!response.ok) {
-    throw new Error("커뮤 정보를 가져오는데 실패했습니다");
+    const error = new Error("커뮤 정보를 가져오는데 실패했습니다");
+    (error as { status?: number }).status = response.status;
+    throw error;
   }
   const result = await response.json();
   return result.data;
@@ -226,6 +228,9 @@ export default function CommunityDetails() {
 
   const isLoading = isCommunityLoading;
   const error = communityError ? (communityError as Error).message : "";
+  const errorStatus = communityError
+    ? (communityError as { status?: number }).status
+    : undefined;
 
   const leaveMutation = useMutation({
     mutationFn: async (communitySlug: string) => {
@@ -294,6 +299,38 @@ export default function CommunityDetails() {
   }
 
   if (error || !community) {
+    // Show 404 page for not found errors
+    if (errorStatus === 404) {
+      return (
+        <div className="bg-background min-h-screen p-6">
+          <div className="max-w-2xl mx-auto">
+            <Card className="w-full max-w-md mx-auto">
+              <CardHeader className="text-center">
+                <div className="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <FileText className="h-8 w-8 text-gray-400" />
+                </div>
+                <CardTitle>커뮤를 찾을 수 없습니다</CardTitle>
+                <CardDescription>
+                  존재하지 않거나 삭제된 커뮤입니다
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="text-center space-y-2">
+                <Link to="/communities">
+                  <Button className="w-full">커뮤 둘러보기</Button>
+                </Link>
+                <Link to="/communities/mine">
+                  <Button variant="outline" className="w-full">
+                    내 커뮤로 돌아가기
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      );
+    }
+
+    // Show generic error page for other errors
     return (
       <div className="bg-background min-h-screen p-6">
         <div className="max-w-2xl mx-auto">
