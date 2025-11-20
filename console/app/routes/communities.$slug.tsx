@@ -499,56 +499,57 @@ export default function CommunityDetails() {
         )}
 
         {/* Application Section for Signed Out Users */}
-        {!currentUser && !community.membership_status && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Users className="h-5 w-5" />
-                커뮤 가입 신청
-              </CardTitle>
-              <CardDescription>
-                {community.is_recruiting
-                  ? "이 커뮤는 현재 새로운 멤버를 모집하고 있습니다. 로그인 후 지원할 수 있습니다."
-                  : "로그인 후 커뮤 가입을 신청할 수 있습니다."}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Link to={`/login?next=/communities/${slug}`}>
-                <Button className="w-full">
-                  <Users className="h-4 w-4 mr-2" />
-                  로그인하고 지원하기
-                </Button>
-              </Link>
-            </CardContent>
-          </Card>
-        )}
+        {!currentUser &&
+          !community.membership_status &&
+          community.is_recruiting && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Users className="h-5 w-5" />
+                  커뮤 가입 신청
+                </CardTitle>
+                <CardDescription>
+                  이 커뮤는 현재 새로운 멤버를 모집하고 있습니다. 로그인 후
+                  지원할 수 있습니다.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Link to={`/login?next=/communities/${slug}`}>
+                  <Button className="w-full">
+                    <Users className="h-4 w-4 mr-2" />
+                    로그인하고 지원하기
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+          )}
 
         {/* Application Section for Non-Members */}
-        {currentUser && !community.membership_status && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Users className="h-5 w-5" />
-                커뮤 가입 신청
-              </CardTitle>
-              <CardDescription>
-                {community.is_recruiting
-                  ? "이 커뮤는 현재 새로운 멤버를 모집하고 있습니다"
-                  : "커뮤 가입을 신청할 수 있습니다"}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Link to={`/communities/${community.slug}/apply`}>
-                <Button className="w-full">
-                  <Users className="h-4 w-4 mr-2" />
-                  {community.application_status
-                    ? "지원 현황 보기"
-                    : "가입 신청하기"}
-                </Button>
-              </Link>
-            </CardContent>
-          </Card>
-        )}
+        {currentUser &&
+          !community.membership_status &&
+          community.is_recruiting && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Users className="h-5 w-5" />
+                  커뮤 가입 신청
+                </CardTitle>
+                <CardDescription>
+                  이 커뮤는 현재 새로운 멤버를 모집하고 있습니다
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Link to={`/communities/${community.slug}/apply`}>
+                  <Button className="w-full">
+                    <Users className="h-4 w-4 mr-2" />
+                    {community.application_status
+                      ? "지원 현황 보기"
+                      : "가입 신청하기"}
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+          )}
 
         {/* Applications Breakdown - Only for owners/moderators */}
         {(userRole === "owner" || userRole === "moderator") && stats && (
