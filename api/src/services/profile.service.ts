@@ -639,7 +639,7 @@ export async function getProfilePosts(
   username: string,
   communityId: string,
   limit: number,
-  offset: number,
+  cursor?: string,
 ) {
   // Find profile by username in the same community
   const profile = await db.query.profile.findFirst({
@@ -659,29 +659,44 @@ export async function getProfilePosts(
     );
   }
 
-  // Get posts by this profile
-  // Order by pinnedAt first (pinned posts at top), then by createdAt
-  const postTableList = await db.query.post.findMany({
-    where: and(eq(postTable.authorId, profile.id), isNull(postTable.deletedAt)),
-    orderBy: [
-      sql`${postTable.pinnedAt} DESC NULLS LAST`,
-      desc(postTable.createdAt),
-    ],
-    limit: limit,
-    offset: offset,
-    with: {
-      postImages: {
-        with: {
-          image: true,
+  // Build conditions
+  const baseConditions = [
+    eq(postTable.authorId, profile.id),
+    isNull(postTable.deletedAt),
+  ];
+  const queryConditions = [...baseConditions];
+  if (cursor) {
+    queryConditions.push(sql`${postTable.id} < ${cursor}`);
+  }
+
+  // Get posts by this profile and count in parallel
+  const [postTableList, totalCountResult] = await Promise.all([
+    db.query.post.findMany({
+      where: and(...queryConditions),
+      orderBy: [sql`${postTable.pinnedAt} DESC NULLS LAST`, desc(postTable.id)],
+      limit: limit + 1, // Fetch one extra to check for more
+      with: {
+        postImages: {
+          with: {
+            image: true,
+          },
+        },
+        postReactions: {
+          with: {
+            profile: true,
+          },
         },
       },
-      postReactions: {
-        with: {
-          profile: true,
-        },
-      },
-    },
-  });
+    }),
+    db
+      .select({ count: count() })
+      .from(postTable)
+      .where(and(...baseConditions)),
+  ]);
+
+  const totalCount = totalCountResult[0]?.count ?? 0;
+  const hasMore = postTableList.length > limit;
+  const postsToReturn = hasMore ? postTableList.slice(0, limit) : postTableList;
 
   // Get profile's profile picture once
   const profileProfilePicture = await db.query.profilePicture.findFirst({
@@ -697,7 +712,7 @@ export async function getProfilePosts(
     ? addImageUrl(profileProfilePicture.image).url
     : null;
 
-  const result = postTableList.map((post) => {
+  const result = postsToReturn.map((post) => {
     const postImageTableData = post.postImages.map((pi) => ({
       id: pi.image.id,
       url: addImageUrl(pi.image).url,
@@ -738,7 +753,19 @@ export async function getProfilePosts(
     };
   });
 
-  return result;
+  const nextCursor =
+    hasMore && postsToReturn.length > 0
+      ? postsToReturn[postsToReturn.length - 1]?.id || null
+      : null;
+
+  return {
+    data: result,
+    pagination: {
+      next_cursor: nextCursor,
+      has_more: hasMore,
+      total_count: totalCount,
+    },
+  };
 }
 
 /**

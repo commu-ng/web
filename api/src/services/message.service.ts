@@ -1,6 +1,7 @@
 import {
   and,
   asc,
+  count,
   desc,
   eq,
   inArray,
@@ -514,7 +515,7 @@ export async function getConversationThread(
   otherProfileId: string,
   communityId: string,
   limit: number,
-  offset: number,
+  cursor?: string,
 ) {
   // Get the profile with profile pictures
   const profile = await db.query.profile.findFirst({
@@ -564,40 +565,58 @@ export async function getConversationThread(
     );
   }
 
-  // Get conversation messages between these two profiles
-  const messages = await db.query.directMessage.findMany({
-    where: and(
-      or(
-        and(
-          eq(directMessageTable.senderId, profile.id),
-          eq(directMessageTable.receiverId, otherProfile.id),
-        ),
-        and(
-          eq(directMessageTable.senderId, otherProfile.id),
-          eq(directMessageTable.receiverId, profile.id),
-        ),
+  // Build base condition for the conversation
+  const baseConditions = [
+    or(
+      and(
+        eq(directMessageTable.senderId, profile.id),
+        eq(directMessageTable.receiverId, otherProfile.id),
       ),
-      eq(directMessageTable.communityId, communityId),
-      isNull(directMessageTable.deletedAt),
+      and(
+        eq(directMessageTable.senderId, otherProfile.id),
+        eq(directMessageTable.receiverId, profile.id),
+      ),
     ),
-    orderBy: [desc(directMessageTable.createdAt)],
-    limit,
-    offset,
-    with: {
-      directMessageReactions: {
-        with: {
-          profile: true,
-        },
-      },
-      directMessageImages: {
-        with: {
-          image: true,
-        },
-      },
-    },
-  });
+    eq(directMessageTable.communityId, communityId),
+    isNull(directMessageTable.deletedAt),
+  ];
 
-  const result = messages.map((message) => {
+  // Add cursor condition if provided
+  const queryConditions = [...baseConditions];
+  if (cursor) {
+    queryConditions.push(sql`${directMessageTable.id} < ${cursor}`);
+  }
+
+  // Get conversation messages and count in parallel
+  const [messages, totalCountResult] = await Promise.all([
+    db.query.directMessage.findMany({
+      where: and(...queryConditions),
+      orderBy: [desc(directMessageTable.id)],
+      limit: limit + 1, // Fetch one extra to check for more
+      with: {
+        directMessageReactions: {
+          with: {
+            profile: true,
+          },
+        },
+        directMessageImages: {
+          with: {
+            image: true,
+          },
+        },
+      },
+    }),
+    db
+      .select({ count: count() })
+      .from(directMessageTable)
+      .where(and(...baseConditions)),
+  ]);
+
+  const totalCount = totalCountResult[0]?.count ?? 0;
+  const hasMore = messages.length > limit;
+  const messagesToReturn = hasMore ? messages.slice(0, limit) : messages;
+
+  const result = messagesToReturn.map((message) => {
     const sender = message.senderId === profile.id ? profile : otherProfile;
     const receiver = message.receiverId === profile.id ? profile : otherProfile;
     const senderProfilePicture = sender?.profilePictures.find(
@@ -645,7 +664,19 @@ export async function getConversationThread(
     };
   });
 
-  return result.reverse(); // Reverse to get chronological order
+  const nextCursor =
+    hasMore && messagesToReturn.length > 0
+      ? messagesToReturn[messagesToReturn.length - 1]?.id || null
+      : null;
+
+  return {
+    messages: result.reverse(), // Reverse to get chronological order
+    pagination: {
+      next_cursor: nextCursor,
+      has_more: hasMore,
+      total_count: totalCount,
+    },
+  };
 }
 
 /**

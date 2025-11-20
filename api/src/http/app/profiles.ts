@@ -235,27 +235,16 @@ export const profilesRouter = new Hono<{ Variables: AuthVariables }>()
     async (c) => {
       const { username } = c.req.valid("param");
       const community = c.get("community");
-      const { limit = 20, cursor = "0" } = c.req.valid("query");
-      const offset = Number.parseInt(cursor, 10) || 0;
+      const { limit = 20, cursor } = c.req.valid("query");
 
       const result = await profileService.getProfilePosts(
         username,
         community.id,
-        limit + 1, // Fetch one extra to determine if there's more
-        offset,
+        limit,
+        cursor,
       );
 
-      const hasMore = result.length > limit;
-      const posts = hasMore ? result.slice(0, limit) : result;
-      const nextCursor = hasMore ? (offset + limit).toString() : null;
-
-      return c.json({
-        data: posts,
-        pagination: {
-          hasMore,
-          nextCursor,
-        },
-      });
+      return c.json(result);
     },
   )
   .post(

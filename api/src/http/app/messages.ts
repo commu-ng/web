@@ -161,7 +161,11 @@ export const messagesRouter = new Hono<{ Variables: AuthVariables }>()
       const user = c.get("user");
       const community = c.get("community");
       const { other_profile_id: otherProfileId } = c.req.valid("param");
-      const { profile_id: profileId, limit = 50 } = c.req.valid("query");
+      const {
+        profile_id: profileId,
+        limit = 50,
+        cursor,
+      } = c.req.valid("query");
 
       // Validate user has access to this profile
       const profile = await profileService.validateAndGetProfile(
@@ -188,9 +192,12 @@ export const messagesRouter = new Hono<{ Variables: AuthVariables }>()
         otherProfileId,
         community.id,
         limit,
-        0, // TODO: Implement cursor-based pagination
+        cursor,
       );
-      return c.json({ data: result });
+      return c.json({
+        data: result.messages,
+        pagination: result.pagination,
+      });
     },
   )
 
