@@ -565,7 +565,9 @@ export const profile = pgTable(
       foreignColumns: [table.id],
       name: "profile_muted_by_id_fkey",
     }),
-    unique("unique_username_community").on(table.username, table.communityId),
+    uniqueIndex("unique_username_community_active")
+      .on(table.username, table.communityId)
+      .where(sql`deleted_at IS NULL`),
     index("idx_profile_last_active_at").on(table.lastActiveAt),
     sql`CONSTRAINT valid_username CHECK (username ~ '^[a-zA-Z0-9_]+$' AND length(username) > 0 AND length(username) <= 50)`,
     sql`CONSTRAINT valid_name CHECK (length(name) > 0 AND length(name) <= 100)`,

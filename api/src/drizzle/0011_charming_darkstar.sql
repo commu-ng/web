@@ -1,0 +1,2 @@
+ALTER TABLE "profile" DROP CONSTRAINT "unique_username_community";--> statement-breakpoint
+CREATE UNIQUE INDEX "unique_username_community_active" ON "profile" USING btree ("username","community_id") WHERE deleted_at IS NULL;

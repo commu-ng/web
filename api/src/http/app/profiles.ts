@@ -130,17 +130,43 @@ export const profilesRouter = new Hono<{ Variables: AuthVariables }>()
       const { name, username, bio, is_primary, profile_picture_id } =
         c.req.valid("json");
 
-      const result = await profileService.createProfile(
-        user.id,
-        community.id,
-        name,
-        username,
-        bio,
-        is_primary,
-        profile_picture_id,
-      );
+      try {
+        const result = await profileService.createProfile(
+          user.id,
+          community.id,
+          name,
+          username,
+          bio,
+          is_primary,
+          profile_picture_id,
+        );
 
-      return c.json({ data: result }, 201);
+        return c.json({ data: result }, 201);
+      } catch (error: unknown) {
+        // Check for unique constraint violation on username
+        const causeMessage =
+          error instanceof Error && (error as Error & { cause?: Error }).cause
+            ? (error as Error & { cause: Error }).cause.message
+            : "";
+        if (
+          error instanceof Error &&
+          (error.message.includes("unique_username_community") ||
+            error.message.includes("duplicate key value") ||
+            causeMessage.includes("unique_username_community") ||
+            causeMessage.includes("duplicate key value"))
+        ) {
+          return c.json(
+            {
+              error: {
+                code: GeneralErrorCode.USERNAME_TAKEN,
+                message: "이 커뮤에서 이미 사용 중인 사용자명입니다",
+              },
+            },
+            409,
+          );
+        }
+        throw error;
+      }
     },
   )
   .get(
