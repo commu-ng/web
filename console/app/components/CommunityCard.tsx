@@ -182,7 +182,7 @@ export function CommunityCard({ community }: CommunityCardProps) {
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-3 pb-4">
+      <CardContent className="space-y-3">
         <div className="space-y-1">
           {/* Hashtags */}
           {community.hashtags && community.hashtags.length > 0 && (
