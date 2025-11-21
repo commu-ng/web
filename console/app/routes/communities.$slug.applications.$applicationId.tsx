@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
 import { ArrowLeft, CheckCircle, XCircle } from "lucide-react";
+import MarkdownIt from "markdown-it";
 import { useId, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { toast } from "sonner";
@@ -23,6 +24,8 @@ export function meta() {
     },
   ];
 }
+
+const md = new MarkdownIt({ linkify: true, breaks: true });
 
 interface Application {
   id: string;
@@ -338,8 +341,10 @@ export default function ApplicationView() {
                 <Label className="text-base font-semibold">신청 메시지</Label>
                 <div
                   className="prose prose-sm dark:prose-invert max-w-none border rounded-lg p-4 bg-muted/30 mt-2"
-                  // biome-ignore lint/security/noDangerouslySetInnerHtml: sanitized html
-                  dangerouslySetInnerHTML={{ __html: application.message }}
+                  // biome-ignore lint/security/noDangerouslySetInnerHtml: markdown is sanitized by markdown-it
+                  dangerouslySetInnerHTML={{
+                    __html: md.render(application.message),
+                  }}
                 />
               </div>
             )}

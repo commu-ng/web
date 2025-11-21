@@ -13,6 +13,7 @@ import {
   Users,
   XCircle,
 } from "lucide-react";
+import MarkdownIt from "markdown-it";
 import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { toast } from "sonner";
@@ -51,6 +52,8 @@ export function meta(_args: Route.MetaArgs) {
     },
   ];
 }
+
+const md = new MarkdownIt({ linkify: true, breaks: true });
 
 interface Community {
   id: string;
@@ -754,8 +757,10 @@ export default function CommunityDetails() {
             <CardContent>
               <div
                 className="prose prose-sm dark:prose-invert max-w-none"
-                // biome-ignore lint/security/noDangerouslySetInnerHtml: sanitized html
-                dangerouslySetInnerHTML={{ __html: community.description }}
+                // biome-ignore lint/security/noDangerouslySetInnerHtml: markdown is sanitized by markdown-it
+                dangerouslySetInnerHTML={{
+                  __html: md.render(community.description),
+                }}
               />
             </CardContent>
           </Card>
