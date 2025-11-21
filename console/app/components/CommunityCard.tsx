@@ -188,7 +188,7 @@ export function CommunityCard({ community }: CommunityCardProps) {
         community.role === "owner" ||
         community.role === "moderator" ||
         community.role === "member") && (
-        <CardContent className="space-y-3">
+        <CardContent className="space-y-3 pb-4">
           <div className="space-y-1">
             {/* Hashtags */}
             {community.hashtags && community.hashtags.length > 0 && (
