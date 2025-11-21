@@ -3,7 +3,6 @@ import { ko } from "date-fns/locale";
 import { CalendarIcon, Hash, UsersIcon } from "lucide-react";
 import { Link } from "react-router";
 import { Badge } from "~/components/ui/badge";
-import { Button } from "~/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { env } from "~/lib/env";
 
@@ -178,9 +177,9 @@ export function CommunityCard({ community }: CommunityCardProps) {
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-3 pb-4 pt-0">
-        {((community.hashtags && community.hashtags.length > 0) ||
-          community.minimum_birth_year) && (
+      {((community.hashtags && community.hashtags.length > 0) ||
+        community.minimum_birth_year) && (
+        <CardContent className="space-y-3 pb-4 pt-0">
           <div className="space-y-1">
             {/* Hashtags */}
             {community.hashtags && community.hashtags.length > 0 && (
@@ -205,31 +204,8 @@ export function CommunityCard({ community }: CommunityCardProps) {
               </div>
             )}
           </div>
-        )}
-
-        {/* Action buttons */}
-        {(isMember ||
-          community.role === "owner" ||
-          community.role === "moderator" ||
-          community.role === "member") && (
-          <div className="flex gap-1">
-            <Button
-              variant="outline"
-              size="sm"
-              className="flex-1 h-8 text-xs"
-              asChild
-            >
-              <a
-                href={`https://${communityUrl}`}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                입장
-              </a>
-            </Button>
-          </div>
-        )}
-      </CardContent>
+        </CardContent>
+      )}
     </Card>
   );
 }
