@@ -1,7 +1,7 @@
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
 import { CalendarIcon, Hash, UsersIcon } from "lucide-react";
-import { Link, useNavigate } from "react-router";
+import { Link } from "react-router";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
@@ -36,8 +36,6 @@ interface CommunityCardProps {
 }
 
 export function CommunityCard({ community }: CommunityCardProps) {
-  const navigate = useNavigate();
-
   // Use custom domain if verified, otherwise use subdomain
   const communityUrl =
     community.custom_domain && community.domain_verified
@@ -57,11 +55,7 @@ export function CommunityCard({ community }: CommunityCardProps) {
   const isUpcoming = isValidStartDate && now < startDate;
   const isEnded = isValidEndDate && now > endDate;
 
-  // Check if user is owner through their role in the community
-  const isOwner = community.role === "owner";
-  const hasApplied = community.has_applied;
   const isMember = community.is_member;
-  const isRejected = community.application_status === "rejected";
 
   let statusText = "";
   let statusColor = "";
@@ -99,7 +93,12 @@ export function CommunityCard({ community }: CommunityCardProps) {
       <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle className="text-lg flex flex-col gap-1">
-            {community.name}
+            <Link
+              to={`/communities/${community.slug}`}
+              className="hover:underline"
+            >
+              {community.name}
+            </Link>
             {isMember && (
               <div className="text-xs text-muted-foreground font-mono">
                 <Link
@@ -130,6 +129,20 @@ export function CommunityCard({ community }: CommunityCardProps) {
               </span>
             )}
 
+            {/* Application Status Badge - for non-members who have applied */}
+            {!community.role && community.has_applied && (
+              <Badge
+                className={`rounded-full ${
+                  community.application_status === "rejected"
+                    ? "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
+                    : "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200"
+                }`}
+              >
+                {community.application_status === "rejected"
+                  ? "지원 거부됨"
+                  : "신청 완료"}
+              </Badge>
+            )}
             {community.is_recruiting && (
               <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 rounded-full">
                 <UsersIcon className="h-3 w-3" />
@@ -193,50 +206,10 @@ export function CommunityCard({ community }: CommunityCardProps) {
               {community.minimum_birth_year}년생 이상 가입 가능
             </div>
           )}
-
-          {/* Application content */}
-          {/* Show apply button for non-owners who haven't joined */}
-          {!isOwner && !isMember && !community.role && (
-            <div className="pt-1">
-              <Button
-                variant={hasApplied ? "secondary" : "default"}
-                size="sm"
-                className={`w-full h-8 text-sm ${
-                  hasApplied
-                    ? isRejected
-                      ? "bg-red-100 text-red-600 hover:bg-red-200 border-red-200 dark:bg-red-950 dark:text-red-300 dark:hover:bg-red-900 dark:border-red-800"
-                      : "bg-gray-200 text-gray-600 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
-                    : ""
-                }`}
-                onClick={() => {
-                  // Navigate to the apply page or community detail for rejected
-                  navigate(`/communities/${community.slug}`);
-                }}
-              >
-                {isRejected
-                  ? "지원 거부됨"
-                  : hasApplied
-                    ? "신청 완료"
-                    : "커뮤 상세"}
-              </Button>
-            </div>
-          )}
         </div>
 
         {/* Action buttons */}
         <div className="flex gap-1">
-          {(community.role === "owner" ||
-            community.role === "moderator" ||
-            community.role === "member") && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="flex-1 h-8 text-xs"
-              asChild
-            >
-              <Link to={`/communities/${community.slug}`}>상세</Link>
-            </Button>
-          )}
           {(isMember ||
             community.role === "owner" ||
             community.role === "moderator" ||
