@@ -92,7 +92,7 @@ export function CommunityCard({ community }: CommunityCardProps) {
           <CardTitle className="text-lg flex flex-col gap-1">
             <Link
               to={`/communities/${community.slug}`}
-              className="hover:underline"
+              className="hover:underline break-keep"
             >
               {community.name}
             </Link>
