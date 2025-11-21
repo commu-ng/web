@@ -45,9 +45,6 @@ importers:
       '@sentry/node':
         specifier: ^10.15.0
         version: 10.15.0
-      '@types/turndown':
-        specifier: ^5.0.6
-        version: 5.0.6
       '@upyo/core':
         specifier: ^0.3.0
         version: 0.3.0
@@ -81,9 +78,6 @@ importers:
       sharp:
         specifier: ^0.34.4
         version: 0.34.4
-      turndown:
-        specifier: ^7.2.2
-        version: 7.2.2
       zod:
         specifier: ^4.1.11
         version: 4.1.11
@@ -1298,9 +1292,6 @@ packages:
     resolution: {integrity: sha512-tAKUC9DSJ4HDDD95ZOvnpLVoMFlwBW2spw6bC6+M3bJOqBL6krk5fI5X/4jeZDXUEEZQEERBxl/fUriLOu8AYw==}
     peerDependencies:
       '@logtape/logtape': ^1.1.1
-
-  '@mixmark-io/domino@2.2.0':
-    resolution: {integrity: sha512-Y28PR25bHXUg88kCV7nivXrP2Nj2RueZ3/l/jdx6J9f8J4nsEGcgX0Qe6lt7Pa+J79+kPiJU3LguR6O/6zrLOw==}
 
   '@mjackson/node-fetch-server@0.2.0':
     resolution: {integrity: sha512-EMlH1e30yzmTpGLQjlFmaDAjyOeZhng1/XCd7DExR8PNAnG/G1tyruZxEoUe11ClnwGhGrtsdnyyUx1frSzjng==}
@@ -2744,9 +2735,6 @@ packages:
 
   '@types/tough-cookie@4.0.5':
     resolution: {integrity: sha512-/Ad8+nIOV7Rl++6f1BdKxFSMgmoqEoYbHRpPcx3JEfv8VRsQe9Z4mCXeJBzxs7mbHY/XOZZuXlRNfhpVPbs6ZA==}
-
-  '@types/turndown@5.0.6':
-    resolution: {integrity: sha512-ru00MoyeeouE5BX4gRL+6m/BsDfbRayOskWqUvh7CLGW+UXxHQItqALa38kKnOiZPqJrtzJUgAC2+F0rL1S4Pg==}
 
   '@upyo/core@0.3.0':
     resolution: {integrity: sha512-S6M+5Ptp+t8ZA9MxgEcLA5qOidrOcYEwD8/W5pFovAUT0fEItiNnux8xIc0V3KXfVHRRjiyO+rEz+GXo3fEzoA==}
@@ -4573,9 +4561,6 @@ packages:
     engines: {node: '>=18.0.0'}
     hasBin: true
 
-  turndown@7.2.2:
-    resolution: {integrity: sha512-1F7db8BiExOKxjSMU2b7if62D/XOyQyZbPKq/nUwopfgnHlqXHqQ0lvfUTeUIr1lZJzOPFn43dODyMSIfvWRKQ==}
-
   tw-animate-css@1.4.0:
     resolution: {integrity: sha512-7bziOlRqH0hJx80h/3mbicLW7o8qLsH5+RaLR2t+OHM3D0JlWGODQKQ4cxbK7WlvmUxpcj6Kgu6EKqjrGFe3QQ==}
 
@@ -5974,8 +5959,6 @@ snapshots:
     dependencies:
       '@logtape/logtape': 1.1.1
       '@sentry/core': 9.46.0
-
-  '@mixmark-io/domino@2.2.0': {}
 
   '@mjackson/node-fetch-server@0.2.0': {}
 
@@ -7705,8 +7688,6 @@ snapshots:
 
   '@types/tough-cookie@4.0.5':
     optional: true
-
-  '@types/turndown@5.0.6': {}
 
   '@upyo/core@0.3.0': {}
 
@@ -9586,10 +9567,6 @@ snapshots:
       get-tsconfig: 4.10.1
     optionalDependencies:
       fsevents: 2.3.3
-
-  turndown@7.2.2:
-    dependencies:
-      '@mixmark-io/domino': 2.2.0
 
   tw-animate-css@1.4.0: {}
 
