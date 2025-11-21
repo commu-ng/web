@@ -182,55 +182,62 @@ export function CommunityCard({ community }: CommunityCardProps) {
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-3">
-        <div className="space-y-1">
-          {/* Hashtags */}
-          {community.hashtags && community.hashtags.length > 0 && (
-            <div className="flex flex-wrap gap-1 mb-2">
-              {community.hashtags.map((hashtag) => (
-                <Badge
-                  key={hashtag.id}
-                  variant="outline"
-                  className="text-xs px-2 py-0.5 bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-800"
-                >
-                  <Hash className="h-2.5 w-2.5 mr-1" />
-                  {hashtag.tag}
-                </Badge>
-              ))}
-            </div>
-          )}
+      {((community.hashtags && community.hashtags.length > 0) ||
+        community.minimum_birth_year ||
+        isMember ||
+        community.role === "owner" ||
+        community.role === "moderator" ||
+        community.role === "member") && (
+        <CardContent className="space-y-3">
+          <div className="space-y-1">
+            {/* Hashtags */}
+            {community.hashtags && community.hashtags.length > 0 && (
+              <div className="flex flex-wrap gap-1 mb-2">
+                {community.hashtags.map((hashtag) => (
+                  <Badge
+                    key={hashtag.id}
+                    variant="outline"
+                    className="text-xs px-2 py-0.5 bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-800"
+                  >
+                    <Hash className="h-2.5 w-2.5 mr-1" />
+                    {hashtag.tag}
+                  </Badge>
+                ))}
+              </div>
+            )}
 
-          {/* Birth year requirement */}
-          {community.minimum_birth_year && (
-            <div className="text-xs text-muted-foreground bg-gray-50 dark:bg-gray-800 px-2 py-1 rounded">
-              {community.minimum_birth_year}년생 이상 가입 가능
-            </div>
-          )}
-        </div>
+            {/* Birth year requirement */}
+            {community.minimum_birth_year && (
+              <div className="text-xs text-muted-foreground bg-gray-50 dark:bg-gray-800 px-2 py-1 rounded">
+                {community.minimum_birth_year}년생 이상 가입 가능
+              </div>
+            )}
+          </div>
 
-        {/* Action buttons */}
-        <div className="flex gap-1">
-          {(isMember ||
-            community.role === "owner" ||
-            community.role === "moderator" ||
-            community.role === "member") && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="flex-1 h-8 text-xs"
-              asChild
-            >
-              <a
-                href={`https://${communityUrl}`}
-                target="_blank"
-                rel="noopener noreferrer"
+          {/* Action buttons */}
+          <div className="flex gap-1">
+            {(isMember ||
+              community.role === "owner" ||
+              community.role === "moderator" ||
+              community.role === "member") && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-1 h-8 text-xs"
+                asChild
               >
-                입장
-              </a>
-            </Button>
-          )}
-        </div>
-      </CardContent>
+                <a
+                  href={`https://${communityUrl}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  입장
+                </a>
+              </Button>
+            )}
+          </div>
+        </CardContent>
+      )}
     </Card>
   );
 }
