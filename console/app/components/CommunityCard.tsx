@@ -85,7 +85,7 @@ export function CommunityCard({ community }: CommunityCardProps) {
         </div>
       )}
 
-      <CardHeader>
+      <CardHeader className="p-6">
         <div className="flex items-center justify-between">
           <CardTitle className="text-lg flex flex-col gap-1">
             <Link
@@ -177,7 +177,7 @@ export function CommunityCard({ community }: CommunityCardProps) {
         </div>
       </CardHeader>
 
-      <CardContent className="pb-6 pt-0">
+      <CardContent className="px-6 pb-4 pt-0">
         {((community.hashtags && community.hashtags.length > 0) ||
           community.minimum_birth_year) && (
           <div className="space-y-1">
