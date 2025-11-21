@@ -1,6 +1,13 @@
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
-import { CalendarIcon, Hash, UsersIcon } from "lucide-react";
+import {
+  Activity,
+  CalendarIcon,
+  CheckCircle,
+  Clock,
+  Hash,
+  UsersIcon,
+} from "lucide-react";
 import { Link } from "react-router";
 import { Badge } from "~/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
@@ -56,20 +63,6 @@ export function CommunityCard({ community }: CommunityCardProps) {
 
   const isMember = community.is_member;
 
-  let statusText = "";
-  let statusColor = "";
-
-  if (isUpcoming) {
-    statusText = "시작 예정";
-    statusColor = "text-blue-600";
-  } else if (isActive) {
-    statusText = "진행 중";
-    statusColor = "text-green-600";
-  } else if (isEnded) {
-    statusText = "종료됨";
-    statusColor = "text-gray-600";
-  }
-
   return (
     <Card
       className={`hover:shadow-md transition-shadow overflow-hidden pb-4 ${community.banner_image_url ? "pt-0" : ""}`}
@@ -120,16 +113,30 @@ export function CommunityCard({ community }: CommunityCardProps) {
           </CardTitle>
 
           <div className="flex flex-col items-end gap-1">
-            {statusText && (
-              <span className={`text-sm font-medium ${statusColor}`}>
-                {statusText}
-              </span>
+            {/* Status Badge */}
+            {isUpcoming && (
+              <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 rounded-full break-keep">
+                <Clock className="h-3 w-3" />
+                시작 예정
+              </Badge>
+            )}
+            {isActive && (
+              <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 rounded-full break-keep">
+                <Activity className="h-3 w-3" />
+                진행 중
+              </Badge>
+            )}
+            {isEnded && (
+              <Badge className="bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200 rounded-full break-keep">
+                <CheckCircle className="h-3 w-3" />
+                종료됨
+              </Badge>
             )}
 
             {/* Application Status Badge - for non-members who have applied */}
             {!community.role && community.has_applied && (
               <Badge
-                className={`rounded-full ${
+                className={`rounded-full break-keep ${
                   community.application_status === "rejected"
                     ? "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
                     : "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200"
@@ -141,14 +148,14 @@ export function CommunityCard({ community }: CommunityCardProps) {
               </Badge>
             )}
             {community.is_recruiting && (
-              <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 rounded-full">
+              <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 rounded-full break-keep">
                 <UsersIcon className="h-3 w-3" />
                 모집 중
               </Badge>
             )}
             {community.role && (
               <Badge
-                className={`rounded-full ${
+                className={`rounded-full break-keep ${
                   community.role === "owner"
                     ? "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200"
                     : community.role === "moderator"
