@@ -178,13 +178,9 @@ export function CommunityCard({ community }: CommunityCardProps) {
         </div>
       </CardHeader>
 
-      {((community.hashtags && community.hashtags.length > 0) ||
-        community.minimum_birth_year ||
-        isMember ||
-        community.role === "owner" ||
-        community.role === "moderator" ||
-        community.role === "member") && (
-        <CardContent className="space-y-3 pb-4">
+      <CardContent className="space-y-3 pb-4 pt-0">
+        {((community.hashtags && community.hashtags.length > 0) ||
+          community.minimum_birth_year) && (
           <div className="space-y-1">
             {/* Hashtags */}
             {community.hashtags && community.hashtags.length > 0 && (
@@ -209,31 +205,31 @@ export function CommunityCard({ community }: CommunityCardProps) {
               </div>
             )}
           </div>
+        )}
 
-          {/* Action buttons */}
+        {/* Action buttons */}
+        {(isMember ||
+          community.role === "owner" ||
+          community.role === "moderator" ||
+          community.role === "member") && (
           <div className="flex gap-1">
-            {(isMember ||
-              community.role === "owner" ||
-              community.role === "moderator" ||
-              community.role === "member") && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="flex-1 h-8 text-xs"
-                asChild
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex-1 h-8 text-xs"
+              asChild
+            >
+              <a
+                href={`https://${communityUrl}`}
+                target="_blank"
+                rel="noopener noreferrer"
               >
-                <a
-                  href={`https://${communityUrl}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  입장
-                </a>
-              </Button>
-            )}
+                입장
+              </a>
+            </Button>
           </div>
-        </CardContent>
-      )}
+        )}
+      </CardContent>
     </Card>
   );
 }
