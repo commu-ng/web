@@ -72,11 +72,7 @@ export function CommunityCard({ community }: CommunityCardProps) {
   }
 
   return (
-    <Card
-      className={`hover:shadow-md transition-shadow ${
-        community.banner_image_url ? "p-0 overflow-hidden" : ""
-      }`}
-    >
+    <Card className="hover:shadow-md transition-shadow p-0 overflow-hidden">
       {/* Banner Image */}
       {community.banner_image_url && (
         <div className="relative w-full overflow-hidden">
