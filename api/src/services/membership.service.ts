@@ -10,7 +10,6 @@ import {
   or,
   sql,
 } from "drizzle-orm";
-import sanitizeHtml from "sanitize-html";
 import { logger } from "../config/logger";
 import { db } from "../db";
 import {
@@ -1155,13 +1154,6 @@ export async function createApplication(
   }
 
   try {
-    // Sanitize HTML content in message to prevent XSS attacks
-    const sanitizedMessage = data.message
-      ? sanitizeHtml(data.message, {
-          allowedTags: sanitizeHtml.defaults.allowedTags.concat(["img"]),
-        })
-      : null;
-
     // Create application in a transaction
     const newApplication = await db.transaction(async (tx) => {
       const newApplicationResult = await tx
@@ -1169,7 +1161,7 @@ export async function createApplication(
         .values({
           userId: userId,
           communityId: communityId,
-          message: sanitizedMessage,
+          message: data.message || null,
           profileName: data.profileName,
           profileUsername: data.profileUsername,
           status: "pending",

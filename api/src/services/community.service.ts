@@ -32,7 +32,6 @@ import {
   createCommunityHashtags,
   replaceCommunityHashtags,
 } from "../utils/hashtag-helper";
-import { sanitizeCommunityDescription } from "../utils/html-sanitizer";
 import { getPrimaryProfileIdForUserInCommunity } from "../utils/profile-ownership";
 import { batchLoadProfilePictures } from "../utils/profile-picture-helper";
 import { addImageUrl } from "../utils/r2";
@@ -112,10 +111,6 @@ export async function createCommunity(
   try {
     // Create community in a transaction
     const result = await db.transaction(async (tx) => {
-      const sanitizedDescription = data.description
-        ? sanitizeCommunityDescription(data.description)
-        : null;
-
       // Create community
       const newCommunityResult = await tx
         .insert(communityTable)
@@ -128,7 +123,7 @@ export async function createCommunity(
           recruitingStartsAt: data.recruitingStartsAt,
           recruitingEndsAt: data.recruitingEndsAt,
           minimumBirthYear: data.minimumBirthYear,
-          description: sanitizedDescription,
+          description: data.description || null,
           muteNewMembers: data.muteNewMembers ?? false,
         })
         .returning();
@@ -240,10 +235,6 @@ export async function updateCommunity(
   // Update community in a transaction
   const updatedCommunity = await db.transaction(async (tx) => {
     // Update community fields
-    const sanitizedDescription = data.description
-      ? sanitizeCommunityDescription(data.description)
-      : null;
-
     const updatedCommunityResult = await tx
       .update(communityTable)
       .set({
@@ -255,7 +246,7 @@ export async function updateCommunity(
         recruitingStartsAt: data.recruitingStartsAt,
         recruitingEndsAt: data.recruitingEndsAt,
         minimumBirthYear: data.minimumBirthYear,
-        description: sanitizedDescription,
+        description: data.description || null,
         muteNewMembers: data.muteNewMembers,
       })
       .where(eq(communityTable.id, communityId))

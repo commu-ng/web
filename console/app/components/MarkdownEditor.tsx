@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import MarkdownIt from "markdown-it";
 import { Button } from "~/components/ui/button";
 import { Textarea } from "~/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
-import { HelpCircle } from "lucide-react";
+import { ImageIcon } from "lucide-react";
 import { MarkdownHelpModal } from "~/components/MarkdownHelpModal";
 
 const md = new MarkdownIt({ linkify: true, breaks: true });
@@ -13,15 +13,63 @@ interface MarkdownEditorProps {
   onChange: (value: string) => void;
   placeholder?: string;
   disabled?: boolean;
+  onImageUpload?: (file: File) => Promise<{ url: string; id: string }>;
 }
 
 export function MarkdownEditor({
   value,
   onChange,
-  placeholder = "마크다운으로 게시물 내용을 작성하세요...",
+  placeholder = "마크다운으로 내용을 작성하세요...",
   disabled = false,
+  onImageUpload,
 }: MarkdownEditorProps) {
   const [showHelp, setShowHelp] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const handleImageButtonClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleImageUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = event.target.files?.[0];
+    if (!file || !onImageUpload) return;
+
+    try {
+      setIsUploading(true);
+      const { url } = await onImageUpload(file);
+
+      // Insert markdown image syntax at cursor position
+      const textarea = textareaRef.current;
+      if (textarea) {
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        const beforeCursor = value.substring(0, start);
+        const afterCursor = value.substring(end);
+        const imageMarkdown = `![](${url})`;
+        const newContent = beforeCursor + imageMarkdown + afterCursor;
+        onChange(newContent);
+
+        // Set cursor position after inserted image
+        setTimeout(() => {
+          const newPosition = start + imageMarkdown.length;
+          textarea.setSelectionRange(newPosition, newPosition);
+          textarea.focus();
+        }, 0);
+      }
+    } catch (error) {
+      console.error("Image upload failed:", error);
+    } finally {
+      setIsUploading(false);
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  };
 
   const renderMarkdown = () => {
     try {
@@ -35,16 +83,29 @@ export function MarkdownEditor({
     <div className="space-y-2">
       <div className="flex items-center justify-between">
         <div className="text-sm font-medium">내용</div>
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          onClick={() => setShowHelp(true)}
-          className="h-8"
-        >
-          <HelpCircle className="h-4 w-4 mr-1" />
-          마크다운 도움말
-        </Button>
+        {onImageUpload && (
+          <>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={handleImageButtonClick}
+              disabled={disabled || isUploading}
+              className="h-8"
+            >
+              <ImageIcon className="h-4 w-4 mr-1" />
+              {isUploading ? "업로드 중..." : "이미지 삽입"}
+            </Button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleImageUpload}
+              disabled={disabled}
+            />
+          </>
+        )}
       </div>
 
       <Tabs defaultValue="edit" className="w-full">
@@ -55,6 +116,7 @@ export function MarkdownEditor({
 
         <TabsContent value="edit" className="space-y-2">
           <Textarea
+            ref={textareaRef}
             value={value}
             onChange={(e) => onChange(e.target.value)}
             placeholder={placeholder}
@@ -63,7 +125,15 @@ export function MarkdownEditor({
           />
 
           <p className="text-xs text-muted-foreground">
-            팁: 마크다운 문법을 사용하여 내용을 작성할 수 있습니다
+            팁:{" "}
+            <button
+              type="button"
+              onClick={() => setShowHelp(true)}
+              className="text-primary hover:text-primary/90 underline"
+            >
+              마크다운
+            </button>{" "}
+            문법을 사용하여 내용을 작성할 수 있습니다
           </p>
         </TabsContent>
 

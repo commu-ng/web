@@ -3,7 +3,7 @@ import { ArrowLeft, CheckCircle, FileText, Hash, LogIn } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { toast } from "sonner";
-import { TiptapEditor } from "~/components/TiptapEditor";
+import { MarkdownEditor } from "~/components/MarkdownEditor";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import {
@@ -411,8 +411,8 @@ export default function CommunityApply({ params }: Route.ComponentProps) {
 
             <div className="space-y-2">
               <Label>신청 메시지 (선택사항)</Label>
-              <TiptapEditor
-                content={message}
+              <MarkdownEditor
+                value={message}
                 onChange={setMessage}
                 placeholder="가입하고 싶은 이유나 자기소개를 작성해주세요..."
                 disabled={applyMutation.isPending}

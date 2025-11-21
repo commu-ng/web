@@ -2,7 +2,7 @@ import {
   type CommunityFormData,
   CommunityFormFields,
 } from "~/components/CommunityFormFields";
-import { TiptapEditor } from "~/components/TiptapEditor";
+import { MarkdownEditor } from "~/components/MarkdownEditor";
 import { Button } from "~/components/ui/button";
 import {
   Card,
@@ -516,8 +516,8 @@ export default function CommunityManagement() {
 
               <div className="space-y-2">
                 <Label>커뮤 소개</Label>
-                <TiptapEditor
-                  content={description}
+                <MarkdownEditor
+                  value={description}
                   onChange={setDescription}
                   placeholder="커뮤에 대한 소개를 작성해주세요..."
                   disabled={isLoading}
