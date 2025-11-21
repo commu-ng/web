@@ -81,7 +81,7 @@ export function CommunityCard({ community }: CommunityCardProps) {
       )}
 
       <CardHeader>
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-4">
           <CardTitle className="text-lg flex flex-col gap-1">
             <Link
               to={`/communities/${community.slug}`}
