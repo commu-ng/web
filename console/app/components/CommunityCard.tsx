@@ -179,9 +179,9 @@ export function CommunityCard({ community }: CommunityCardProps) {
         </div>
       </CardHeader>
 
-      <CardContent className="pt-0">
-        {((community.hashtags && community.hashtags.length > 0) ||
-          community.minimum_birth_year) && (
+      {((community.hashtags && community.hashtags.length > 0) ||
+        community.minimum_birth_year) && (
+        <CardContent className="pt-0">
           <div className="space-y-1">
             {/* Hashtags */}
             {community.hashtags && community.hashtags.length > 0 && (
@@ -206,8 +206,8 @@ export function CommunityCard({ community }: CommunityCardProps) {
               </div>
             )}
           </div>
-        )}
-      </CardContent>
+        </CardContent>
+      )}
     </Card>
   );
 }
