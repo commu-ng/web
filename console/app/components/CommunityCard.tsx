@@ -71,7 +71,7 @@ export function CommunityCard({ community }: CommunityCardProps) {
   }
 
   return (
-    <Card className="hover:shadow-md transition-shadow p-0 overflow-hidden">
+    <Card className="hover:shadow-md transition-shadow overflow-hidden pt-0 pb-4">
       {/* Banner Image */}
       {community.banner_image_url && (
         <div className="relative w-full overflow-hidden">
@@ -85,7 +85,7 @@ export function CommunityCard({ community }: CommunityCardProps) {
         </div>
       )}
 
-      <CardHeader className="p-6">
+      <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle className="text-lg flex flex-col gap-1">
             <Link
@@ -177,7 +177,7 @@ export function CommunityCard({ community }: CommunityCardProps) {
         </div>
       </CardHeader>
 
-      <CardContent className="px-6 pb-4 pt-0">
+      <CardContent className="pt-0">
         {((community.hashtags && community.hashtags.length > 0) ||
           community.minimum_birth_year) && (
           <div className="space-y-1">
