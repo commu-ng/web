@@ -6,6 +6,8 @@ services:
     ports:
       - "13000:3000"
     env_file: ".env"
+    volumes:
+      - ./config:/app/config:ro
     networks:
       - commu-ng-network
 
