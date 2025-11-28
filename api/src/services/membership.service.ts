@@ -30,6 +30,7 @@ import {
   revokeSharedProfileAccess,
 } from "../utils/profile-ownership";
 import * as emailService from "./email.service";
+import { pushNotificationService } from "./push-notification.service";
 
 /**
  * Query Functions
@@ -853,6 +854,26 @@ export async function approveMembershipApplication(
         community.name,
       );
     }
+
+    // Send push notification to applicant
+    if (applicantUser) {
+      // Build community URL
+      const baseDomain = process.env.BASE_DOMAIN || "commu.ng";
+      const communityUrl =
+        community.customDomain && community.domainVerified
+          ? `https://${community.customDomain}`
+          : `https://${community.slug}.${baseDomain}`;
+
+      await pushNotificationService.sendPushNotification(applicantUser.id, {
+        title: "가입 신청 승인",
+        body: `${community.name} 가입이 승인되었습니다`,
+        data: {
+          type: "application_approved",
+          community_slug: community.slug,
+          community_url: communityUrl,
+        },
+      });
+    }
   } catch (emailError: unknown) {
     // Log email error but don't fail the application approval
     logger.service.error("Failed to send application approved email", {
@@ -1225,6 +1246,18 @@ export async function createApplication(
               community.slug,
               data.profileUsername,
             );
+          }
+
+          // Send push notification to community owner
+          if (ownerUser) {
+            await pushNotificationService.sendPushNotification(ownerUser.id, {
+              title: "새로운 가입 신청",
+              body: `${data.profileName}님이 ${community.name}에 가입 신청했습니다`,
+              data: {
+                type: "application",
+                community_slug: community.slug,
+              },
+            });
           }
         }
       }
