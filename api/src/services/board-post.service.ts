@@ -4,9 +4,9 @@ import {
   count,
   desc,
   eq,
+  gt,
   inArray,
   isNull,
-  lt,
   sql,
 } from "drizzle-orm";
 import { db } from "../db";
@@ -872,7 +872,7 @@ export async function getBoardPostReplies(
   // Build query conditions (with cursor)
   const queryConditions = [...baseConditions];
   if (cursor) {
-    queryConditions.push(lt(boardPostReplyTable.id, cursor));
+    queryConditions.push(gt(boardPostReplyTable.id, cursor));
   }
 
   // Run count and data queries in parallel
@@ -882,7 +882,7 @@ export async function getBoardPostReplies(
       .from(boardPostReplyTable)
       .leftJoin(userTable, eq(boardPostReplyTable.authorId, userTable.id))
       .where(and(...queryConditions))
-      .orderBy(desc(boardPostReplyTable.id))
+      .orderBy(asc(boardPostReplyTable.id))
       .limit(limit + 1),
     db
       .select({ count: count() })
