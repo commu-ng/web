@@ -500,3 +500,73 @@ export async function sendApplicationRejectedEmail(
     throw new Error(`이메일 전송 실패: ${receipt.errorMessages.join(", ")}`);
   }
 }
+
+/**
+ * Send abuse report email to abuse@commu.ng
+ */
+export async function sendAbuseReportEmail(params: {
+  reporterUserId: string;
+  reporterEmail?: string;
+  reporterProfileId?: string;
+  reporterProfileUsername?: string;
+  postId: string;
+  postContent: string;
+  postAuthorId?: string;
+  postAuthorUsername?: string;
+  communityId?: string;
+  communityName?: string;
+  communitySlug?: string;
+  reason: string;
+  reportType: "app_post" | "board_post";
+  boardSlug?: string;
+}) {
+  const timestamp = new Date().toISOString();
+
+  const message = createMessage({
+    from: `커뮹! <noreply@${env.mailgun.domain}>`,
+    to: "abuse@commu.ng",
+    subject: `[Abuse Report] ${params.reportType === "app_post" ? "App Post" : "Board Post"} Report`,
+    content: {
+      text: `
+Abuse Report
+============
+
+Type: ${params.reportType === "app_post" ? "App Post" : "Board Post"}
+Timestamp: ${timestamp}
+
+Reporter Information
+--------------------
+User ID: ${params.reporterUserId}
+Email: ${params.reporterEmail || "N/A"}
+Profile ID: ${params.reporterProfileId || "N/A"}
+Profile Username: ${params.reporterProfileUsername || "N/A"}
+
+Reported Post
+-------------
+Post ID: ${params.postId}
+Author ID: ${params.postAuthorId || "N/A"}
+Author Username: ${params.postAuthorUsername || "N/A"}
+${params.boardSlug ? `Board: ${params.boardSlug}` : ""}
+
+Content Preview:
+${params.postContent.substring(0, 500)}${params.postContent.length > 500 ? "..." : ""}
+
+Community Information
+---------------------
+Community ID: ${params.communityId || "N/A"}
+Community Name: ${params.communityName || "N/A"}
+Community Slug: ${params.communitySlug || "N/A"}
+
+Report Reason
+-------------
+${params.reason}
+      `.trim(),
+    },
+  });
+
+  const receipt = await transport.send(message);
+
+  if (!receipt.successful) {
+    throw new Error(`이메일 전송 실패: ${receipt.errorMessages.join(", ")}`);
+  }
+}

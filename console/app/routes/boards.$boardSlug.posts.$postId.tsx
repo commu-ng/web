@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   AlertCircle,
   ArrowLeft,
+  Flag,
   MessageSquare,
   Pencil,
   Reply,
@@ -11,6 +12,7 @@ import MarkdownIt from "markdown-it";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { toast } from "sonner";
+import { ReportDialog } from "~/components/ReportDialog";
 import { LoadingState } from "~/components/shared/LoadingState";
 import {
   AlertDialog,
@@ -314,6 +316,7 @@ export default function BoardPostDetail({ params }: Route.ComponentProps) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
   const [replyContent, setReplyContent] = useState("");
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [editingReplyId, setEditingReplyId] = useState<string | null>(null);
@@ -606,28 +609,43 @@ export default function BoardPostDetail({ params }: Route.ComponentProps) {
                 </div>
               )}
             </div>
-            {isAuthenticated && user?.id === post.author.id && (
+            {isAuthenticated && (
               <div className="flex gap-2 pt-2 border-t sm:border-t-0 sm:pt-0">
-                <Button
-                  variant="outline"
-                  asChild
-                  size="sm"
-                  className="flex-1 sm:flex-none"
-                >
-                  <Link to={`/boards/${boardSlug}/posts/${post.id}/edit`}>
-                    <Pencil className="h-4 w-4 mr-2" />
-                    수정
-                  </Link>
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={handleDeleteClick}
-                  size="sm"
-                  className="flex-1 sm:flex-none"
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  삭제
-                </Button>
+                {user?.id !== post.author.id && (
+                  <Button
+                    variant="outline"
+                    onClick={() => setIsReportDialogOpen(true)}
+                    size="sm"
+                    className="flex-1 sm:flex-none"
+                  >
+                    <Flag className="h-4 w-4 mr-2" />
+                    신고
+                  </Button>
+                )}
+                {user?.id === post.author.id && (
+                  <>
+                    <Button
+                      variant="outline"
+                      asChild
+                      size="sm"
+                      className="flex-1 sm:flex-none"
+                    >
+                      <Link to={`/boards/${boardSlug}/posts/${post.id}/edit`}>
+                        <Pencil className="h-4 w-4 mr-2" />
+                        수정
+                      </Link>
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={handleDeleteClick}
+                      size="sm"
+                      className="flex-1 sm:flex-none"
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      삭제
+                    </Button>
+                  </>
+                )}
               </div>
             )}
           </div>
@@ -764,6 +782,14 @@ export default function BoardPostDetail({ params }: Route.ComponentProps) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Report Dialog */}
+      <ReportDialog
+        open={isReportDialogOpen}
+        onOpenChange={setIsReportDialogOpen}
+        boardSlug={boardSlug}
+        postId={postId}
+      />
     </div>
   );
 }

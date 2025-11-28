@@ -1,4 +1,4 @@
-import { Edit, Megaphone, Pin, Shield, Trash2 } from "lucide-react";
+import { Edit, Flag, Megaphone, Pin, Shield, Trash2 } from "lucide-react";
 import { Link } from "react-router";
 import { ProfileAvatar } from "~/components/profile-avatar";
 import {
@@ -33,6 +33,7 @@ interface PostCardHeaderProps {
   isModerator?: boolean;
   onDelete: () => void;
   onEdit?: () => void;
+  onReport?: () => void;
   size?: "sm" | "md";
 }
 
@@ -48,12 +49,14 @@ export function PostCardHeader({
   isModerator = false,
   onDelete,
   onEdit,
+  onReport,
   size: _size = "md",
 }: PostCardHeaderProps) {
   const canDelete =
     (currentProfileId && author.id === currentProfileId) || isModerator;
   const isOwnPost = currentProfileId && author.id === currentProfileId;
   const canEdit = isOwnPost && !isAnnouncement && onEdit;
+  const canReport = currentProfileId && !isOwnPost && onReport;
   const isEdited =
     updatedAt && createdAt && new Date(updatedAt) > new Date(createdAt);
 
@@ -125,6 +128,16 @@ export function PostCardHeader({
         </div>
       </div>
       <div className="flex items-center gap-1">
+        {canReport && (
+          <button
+            type="button"
+            onClick={onReport}
+            className="text-muted-foreground hover:text-orange-500 p-2 rounded-lg hover:bg-background transition-colors"
+            title="게시물 신고"
+          >
+            <Flag className="h-4 w-4" />
+          </button>
+        )}
         {canEdit && (
           <button
             type="button"

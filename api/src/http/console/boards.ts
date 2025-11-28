@@ -11,11 +11,13 @@ import {
   boardPostReplyIdParamSchema,
   boardPostReplyQuerySchema,
   boardPostReplyUpdateRequestSchema,
+  boardPostReportRequestSchema,
   boardPostUpdateRequestSchema,
   boardSlugParamSchema,
   boardUpdateRequestSchema,
 } from "../../schemas";
 import * as boardPostService from "../../services/board-post.service";
+import * as emailService from "../../services/email.service";
 import type { AuthVariables } from "../../types";
 import { BoardErrorCode } from "../../types/api-responses";
 
@@ -371,5 +373,39 @@ export const consoleBoardsRouter = new Hono<{ Variables: AuthVariables }>()
 
       await boardPostService.deleteBoardPostReply(replyId, user.id);
       return c.body(null, 204);
+    },
+  )
+
+  // Report a board post
+  .post(
+    "/board/:board_slug/posts/:board_post_id/report",
+    authMiddleware,
+    zValidator("param", boardSlugParamSchema),
+    zValidator("param", boardPostIdParamSchema),
+    zValidator("json", boardPostReportRequestSchema),
+    async (c) => {
+      const user = c.get("user");
+      const { board_slug: boardSlug, board_post_id: postId } = c.req.valid(
+        "param",
+      ) as { board_slug: string; board_post_id: string };
+      const { reason } = c.req.valid("json");
+
+      // Get the board post to report
+      const post = await boardPostService.getBoardPost(postId);
+
+      // Send abuse report email
+      await emailService.sendAbuseReportEmail({
+        reporterUserId: user.id,
+        reporterEmail: user.email ?? undefined,
+        postId: postId,
+        postContent: `${post.title}\n\n${post.content}`,
+        postAuthorId: post.author.id,
+        postAuthorUsername: post.author.login_name,
+        reason: reason,
+        reportType: "board_post",
+        boardSlug: boardSlug,
+      });
+
+      return c.json({ success: true });
     },
   );

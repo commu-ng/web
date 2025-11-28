@@ -448,3 +448,13 @@ export const masqueradeUserListQuerySchema = z.object({
 export const masqueradeAuditLogQuerySchema = z.object({
   limit: z.string().regex(/^\d+$/).transform(Number).optional(),
 });
+
+// Report schemas
+export const postReportRequestSchema = z.object({
+  reason: z.string().min(1, "Report reason is required").max(2000),
+  profile_id: z.uuid(),
+});
+
+export const boardPostReportRequestSchema = z.object({
+  reason: z.string().min(1, "Report reason is required").max(2000),
+});

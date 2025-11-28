@@ -15,11 +15,13 @@ import {
   postQuerySchema,
   postReactionCreateSchema,
   postReactionDeleteSchema,
+  postReportRequestSchema,
   postSearchQuerySchema,
   postUpdateRequestSchema,
   profileIdQuerySchema,
   scheduledPostsQuerySchema,
 } from "../../schemas";
+import * as emailService from "../../services/email.service";
 import * as exportJobService from "../../services/export-job.service";
 import * as postService from "../../services/post.service";
 import * as profileService from "../../services/profile.service";
@@ -659,5 +661,60 @@ export const postsRouter = new Hono<{ Variables: AuthVariables }>()
 
       await postService.unpinPost(user.id, profileId, postId, community.id);
       return c.json({ data: { post_id: postId, pinned: false } });
+    },
+  )
+  .post(
+    "/posts/:post_id/report",
+    communityMiddleware,
+    appAuthMiddleware,
+    membershipMiddleware,
+    zValidator("param", postIdParamSchema),
+    zValidator("json", postReportRequestSchema),
+    async (c) => {
+      const { post_id: postId } = c.req.valid("param");
+      const { reason, profile_id: profileId } = c.req.valid("json");
+      const user = c.get("user");
+      const community = c.get("community");
+
+      // Validate profile belongs to the current user
+      const profile = await profileService.validateAndGetProfile(
+        user.id,
+        profileId,
+        community.id,
+      );
+
+      if (!profile) {
+        return c.json(
+          {
+            error: {
+              code: GeneralErrorCode.PROFILE_NOT_FOUND,
+              message: "프로필을 찾을 수 없거나 귀하의 소유가 아닙니다",
+            },
+          },
+          404,
+        );
+      }
+
+      // Get the post to report
+      const post = await postService.getPost(postId, community.id, profileId);
+
+      // Send abuse report email
+      await emailService.sendAbuseReportEmail({
+        reporterUserId: user.id,
+        reporterEmail: user.email ?? undefined,
+        reporterProfileId: profile.id,
+        reporterProfileUsername: profile.username,
+        postId: postId,
+        postContent: post.content,
+        postAuthorId: post.author.id,
+        postAuthorUsername: post.author.username,
+        communityId: community.id,
+        communityName: community.name,
+        communitySlug: community.slug,
+        reason: reason,
+        reportType: "app_post",
+      });
+
+      return c.json({ success: true });
     },
   );

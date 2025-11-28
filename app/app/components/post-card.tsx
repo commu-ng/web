@@ -2,6 +2,7 @@ import { ChevronDown, ChevronUp } from "lucide-react";
 import { memo, useCallback, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { DirectMessageModal } from "~/components/DirectMessageModal";
+import { ReportDialog } from "~/components/ReportDialog";
 import { useAuth } from "~/hooks/useAuth";
 import { useCurrentInstance } from "~/hooks/useCurrentInstance";
 import { useMarkdownWithMentions } from "~/hooks/useMarkdownWithMentions";
@@ -45,6 +46,7 @@ export const PostCard = memo(function PostCard({
     filename: string;
   } | null>(null);
   const [showDMModal, setShowDMModal] = useState(false);
+  const [showReportDialog, setShowReportDialog] = useState(false);
 
   // Check if current user is part of the conversation thread
   const isUserPartOfThread = useCallback(() => {
@@ -302,6 +304,7 @@ export const PostCard = memo(function PostCard({
           isModerator={isModerator}
           onDelete={deletePost}
           onEdit={() => setShowEditForm(true)}
+          onReport={() => setShowReportDialog(true)}
         />
 
         {/* Edit Form */}
@@ -476,6 +479,16 @@ export const PostCard = memo(function PostCard({
           onClose={() => setShowDMModal(false)}
           currentProfileId={currentProfileId}
           receiverId={post.author.id}
+        />
+      )}
+
+      {/* Report Dialog */}
+      {currentProfileId && (
+        <ReportDialog
+          open={showReportDialog}
+          onOpenChange={setShowReportDialog}
+          postId={post.id}
+          profileId={currentProfileId}
         />
       )}
     </div>
