@@ -51,7 +51,7 @@ export function ReportDialog({
       onOpenChange(false);
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : "신고 접수에 실패했습니다"
+        error instanceof Error ? error.message : "신고 접수에 실패했습니다",
       );
     } finally {
       setIsSubmitting(false);
