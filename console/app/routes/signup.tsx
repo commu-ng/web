@@ -5,6 +5,7 @@ import { LoadingState } from "~/components/shared/LoadingState";
 import { Button } from "~/components/ui/button";
 import { Spinner } from "~/components/ui/spinner";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
+import { Checkbox } from "~/components/ui/checkbox";
 import {
   Field,
   FieldError,
@@ -27,12 +28,14 @@ export default function Signup() {
   const loginNameId = useId();
   const passwordId = useId();
   const confirmPasswordId = useId();
+  const policyAgreementId = useId();
 
   const [formData, setFormData] = useState({
     login_name: "",
     password: "",
     confirmPassword: "",
   });
+  const [policyAgreed, setPolicyAgreed] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const navigate = useNavigate();
@@ -55,6 +58,12 @@ export default function Signup() {
     e.preventDefault();
     setIsLoading(true);
     setError("");
+
+    if (!policyAgreed) {
+      setError("개인정보 처리방침 및 커뮤니티 가이드라인에 동의해주세요");
+      setIsLoading(false);
+      return;
+    }
 
     if (formData.password !== formData.confirmPassword) {
       setError("비밀번호가 일치하지 않습니다");
@@ -163,6 +172,39 @@ export default function Signup() {
                   onChange={handleInputChange}
                   required
                 />
+              </Field>
+              <Field>
+                <div className="flex items-start gap-3">
+                  <Checkbox
+                    id={policyAgreementId}
+                    checked={policyAgreed}
+                    onCheckedChange={setPolicyAgreed}
+                    className="mt-0.5"
+                  />
+                  <label
+                    htmlFor={policyAgreementId}
+                    className="text-sm leading-relaxed"
+                  >
+                    <a
+                      href="https://commu.ng/privacy"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary hover:underline"
+                    >
+                      개인정보 처리방침
+                    </a>
+                    {" 및 "}
+                    <a
+                      href="https://commu.ng/policy"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary hover:underline"
+                    >
+                      커뮤니티 가이드라인
+                    </a>
+                    에 동의합니다
+                  </label>
+                </div>
               </Field>
               <FieldError>{error}</FieldError>
               <Field orientation="horizontal">
