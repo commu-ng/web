@@ -98,9 +98,10 @@ export default function MessageConversation() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, []);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: scroll when messages change
   useEffect(() => {
     scrollToBottom();
-  }, [scrollToBottom]);
+  }, [messages, scrollToBottom]);
 
   // Poll for new messages every 10 seconds
   useEffect(() => {

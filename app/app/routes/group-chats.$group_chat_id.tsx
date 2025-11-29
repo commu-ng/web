@@ -112,9 +112,10 @@ export default function GroupChatDetail() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, []);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: scroll when messages change
   useEffect(() => {
     scrollToBottom();
-  }, [scrollToBottom]);
+  }, [messages, scrollToBottom]);
 
   // Poll for new messages every 5 seconds
   useEffect(() => {
