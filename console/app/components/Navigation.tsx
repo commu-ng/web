@@ -43,6 +43,22 @@ async function fetchMyCommunities(): Promise<Community[]> {
   return json.data;
 }
 
+interface Board {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  allow_comments: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+async function fetchBoards(): Promise<Board[]> {
+  const res = await api.console.boards.$get();
+  const json = await res.json();
+  return json.data;
+}
+
 export function Navigation() {
   const { isAuthenticated, isLoading, user } = useAuth();
 
@@ -51,6 +67,12 @@ export function Navigation() {
     queryKey: ["communities", "mine"],
     queryFn: fetchMyCommunities,
     enabled: isAuthenticated,
+  });
+
+  // Fetch boards
+  const { data: boards } = useQuery({
+    queryKey: ["boards"],
+    queryFn: fetchBoards,
   });
 
   // Calculate total pending applications across owned/moderated communities
@@ -137,17 +159,6 @@ export function Navigation() {
                 asChild
                 className="w-full md:w-auto"
               >
-                <Link to="/boards/promo">
-                  <MessageSquare className="h-4 w-4" />
-                  홍보 게시판
-                </Link>
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                asChild
-                className="w-full md:w-auto"
-              >
                 <Link to="/account">
                   <UserIcon className="h-4 w-4" />내 계정
                 </Link>
@@ -165,17 +176,6 @@ export function Navigation() {
                 <Link to="/communities">
                   <Search className="h-4 w-4" />
                   커뮤 둘러보기
-                </Link>
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                asChild
-                className="w-full md:w-auto col-span-2"
-              >
-                <Link to="/boards/promo">
-                  <MessageSquare className="h-4 w-4" />
-                  홍보 게시판
                 </Link>
               </Button>
               <Button size="sm" asChild className="w-full md:w-auto">
@@ -199,6 +199,26 @@ export function Navigation() {
             </>
           )}
         </div>
+
+        {/* Boards Navigation */}
+        {boards && boards.length > 0 && (
+          <div className="flex flex-wrap justify-center gap-2 max-w-2xl w-full">
+            {boards.map((board) => (
+              <Button
+                key={board.id}
+                variant="ghost"
+                size="sm"
+                asChild
+                className="text-muted-foreground hover:text-foreground"
+              >
+                <Link to={`/boards/${board.slug}`}>
+                  <MessageSquare className="h-4 w-4" />
+                  {board.name}
+                </Link>
+              </Button>
+            ))}
+          </div>
+        )}
 
         {/* Administrator Navigation */}
         {isAuthenticated && user?.is_admin && <AdministratorNavigation />}
