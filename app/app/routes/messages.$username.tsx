@@ -116,7 +116,9 @@ export default function MessageConversation() {
     const isInitial = isInitialLoadRef.current && messages.length > 0;
 
     if (isInitial) {
-      scrollToBottom("instant");
+      requestAnimationFrame(() => {
+        scrollToBottom("instant");
+      });
       isInitialLoadRef.current = false;
     } else if (hasNewMessages && isNearBottom()) {
       scrollToBottom();
