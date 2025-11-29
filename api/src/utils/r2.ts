@@ -70,10 +70,13 @@ export function validateImageFile(
     "image/png",
     "image/gif",
     "image/webp",
+    "image/heic",
+    "image/heif",
+    "application/octet-stream",
   ];
 
   if (!allowedTypes.includes(contentType)) {
-    return [false, "Only image files are allowed (JPG, PNG, GIF, WebP)"];
+    return [false, "Only image files are allowed"];
   }
 
   const maxSizeBytes = maxSizeMb * 1024 * 1024;
