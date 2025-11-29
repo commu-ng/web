@@ -61,7 +61,8 @@ export function CommunityCard({ community }: CommunityCardProps) {
   const isUpcoming = isValidStartDate && now < startDate;
   const isEnded = isValidEndDate && now > endDate;
 
-  const isMember = community.is_member;
+  // User is a member if is_member is true OR if they have a role (owner, moderator, member)
+  const isMember = community.is_member || !!community.role;
 
   return (
     <Card
