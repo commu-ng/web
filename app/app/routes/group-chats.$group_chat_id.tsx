@@ -125,7 +125,6 @@ export default function GroupChatDetail() {
     );
   }, []);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: scroll when messages change
   useEffect(() => {
     const hasNewMessages = messages.length > prevMessageCountRef.current;
     const isInitial = isInitialLoadRef.current && messages.length > 0;
