@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { AlertCircle, ArrowLeft, Plus } from "lucide-react";
+import { AlertCircle, Plus } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router";
 import { BoardPostList } from "~/components/BoardPostList";
@@ -98,15 +98,7 @@ export default function BoardDetail({ params }: Route.ComponentProps) {
             <EmptyTitle>오류 발생</EmptyTitle>
             <EmptyDescription>게시판을 불러올 수 없습니다</EmptyDescription>
           </EmptyHeader>
-          <div className="flex gap-2">
-            <Button onClick={() => refetch()}>다시 시도</Button>
-            <Button variant="outline" asChild>
-              <Link to="/boards">
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                게시판 목록으로
-              </Link>
-            </Button>
-          </div>
+          <Button onClick={() => refetch()}>다시 시도</Button>
         </Empty>
       </div>
     );
@@ -119,12 +111,6 @@ export default function BoardDetail({ params }: Route.ComponentProps) {
   return (
     <div className="container mx-auto py-8 px-4 max-w-4xl">
       <div className="mb-6">
-        <Button variant="ghost" asChild className="mb-4">
-          <Link to="/boards">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            게시판 목록으로
-          </Link>
-        </Button>
         <div className="flex items-start justify-between">
           <div>
             <h1 className="text-3xl font-bold">{board.name}</h1>

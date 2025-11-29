@@ -96,15 +96,7 @@ export default function CreateBoardPost({ params }: Route.ComponentProps) {
             <EmptyTitle>오류 발생</EmptyTitle>
             <EmptyDescription>게시판을 불러올 수 없습니다</EmptyDescription>
           </EmptyHeader>
-          <div className="flex gap-2">
-            <Button onClick={() => refetch()}>다시 시도</Button>
-            <Button variant="outline" asChild>
-              <Link to="/boards">
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                게시판 목록으로
-              </Link>
-            </Button>
-          </div>
+          <Button onClick={() => refetch()}>다시 시도</Button>
         </Empty>
       </div>
     );
