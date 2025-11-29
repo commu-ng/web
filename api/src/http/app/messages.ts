@@ -326,7 +326,13 @@ export const messagesRouter = new Hono<{ Variables: AuthVariables }>()
         limit,
       );
 
-      return c.json({ data: result });
+      return c.json({
+        data: result,
+        pagination: {
+          has_more: false,
+          next_cursor: null,
+        },
+      });
     },
   )
 
