@@ -64,10 +64,34 @@ export async function getCommunityBySlug(slug: string) {
 }
 
 /**
+ * Get community by ID
+ */
+export async function getCommunityById(id: string) {
+  const community = await db.query.community.findFirst({
+    where: and(eq(communityTable.id, id), isNull(communityTable.deletedAt)),
+  });
+
+  return community;
+}
+
+/**
  * Validate that a community exists by slug and is not deleted
  */
 export async function validateCommunityExistsBySlug(slug: string) {
   const community = await getCommunityBySlug(slug);
+
+  if (!community) {
+    throw new AppException(404, GENERAL_ERROR_CODE, "커뮤를 찾을 수 없습니다");
+  }
+
+  return community;
+}
+
+/**
+ * Validate that a community exists by ID and is not deleted
+ */
+export async function validateCommunityExistsById(id: string) {
+  const community = await getCommunityById(id);
 
   if (!community) {
     throw new AppException(404, GENERAL_ERROR_CODE, "커뮤를 찾을 수 없습니다");

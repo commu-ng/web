@@ -323,11 +323,11 @@ export default function CommunityManagement() {
         mute_new_members: formData.mute_new_members,
       };
 
-      if (!slug) {
+      if (!community?.id) {
         throw new Error("Community ID is required");
       }
       const response = await api.console.communities[":id"].$put({
-        param: { id: slug },
+        param: { id: community.id },
         json: requestBody,
       });
 
@@ -354,11 +354,11 @@ export default function CommunityManagement() {
     setError("");
 
     try {
-      if (!slug) {
+      if (!community?.id) {
         throw new Error("Community ID is required");
       }
       await api.console.communities[":id"].$delete({
-        param: { id: slug },
+        param: { id: community.id },
       });
 
       // Invalidate the communities query cache to refresh the list

@@ -237,14 +237,14 @@ describe("Console Communities CRUD", () => {
     });
   });
 
-  describe("PUT /console/communities/:slug", () => {
+  describe("PUT /console/communities/:id", () => {
     it("should update community when user is owner", async () => {
       const app = createTestApp();
       const { user, community } = await createCommunityWithOwner();
 
       const res = await makeConsoleAuthenticatedRequest(
         app,
-        `/console/communities/${community.slug}`,
+        `/console/communities/${community.id}`,
         user,
         {
           method: "PUT",
@@ -274,7 +274,7 @@ describe("Console Communities CRUD", () => {
       const app = createTestApp();
       const { community } = await createCommunityWithOwner();
 
-      const res = await app.request(`/console/communities/${community.slug}`, {
+      const res = await app.request(`/console/communities/${community.id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -294,7 +294,7 @@ describe("Console Communities CRUD", () => {
 
       const res = await makeConsoleAuthenticatedRequest(
         app,
-        `/console/communities/${community.slug}`,
+        `/console/communities/${community.id}`,
         otherUser,
         {
           method: "PUT",
@@ -326,7 +326,7 @@ describe("Console Communities CRUD", () => {
 
       const res = await makeConsoleAuthenticatedRequest(
         app,
-        `/console/communities/${community.slug}`,
+        `/console/communities/${community.id}`,
         otherUser,
         {
           method: "PUT",

@@ -113,7 +113,7 @@ export const crudRouter = new Hono()
     zValidator("param", communityIdParamSchema),
     zValidator("json", communityUpdateRequestSchema),
     async (c) => {
-      const { id: slugParam } = c.req.valid("param");
+      const { id: communityId } = c.req.valid("param");
       const user = c.get("user");
       const {
         name,
@@ -131,11 +131,8 @@ export const crudRouter = new Hono()
         mute_new_members,
       } = c.req.valid("json");
 
-      // Check if user is the owner
-      // Validate community exists and get its ID
-      const community =
-        await communityService.validateCommunityExistsBySlug(slugParam);
-      const communityId = community.id;
+      // Validate community exists by ID
+      await communityService.validateCommunityExistsById(communityId);
 
       await membershipService.validateMembershipRole(user.id, communityId, [
         "owner",
@@ -181,14 +178,11 @@ export const crudRouter = new Hono()
     authMiddleware,
     zValidator("param", communityIdParamSchema),
     async (c) => {
-      const { id: slug } = c.req.valid("param");
+      const { id: communityId } = c.req.valid("param");
       const user = c.get("user");
 
-      // Check if user is the owner
-      // Validate community exists and get its ID
-      const community =
-        await communityService.validateCommunityExistsBySlug(slug);
-      const communityId = community.id;
+      // Validate community exists by ID
+      await communityService.validateCommunityExistsById(communityId);
 
       await membershipService.validateMembershipRole(user.id, communityId, [
         "owner",
