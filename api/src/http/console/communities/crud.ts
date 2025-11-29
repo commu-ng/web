@@ -159,7 +159,7 @@ export const crudRouter = new Hono()
         data: {
           id: updatedCommunity.id,
           name: updatedCommunity.name,
-          domain: updatedCommunity.slug,
+          slug: updatedCommunity.slug,
           starts_at: updatedCommunity.startsAt,
           ends_at: updatedCommunity.endsAt,
           is_recruiting: updatedCommunity.isRecruiting,
