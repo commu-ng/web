@@ -177,7 +177,7 @@ export default function MessageConversation() {
       } catch (err) {
         console.error("Failed to poll messages:", err);
       }
-    }, 10000); // 10 seconds
+    }, 1000); // 1 second
 
     return () => clearInterval(interval);
   }, [

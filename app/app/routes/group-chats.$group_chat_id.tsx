@@ -199,7 +199,7 @@ export default function GroupChatDetail() {
       } catch (err) {
         console.error("Failed to poll group chat messages:", err);
       }
-    }, 5000); // 5 seconds
+    }, 1000); // 1 second
 
     return () => clearInterval(interval);
   }, [isAuthenticated, instanceSlug, currentProfile, group_chat_id]);
