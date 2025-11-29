@@ -112,20 +112,22 @@ export default function MessageConversation() {
   }, []);
 
   useEffect(() => {
+    if (isLoading) return;
+
     const hasNewMessages = messages.length > prevMessageCountRef.current;
     const isInitial = isInitialLoadRef.current && messages.length > 0;
 
     if (isInitial) {
-      requestAnimationFrame(() => {
-        scrollToBottom("instant");
-      });
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "instant" });
+      }, 50);
       isInitialLoadRef.current = false;
     } else if (hasNewMessages && isNearBottom()) {
       scrollToBottom();
     }
 
     prevMessageCountRef.current = messages.length;
-  }, [messages, scrollToBottom, isNearBottom]);
+  }, [messages, isLoading, scrollToBottom, isNearBottom]);
 
   // Poll for new messages every 10 seconds
   useEffect(() => {
