@@ -82,7 +82,10 @@ export default function MessageConversation() {
   const { instanceSlug } = useCurrentInstance();
   const { refreshUnreadCounts } = useUnreadCount();
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const prevMessageCountRef = useRef<number>(0);
+  const isInitialLoadRef = useRef<boolean>(true);
 
   // Image handling state
   interface ImageObject {
@@ -94,14 +97,34 @@ export default function MessageConversation() {
   const [images, setImages] = useState<ImageObject[]>([]);
   const [isUploadingImages, setIsUploadingImages] = useState(false);
 
-  const scrollToBottom = useCallback(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  const scrollToBottom = useCallback((behavior: ScrollBehavior = "smooth") => {
+    messagesEndRef.current?.scrollIntoView({ behavior });
+  }, []);
+
+  const isNearBottom = useCallback(() => {
+    const container = messagesContainerRef.current;
+    if (!container) return true;
+    const threshold = 100;
+    return (
+      container.scrollHeight - container.scrollTop - container.clientHeight <
+      threshold
+    );
   }, []);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: scroll when messages change
   useEffect(() => {
-    scrollToBottom();
-  }, [messages, scrollToBottom]);
+    const hasNewMessages = messages.length > prevMessageCountRef.current;
+    const isInitial = isInitialLoadRef.current && messages.length > 0;
+
+    if (isInitial) {
+      scrollToBottom("instant");
+      isInitialLoadRef.current = false;
+    } else if (hasNewMessages && isNearBottom()) {
+      scrollToBottom();
+    }
+
+    prevMessageCountRef.current = messages.length;
+  }, [messages, scrollToBottom, isNearBottom]);
 
   // Poll for new messages every 10 seconds
   useEffect(() => {
@@ -836,7 +859,10 @@ export default function MessageConversation() {
       {/* Messages */}
       <main className="flex-1 overflow-hidden">
         <div className="h-full max-w-4xl mx-auto px-4 py-6 flex flex-col">
-          <div className="flex-1 overflow-y-auto space-y-4 mb-6 relative">
+          <div
+            ref={messagesContainerRef}
+            className="flex-1 overflow-y-auto space-y-4 mb-6 relative"
+          >
             {messages.length === 0 ? (
               <div className="flex items-center justify-center h-full">
                 <Empty>

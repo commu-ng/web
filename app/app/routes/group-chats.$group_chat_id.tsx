@@ -95,6 +95,9 @@ export default function GroupChatDetail() {
   );
   const { isAuthenticated, currentProfile } = useAuth();
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const prevMessageCountRef = useRef<number>(0);
+  const isInitialLoadRef = useRef<boolean>(true);
   const _navigate = useNavigate();
   const imageUploadId = useId();
   const {
@@ -108,14 +111,34 @@ export default function GroupChatDetail() {
 
   const { instanceSlug } = useCurrentInstance();
 
-  const scrollToBottom = useCallback(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  const scrollToBottom = useCallback((behavior: ScrollBehavior = "smooth") => {
+    messagesEndRef.current?.scrollIntoView({ behavior });
+  }, []);
+
+  const isNearBottom = useCallback(() => {
+    const container = messagesContainerRef.current;
+    if (!container) return true;
+    const threshold = 100;
+    return (
+      container.scrollHeight - container.scrollTop - container.clientHeight <
+      threshold
+    );
   }, []);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: scroll when messages change
   useEffect(() => {
-    scrollToBottom();
-  }, [messages, scrollToBottom]);
+    const hasNewMessages = messages.length > prevMessageCountRef.current;
+    const isInitial = isInitialLoadRef.current && messages.length > 0;
+
+    if (isInitial) {
+      scrollToBottom("instant");
+      isInitialLoadRef.current = false;
+    } else if (hasNewMessages && isNearBottom()) {
+      scrollToBottom();
+    }
+
+    prevMessageCountRef.current = messages.length;
+  }, [messages, scrollToBottom, isNearBottom]);
 
   // Poll for new messages every 5 seconds
   useEffect(() => {
@@ -671,7 +694,10 @@ export default function GroupChatDetail() {
       {/* Messages */}
       <main className="flex-1 max-w-4xl mx-auto w-full px-4 py-4 overflow-hidden">
         <div className="bg-card rounded-lg shadow-sm border border-border h-full flex flex-col">
-          <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          <div
+            ref={messagesContainerRef}
+            className="flex-1 overflow-y-auto p-4 space-y-4"
+          >
             {messages.map((message) => {
               const hasReactions =
                 message.reactions && message.reactions.length > 0;
