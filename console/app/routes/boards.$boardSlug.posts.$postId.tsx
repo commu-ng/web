@@ -464,8 +464,6 @@ export default function BoardPostDetail({ params }: Route.ComponentProps) {
           getErrorMessage(errorData, "게시물 삭제에 실패했습니다"),
         );
       }
-
-      return await res.json();
     },
     onSuccess: () => {
       toast.success("게시물이 성공적으로 삭제되었습니다");
