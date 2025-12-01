@@ -259,7 +259,7 @@ export const PostCard = memo(function PostCard({
     const depth = post.depth || 0;
     const isReply = depth > 0;
     const cardSize = isReply ? "text-xs" : "text-sm";
-    const padding = isReply ? "py-1 pl-2" : "p-4";
+    const padding = isReply ? "pt-1 pl-2" : "p-4";
     return { depth, isReply, cardSize, padding };
   }, [post.depth]);
 
