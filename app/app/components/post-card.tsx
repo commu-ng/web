@@ -259,7 +259,7 @@ export const PostCard = memo(function PostCard({
     const depth = post.depth || 0;
     const isReply = depth > 0;
     const cardSize = isReply ? "text-xs" : "text-sm";
-    const padding = isReply ? "p-2" : "p-4";
+    const padding = isReply ? "py-1 pl-2" : "p-4";
     return { depth, isReply, cardSize, padding };
   }, [post.depth]);
 
@@ -269,9 +269,9 @@ export const PostCard = memo(function PostCard({
         post.announcement
           ? "bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30 border-l-4 border-l-amber-500 dark:border-l-amber-600 shadow-lg"
           : isReply
-            ? `bg-background ${!hideBorder ? "border border-border" : ""}`
+            ? "bg-background"
             : `bg-card ${!hideBorder ? "border border-border" : ""}`
-      } ${isReply ? "rounded-lg" : "rounded-2xl"} ${!hideBorder ? "shadow-sm" : ""} overflow-hidden ${
+      } ${isReply ? "" : "rounded-2xl"} ${!hideBorder && !isReply ? "shadow-sm" : ""} overflow-hidden ${
         isReply
           ? `border-l-4 ${
               depth === 1
@@ -439,7 +439,7 @@ export const PostCard = memo(function PostCard({
                   </button>
                 )}
                 {/* Always show replies (filtered when collapsed, all when expanded) */}
-                <div className="space-y-1">
+                <div>
                   {repliesToShow.map((reply) => (
                     <PostCard
                       key={reply.id}
