@@ -254,23 +254,17 @@ export const PostCard = memo(function PostCard({
     [currentProfile, post.id, onRefresh, onDelete],
   );
 
-  // Calculate indentation and styling based on depth - memoize to avoid recalculation
-  const { depth, marginLeft, isReply, cardSize, padding } = useMemo(() => {
+  // Calculate styling based on depth - memoize to avoid recalculation
+  const { depth, isReply, cardSize, padding } = useMemo(() => {
     const depth = post.depth || 0;
-    const indentationLevel = Math.min(depth, 5);
-    // Only add marginLeft for depths 1-5. Depths > 5 get no additional margin
-    // since they're already nested inside parent cards that have margins.
-    const marginLeft =
-      depth > 0 && depth <= 5 ? `${indentationLevel * 12}px` : "0px";
     const isReply = depth > 0;
     const cardSize = isReply ? "text-xs" : "text-sm";
     const padding = isReply ? "p-2" : "p-4";
-    return { depth, marginLeft, isReply, cardSize, padding };
+    return { depth, isReply, cardSize, padding };
   }, [post.depth]);
 
   return (
     <div
-      style={{ marginLeft }}
       className={`${
         post.announcement
           ? "bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30 border-l-4 border-l-amber-500 dark:border-l-amber-600 shadow-lg"
