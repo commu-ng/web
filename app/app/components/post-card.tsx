@@ -258,7 +258,10 @@ export const PostCard = memo(function PostCard({
   const { depth, marginLeft, isReply, cardSize, padding } = useMemo(() => {
     const depth = post.depth || 0;
     const indentationLevel = Math.min(depth, 5);
-    const marginLeft = `${indentationLevel * 12}px`;
+    // Only add marginLeft for depths 1-5. Depths > 5 get no additional margin
+    // since they're already nested inside parent cards that have margins.
+    const marginLeft =
+      depth > 0 && depth <= 5 ? `${indentationLevel * 12}px` : "0px";
     const isReply = depth > 0;
     const cardSize = isReply ? "text-xs" : "text-sm";
     const padding = isReply ? "p-2" : "p-4";
