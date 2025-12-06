@@ -135,7 +135,7 @@ export const postsRouter = new Hono<{ Variables: AuthVariables }>()
     "/announcements",
     optionalAppAuthMiddleware,
     communityMiddleware,
-    zValidator("query", conversationsQuerySchema),
+    zValidator("query", optionalProfileIdQuerySchema),
     async (c) => {
       const community = c.get("community");
       const { profile_id: profileId } = c.req.valid("query");

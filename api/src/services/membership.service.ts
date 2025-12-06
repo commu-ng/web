@@ -860,7 +860,7 @@ export async function approveMembershipApplication(
       // Build community URL
       const baseDomain = process.env.BASE_DOMAIN || "commu.ng";
       const communityUrl =
-        community.customDomain && community.domainVerified
+        community.customDomain && community.domainVerifiedAt
           ? `https://${community.customDomain}`
           : `https://${community.slug}.${baseDomain}`;
 

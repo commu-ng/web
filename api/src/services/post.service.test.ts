@@ -77,7 +77,6 @@ describe("Post Service", () => {
         "user_comm1",
         community1.id,
         10,
-        0,
       );
 
       // Get posts for profile2 in community2
@@ -85,32 +84,31 @@ describe("Post Service", () => {
         "user_comm2",
         community2.id,
         10,
-        0,
       );
 
       // Verify community 1 only shows its own posts
-      expect(postsInCommunity1).toHaveLength(1);
-      const firstPost1 = postsInCommunity1[0];
+      expect(postsInCommunity1.data).toHaveLength(1);
+      const firstPost1 = postsInCommunity1.data[0];
       expect(firstPost1).toBeDefined();
       expect(post1).toBeDefined();
       expect(firstPost1?.id).toBe(post1?.id);
       expect(firstPost1?.content).toBe("Post in Community 1");
 
       // Verify community 2 only shows its own posts
-      expect(postsInCommunity2).toHaveLength(1);
-      const firstPost2 = postsInCommunity2[0];
+      expect(postsInCommunity2.data).toHaveLength(1);
+      const firstPost2 = postsInCommunity2.data[0];
       expect(firstPost2).toBeDefined();
       expect(post2).toBeDefined();
       expect(firstPost2?.id).toBe(post2?.id);
       expect(firstPost2?.content).toBe("Post in Community 2");
 
       // Critical: Ensure posts from community 2 don't appear in community 1
-      const postIdsInCommunity1 = postsInCommunity1.map((p) => p.id);
+      const postIdsInCommunity1 = postsInCommunity1.data.map((p) => p.id);
       expect(post2).toBeDefined();
       expect(postIdsInCommunity1).not.toContain(post2?.id);
 
       // Critical: Ensure posts from community 1 don't appear in community 2
-      const postIdsInCommunity2 = postsInCommunity2.map((p) => p.id);
+      const postIdsInCommunity2 = postsInCommunity2.data.map((p) => p.id);
       expect(post1).toBeDefined();
       expect(postIdsInCommunity2).not.toContain(post1?.id);
     });

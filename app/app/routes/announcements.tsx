@@ -17,7 +17,9 @@ export default function Announcements() {
   const fetchAnnouncements = useCallback(async () => {
     try {
       setIsLoading(true);
-      const response = await client.app.announcements.$get();
+      const response = await client.app.announcements.$get({
+        query: currentProfile ? { profile_id: currentProfile.id } : {},
+      });
 
       if (response.ok) {
         const result = await response.json();
@@ -77,7 +79,7 @@ export default function Announcements() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [currentProfile]);
 
   useEffect(() => {
     fetchAnnouncements();
