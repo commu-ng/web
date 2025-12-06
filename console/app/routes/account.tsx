@@ -1,7 +1,8 @@
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
+import { UserMinus } from "lucide-react";
 import { useEffect, useId, useState } from "react";
-import { useNavigate } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { LoadingState } from "~/components/shared/LoadingState";
 import { Button } from "~/components/ui/button";
 import {
@@ -357,6 +358,24 @@ export default function Account() {
                 {isChangingPassword ? "변경 중..." : "비밀번호 변경"}
               </Button>
             </form>
+          </CardContent>
+        </Card>
+
+        {/* Blocked Users */}
+        <Card>
+          <CardHeader>
+            <CardTitle>차단한 사용자</CardTitle>
+            <CardDescription>
+              차단한 사용자의 게시글과 댓글은 게시판에서 보이지 않습니다.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button variant="outline" asChild>
+              <Link to="/account/blocked-users">
+                <UserMinus className="h-4 w-4 mr-2" />
+                차단 목록 관리
+              </Link>
+            </Button>
           </CardContent>
         </Card>
 

@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   AlertCircle,
   ArrowLeft,
+  Ban,
   Flag,
   MessageSquare,
   Pencil,
@@ -475,6 +476,43 @@ export default function BoardPostDetail({ params }: Route.ComponentProps) {
     },
   });
 
+  const blockUserMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      const res = await api.console.blocks[":user_id"].$post({
+        param: { user_id: userId },
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(
+          getErrorMessage(errorData, "사용자 차단에 실패했습니다"),
+        );
+      }
+    },
+    onSuccess: () => {
+      toast.success("사용자를 차단했습니다");
+      queryClient.invalidateQueries({ queryKey: ["board-posts", boardSlug] });
+      queryClient.invalidateQueries({
+        queryKey: ["board-post-replies", boardSlug, postId],
+      });
+      navigate(`/boards/${boardSlug}`);
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const handleBlockUser = () => {
+    if (!post) return;
+    if (
+      window.confirm(
+        `${post.author.login_name}님을 차단하시겠습니까?\n차단된 사용자의 게시글과 댓글은 더 이상 보이지 않습니다.`,
+      )
+    ) {
+      blockUserMutation.mutate(post.author.id);
+    }
+  };
+
   const handleDeleteClick = () => {
     setIsDeleteDialogOpen(true);
   };
@@ -610,15 +648,27 @@ export default function BoardPostDetail({ params }: Route.ComponentProps) {
             {isAuthenticated && (
               <div className="flex gap-2 pt-2 border-t sm:border-t-0 sm:pt-0">
                 {user?.id !== post.author.id && (
-                  <Button
-                    variant="outline"
-                    onClick={() => setIsReportDialogOpen(true)}
-                    size="sm"
-                    className="flex-1 sm:flex-none"
-                  >
-                    <Flag className="h-4 w-4 mr-2" />
-                    신고
-                  </Button>
+                  <>
+                    <Button
+                      variant="outline"
+                      onClick={handleBlockUser}
+                      size="sm"
+                      className="flex-1 sm:flex-none"
+                      disabled={blockUserMutation.isPending}
+                    >
+                      <Ban className="h-4 w-4 mr-2" />
+                      차단
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => setIsReportDialogOpen(true)}
+                      size="sm"
+                      className="flex-1 sm:flex-none"
+                    >
+                      <Flag className="h-4 w-4 mr-2" />
+                      신고
+                    </Button>
+                  </>
                 )}
                 {user?.id === post.author.id && (
                   <>

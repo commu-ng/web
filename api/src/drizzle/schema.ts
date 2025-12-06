@@ -267,6 +267,32 @@ export const user = pgTable(
   ],
 );
 
+export const userBlock = pgTable(
+  "user_block",
+  {
+    id: uuid().primaryKey().default(sql`uuidv7()`),
+    blockerId: uuid("blocker_id").notNull(),
+    blockedId: uuid("blocked_id").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.blockerId],
+      foreignColumns: [user.id],
+      name: "user_block_blocker_id_fkey",
+    }),
+    foreignKey({
+      columns: [table.blockedId],
+      foreignColumns: [user.id],
+      name: "user_block_blocked_id_fkey",
+    }),
+    unique("unique_user_block").on(table.blockerId, table.blockedId),
+    index("idx_user_block_blocker_id").on(table.blockerId),
+  ],
+);
+
 export const exchangeToken = pgTable(
   "exchange_token",
   {

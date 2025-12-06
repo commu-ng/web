@@ -1,6 +1,6 @@
 import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
-import { authMiddleware } from "../../middleware/auth";
+import { authMiddleware, optionalAuthMiddleware } from "../../middleware/auth";
 import {
   boardCreateRequestSchema,
   boardIdParamSchema,
@@ -16,6 +16,7 @@ import {
   boardSlugParamSchema,
   boardUpdateRequestSchema,
 } from "../../schemas";
+import * as blockService from "../../services/block.service";
 import * as boardPostService from "../../services/board-post.service";
 import * as emailService from "../../services/email.service";
 import type { AuthVariables } from "../../types";
@@ -171,14 +172,21 @@ export const consoleBoardsRouter = new Hono<{ Variables: AuthVariables }>()
     },
   )
 
-  // Get board posts (public)
+  // Get board posts (public, with optional auth for blocked user filtering)
   .get(
     "/board/:board_slug/posts",
+    optionalAuthMiddleware,
     zValidator("param", boardSlugParamSchema),
     zValidator("query", boardPostQuerySchema),
     async (c) => {
       const { board_slug: boardSlug } = c.req.valid("param");
       const { limit = 20, cursor, hashtags } = c.req.valid("query");
+
+      // Get blocked user IDs if user is authenticated
+      const user = c.get("user");
+      const blockedUserIds = user
+        ? await blockService.getBlockedUserIds(user.id)
+        : undefined;
 
       const board = await boardPostService.getBoardBySlug(boardSlug);
       const hashtagsArray = hashtags
@@ -192,6 +200,7 @@ export const consoleBoardsRouter = new Hono<{ Variables: AuthVariables }>()
         limit,
         cursor,
         hashtagsArray,
+        blockedUserIds,
       );
       return c.json({
         data: result.data,
@@ -290,9 +299,10 @@ export const consoleBoardsRouter = new Hono<{ Variables: AuthVariables }>()
     },
   )
 
-  // Get replies for a board post (public)
+  // Get replies for a board post (public, with optional auth for blocked user filtering)
   .get(
     "/board/:board_slug/posts/:board_post_id/replies",
+    optionalAuthMiddleware,
     zValidator("param", boardSlugParamSchema),
     zValidator("param", boardPostIdParamSchema),
     zValidator("query", boardPostReplyQuerySchema),
@@ -300,10 +310,17 @@ export const consoleBoardsRouter = new Hono<{ Variables: AuthVariables }>()
       const { board_post_id: postId } = c.req.valid("param");
       const { limit = 20, cursor } = c.req.valid("query");
 
+      // Get blocked user IDs if user is authenticated
+      const user = c.get("user");
+      const blockedUserIds = user
+        ? await blockService.getBlockedUserIds(user.id)
+        : undefined;
+
       const result = await boardPostService.getBoardPostReplies(
         postId,
         limit,
         cursor,
+        blockedUserIds,
       );
       return c.json({
         data: result.data,

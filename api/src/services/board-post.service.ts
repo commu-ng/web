@@ -7,6 +7,7 @@ import {
   gt,
   inArray,
   isNull,
+  notInArray,
   sql,
 } from "drizzle-orm";
 import { db } from "../db";
@@ -249,12 +250,18 @@ export async function getBoardPosts(
   limit: number = 20,
   cursor?: string,
   hashtags?: string[],
+  blockedUserIds?: string[],
 ) {
   // Build base conditions (without cursor) for count query
   const baseConditions = [isNull(boardPostTable.deletedAt)];
 
   if (boardId) {
     baseConditions.push(eq(boardPostTable.boardId, boardId));
+  }
+
+  // Filter out posts from blocked users
+  if (blockedUserIds && blockedUserIds.length > 0) {
+    baseConditions.push(notInArray(boardPostTable.authorId, blockedUserIds));
   }
 
   // If hashtags filter is provided, filter posts that have ALL of the hashtags (AND logic)
@@ -832,6 +839,7 @@ export async function getBoardPostReplies(
   boardPostId: string,
   limit: number = 20,
   cursor?: string,
+  blockedUserIds?: string[],
 ) {
   // Validate post exists
   const post = await db.query.boardPost.findFirst({
@@ -868,6 +876,13 @@ export async function getBoardPostReplies(
     eq(boardPostReplyTable.depth, 0),
     isNull(boardPostReplyTable.deletedAt),
   ];
+
+  // Filter out replies from blocked users
+  if (blockedUserIds && blockedUserIds.length > 0) {
+    baseConditions.push(
+      notInArray(boardPostReplyTable.authorId, blockedUserIds),
+    );
+  }
 
   // Build query conditions (with cursor)
   const queryConditions = [...baseConditions];
@@ -918,16 +933,23 @@ export async function getBoardPostReplies(
   }
 
   // Get all nested replies (depth > 0) for these top-level replies
+  const nestedRepliesConditions = [
+    inArray(boardPostReplyTable.rootReplyId, topLevelIds),
+    isNull(boardPostReplyTable.deletedAt),
+  ];
+
+  // Filter out nested replies from blocked users
+  if (blockedUserIds && blockedUserIds.length > 0) {
+    nestedRepliesConditions.push(
+      notInArray(boardPostReplyTable.authorId, blockedUserIds),
+    );
+  }
+
   const nestedReplies = await db
     .select()
     .from(boardPostReplyTable)
     .leftJoin(userTable, eq(boardPostReplyTable.authorId, userTable.id))
-    .where(
-      and(
-        inArray(boardPostReplyTable.rootReplyId, topLevelIds),
-        isNull(boardPostReplyTable.deletedAt),
-      ),
-    )
+    .where(and(...nestedRepliesConditions))
     .orderBy(boardPostReplyTable.createdAt);
 
   // Combine all replies

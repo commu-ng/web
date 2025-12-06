@@ -38,6 +38,7 @@ import {
   profilePicture,
   session,
   user,
+  userBlock,
 } from "./schema";
 
 export const groupChatRelations = relations(groupChat, ({ one, many }) => ({
@@ -215,6 +216,12 @@ export const userRelations = relations(user, ({ many }) => ({
     relationName: "profileOwnership_createdBy_user_id",
   }),
   boardPosts: many(boardPost),
+  blockedUsers: many(userBlock, {
+    relationName: "userBlock_blockerId_user_id",
+  }),
+  blockedByUsers: many(userBlock, {
+    relationName: "userBlock_blockedId_user_id",
+  }),
 }));
 
 export const exchangeTokenRelations = relations(exchangeToken, ({ one }) => ({
@@ -597,3 +604,16 @@ export const boardPostHashtagRelations = relations(
     }),
   }),
 );
+
+export const userBlockRelations = relations(userBlock, ({ one }) => ({
+  blocker: one(user, {
+    fields: [userBlock.blockerId],
+    references: [user.id],
+    relationName: "userBlock_blockerId_user_id",
+  }),
+  blocked: one(user, {
+    fields: [userBlock.blockedId],
+    references: [user.id],
+    relationName: "userBlock_blockedId_user_id",
+  }),
+}));

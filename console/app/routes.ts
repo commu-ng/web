@@ -12,6 +12,7 @@ export default [
   route("forgot-password", "routes/forgot-password.tsx"),
   route("reset-password", "routes/reset-password.tsx"),
   route("account", "routes/account.tsx"),
+  route("account/blocked-users", "routes/account.blocked-users.tsx"),
   route("verify-email", "routes/verify-email.tsx"),
   route("confirm-delete-account", "routes/confirm-delete-account.tsx"),
   route("applications", "routes/applications.tsx"),
