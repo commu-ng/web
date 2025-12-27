@@ -237,13 +237,15 @@ export async function getScheduledPosts(
     if (!post || !profile) continue;
 
     const postImages = imagesByPostId.get(post.id) || [];
-    const images = postImages.map((pi) => ({
-      id: pi.image.id,
-      url: addImageUrl(pi.image).url,
-      width: pi.image.width,
-      height: pi.image.height,
-      filename: pi.image.filename,
-    }));
+    const images = postImages
+      .filter((pi) => pi.image && !pi.image.deletedAt)
+      .map((pi) => ({
+        id: pi.image.id,
+        url: addImageUrl(pi.image).url,
+        width: pi.image.width,
+        height: pi.image.height,
+        filename: pi.image.filename,
+      }));
 
     const reactions = reactionsByPostId.get(post.id) || [];
 
@@ -451,13 +453,15 @@ export async function getAnnouncements(
     if (!post || !profile) continue;
 
     const postImages = imagesByPostId.get(post.id) || [];
-    const images = postImages.map((pi) => ({
-      id: pi.image.id,
-      url: addImageUrl(pi.image).url,
-      width: pi.image.width,
-      height: pi.image.height,
-      filename: pi.image.filename,
-    }));
+    const images = postImages
+      .filter((pi) => pi.image && !pi.image.deletedAt)
+      .map((pi) => ({
+        id: pi.image.id,
+        url: addImageUrl(pi.image).url,
+        width: pi.image.width,
+        height: pi.image.height,
+        filename: pi.image.filename,
+      }));
 
     const reactions = reactionsByPostId.get(post.id) || [];
     const replies = repliesMap.get(post.id) || [];
@@ -1079,13 +1083,15 @@ export async function getPosts(
 
     // Get post images from pre-loaded data
     const postImages = imagesByPostId.get(post.id) || [];
-    const images = postImages.map((pi) => ({
-      id: pi.image.id,
-      url: addImageUrl(pi.image).url,
-      width: pi.image.width,
-      height: pi.image.height,
-      filename: pi.image.filename,
-    }));
+    const images = postImages
+      .filter((pi) => pi.image && !pi.image.deletedAt)
+      .map((pi) => ({
+        id: pi.image.id,
+        url: addImageUrl(pi.image).url,
+        width: pi.image.width,
+        height: pi.image.height,
+        filename: pi.image.filename,
+      }));
 
     // Get threaded replies from batched data (no additional query!)
     const threaded_replies = repliesMap.get(post.id) || [];
@@ -1298,13 +1304,15 @@ export async function searchPosts(
     const profile_picture_url = profilePictureMap.get(profile.id) || null;
 
     const postImages = imagesByPostId.get(post.id) || [];
-    const images = postImages.map((pi) => ({
-      id: pi.image.id,
-      url: addImageUrl(pi.image).url,
-      width: pi.image.width,
-      height: pi.image.height,
-      filename: pi.image.filename,
-    }));
+    const images = postImages
+      .filter((pi) => pi.image && !pi.image.deletedAt)
+      .map((pi) => ({
+        id: pi.image.id,
+        url: addImageUrl(pi.image).url,
+        width: pi.image.width,
+        height: pi.image.height,
+        filename: pi.image.filename,
+      }));
 
     const threaded_replies = repliesMap.get(post.id) || [];
     const is_bookmarked = bookmarkedPostIds.has(post.id);
