@@ -17,5 +17,5 @@ export async function uploadImage(file: File): Promise<string> {
   }
 
   const uploadData = await uploadResponse.json();
-  return uploadData.id;
+  return uploadData.data.id;
 }
