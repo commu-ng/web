@@ -2,7 +2,6 @@ import * as Sentry from "@sentry/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { ThemeProvider } from "next-themes";
-import { useState } from "react";
 import {
   isRouteErrorResponse,
   Links,
@@ -24,6 +23,16 @@ Sentry.init({
   sendDefaultPii: true,
 });
 
+// Create a client at module level to avoid hydration issues
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      retry: false,
+    },
+  },
+});
+
 export const links: Route.LinksFunction = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
   {
@@ -38,18 +47,6 @@ export const links: Route.LinksFunction = () => [
 ];
 
 export function Layout({ children }: { children: React.ReactNode }) {
-  const [queryClient] = useState(
-    () =>
-      new QueryClient({
-        defaultOptions: {
-          queries: {
-            staleTime: 5 * 60 * 1000, // 5 minutes
-            retry: false,
-          },
-        },
-      }),
-  );
-
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
