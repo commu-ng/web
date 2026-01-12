@@ -299,6 +299,7 @@ export const PostCard = memo(function PostCard({
           isReply={isReply}
           currentProfileId={currentProfileId}
           isModerator={isModerator}
+          isOwner={isCommunityOwner}
           onDelete={deletePost}
           onEdit={() => setShowEditForm(true)}
           onReport={() => setShowReportDialog(true)}
@@ -311,6 +312,7 @@ export const PostCard = memo(function PostCard({
               post={post}
               onSaveSuccess={handleEditSuccess}
               onCancel={() => setShowEditForm(false)}
+              isOwner={isCommunityOwner}
             />
           </div>
         ) : (

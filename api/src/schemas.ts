@@ -236,6 +236,7 @@ export const postUpdateRequestSchema = z.object({
   content: z.string(),
   image_ids: z.array(z.uuid()).optional(),
   content_warning: z.string().nullable().optional(),
+  announcement: z.boolean().optional(),
 });
 
 // Query parameter schemas

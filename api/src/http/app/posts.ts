@@ -425,9 +425,11 @@ export const postsRouter = new Hono<{ Variables: AuthVariables }>()
     async (c) => {
       const { post_id: postId } = c.req.valid("param");
       const { profile_id: profileId } = c.req.valid("query");
-      const { content, image_ids, content_warning } = c.req.valid("json");
+      const { content, image_ids, content_warning, announcement } =
+        c.req.valid("json");
       const user = c.get("user");
       const community = c.get("community");
+      const membership = c.get("membership");
 
       // Get and validate the profile belongs to the user
       const profile = await profileService.validateAndGetProfile(
@@ -457,6 +459,8 @@ export const postsRouter = new Hono<{ Variables: AuthVariables }>()
         content,
         image_ids,
         content_warning,
+        announcement,
+        membership?.role ?? "member",
       );
 
       return c.json({ data: result });

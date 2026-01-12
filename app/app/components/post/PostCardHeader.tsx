@@ -31,6 +31,7 @@ interface PostCardHeaderProps {
   isReply?: boolean;
   currentProfileId?: string;
   isModerator?: boolean;
+  isOwner?: boolean;
   onDelete: () => void;
   onEdit?: () => void;
   onReport?: () => void;
@@ -47,6 +48,7 @@ export function PostCardHeader({
   isReply = false,
   currentProfileId,
   isModerator = false,
+  isOwner = false,
   onDelete,
   onEdit,
   onReport,
@@ -55,7 +57,8 @@ export function PostCardHeader({
   const canDelete =
     (currentProfileId && author.id === currentProfileId) || isModerator;
   const isOwnPost = currentProfileId && author.id === currentProfileId;
-  const canEdit = isOwnPost && !isAnnouncement && onEdit;
+  // Allow editing own posts. For announcements, only owners can edit.
+  const canEdit = isOwnPost && (!isAnnouncement || isOwner) && onEdit;
   const canReport = currentProfileId && !isOwnPost && onReport;
   const isEdited =
     updatedAt && createdAt && new Date(updatedAt) > new Date(createdAt);

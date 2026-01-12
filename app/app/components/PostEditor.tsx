@@ -9,9 +9,15 @@ interface PostEditorProps {
   post: Post;
   onSaveSuccess?: () => void;
   onCancel: () => void;
+  isOwner?: boolean;
 }
 
-export function PostEditor({ post, onSaveSuccess, onCancel }: PostEditorProps) {
+export function PostEditor({
+  post,
+  onSaveSuccess,
+  onCancel,
+  isOwner = false,
+}: PostEditorProps) {
   const { currentProfile } = useAuth();
 
   const handleSubmit = useCallback(
@@ -19,6 +25,7 @@ export function PostEditor({ post, onSaveSuccess, onCancel }: PostEditorProps) {
       content: string;
       image_ids: string[];
       content_warning?: string;
+      announcement?: boolean;
     }) => {
       if (!currentProfile) {
         toast.error("프로필을 선택해주세요.");
@@ -49,15 +56,21 @@ export function PostEditor({ post, onSaveSuccess, onCancel }: PostEditorProps) {
     [currentProfile, post.id, onSaveSuccess],
   );
 
+  // Announcements can only be set on root posts (not replies)
+  const canBeAnnouncement = isOwner && post.depth === 0;
+
   return (
     <MessageComposer
       mode="edit"
       initialContent={post.content}
       initialImages={post.images}
       initialContentWarning={post.content_warning}
+      initialAnnouncement={post.announcement}
       placeholder="게시물 내용을 입력하세요..."
       onSubmit={handleSubmit}
       onCancel={onCancel}
+      showAnnouncement={canBeAnnouncement}
+      canBeAnnouncement={canBeAnnouncement}
     />
   );
 }

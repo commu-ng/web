@@ -2512,6 +2512,8 @@ export async function updatePost(
   content: string,
   imageIds: string[] | undefined,
   contentWarning: string | null | undefined,
+  announcement: boolean | undefined,
+  userRole: string,
 ) {
   // Validate post belongs to this community
   const hasAccess = await validatePostCommunityAccess(postId, communityId);
@@ -2554,15 +2556,6 @@ export async function updatePost(
     );
   }
 
-  // Cannot edit announcements
-  if (post.announcement) {
-    throw new AppException(
-      400,
-      GENERAL_ERROR_CODE,
-      "공지사항은 수정할 수 없습니다",
-    );
-  }
-
   // Cannot edit scheduled posts
   if (post.scheduledAt) {
     throw new AppException(
@@ -2570,6 +2563,25 @@ export async function updatePost(
       GENERAL_ERROR_CODE,
       "예약된 게시물은 수정할 수 없습니다",
     );
+  }
+
+  // Only owners can set announcement flag
+  if (announcement !== undefined && announcement !== post.announcement) {
+    if (userRole !== "owner") {
+      throw new AppException(
+        403,
+        GENERAL_ERROR_CODE,
+        "공지사항 설정은 소유자만 할 수 있습니다",
+      );
+    }
+    // Only root posts (not replies) can be announcements
+    if (announcement && post.depth !== 0) {
+      throw new AppException(
+        400,
+        GENERAL_ERROR_CODE,
+        "답글은 공지사항으로 설정할 수 없습니다",
+      );
+    }
   }
 
   // Validate that at least content or images are provided
@@ -2637,6 +2649,7 @@ export async function updatePost(
       .set({
         content,
         contentWarning: contentWarning || null,
+        ...(announcement !== undefined && { announcement }),
         updatedAt: sql`NOW()`,
       })
       .where(eq(postTable.id, postId));

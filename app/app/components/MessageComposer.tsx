@@ -37,6 +37,7 @@ export interface MessageComposerProps {
   initialContent?: string;
   initialImages?: PostImage[];
   initialContentWarning?: string | null;
+  initialAnnouncement?: boolean;
   placeholder?: string;
   onSubmit: (data: {
     content: string;
@@ -63,6 +64,7 @@ export function MessageComposer({
   initialContent = "",
   initialImages = [],
   initialContentWarning = null,
+  initialAnnouncement = false,
   placeholder = "무슨 일이 일어나고 있나요?",
   onSubmit,
   onCancel,
@@ -89,8 +91,8 @@ export function MessageComposer({
     initialContentWarning || "",
   );
 
-  // Announcement state (only for create mode)
-  const [isAnnouncement, setIsAnnouncement] = useState(false);
+  // Announcement state
+  const [isAnnouncement, setIsAnnouncement] = useState(initialAnnouncement);
 
   // Scheduling state (only for create mode)
   const [isScheduled, setIsScheduled] = useState(false);
@@ -276,14 +278,14 @@ export function MessageComposer({
         content_warning: contentWarning.trim() || undefined,
       };
 
-      // Add announcement and scheduling only for create mode
-      if (mode === "create") {
-        if (showAnnouncement) {
-          data.announcement = isAnnouncement;
-        }
-        if (showScheduling && isScheduled && scheduledAt) {
-          data.scheduled_at = scheduledAt.toISOString();
-        }
+      // Add announcement for create and edit mode
+      if (showAnnouncement) {
+        data.announcement = isAnnouncement;
+      }
+
+      // Add scheduling only for create mode
+      if (mode === "create" && showScheduling && isScheduled && scheduledAt) {
+        data.scheduled_at = scheduledAt.toISOString();
       }
 
       await onSubmit(data);
