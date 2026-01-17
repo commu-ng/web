@@ -1,55 +1,12 @@
-import { ChevronLeft, Download, LogOut } from "lucide-react";
-import { useState } from "react";
+import { ChevronLeft, LogOut } from "lucide-react";
 import { Link } from "react-router";
 import { toast } from "sonner";
 import { Button } from "~/components/ui/button";
 import { Spinner } from "~/components/ui/spinner";
 import { useAuth } from "~/hooks/useAuth";
-import { env } from "~/lib/env";
 
 export default function AccountSettings() {
   const { user, isLoading: authLoading, logout } = useAuth();
-  const [isExporting, setIsExporting] = useState(false);
-
-  const handleExportPosts = async () => {
-    setIsExporting(true);
-    try {
-      const sessionToken = localStorage.getItem("session_token");
-      const headers: Record<string, string> = {
-        "Content-Type": "application/json",
-      };
-      if (sessionToken) {
-        headers.Authorization = `Bearer ${sessionToken}`;
-      }
-
-      // Request export
-      const response = await fetch(`${env.apiBaseUrl}/app/export`, {
-        method: "POST",
-        headers,
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "내보내기 요청에 실패했습니다");
-      }
-
-      const _jobData = await response.json();
-
-      toast.success(
-        "내보내기 요청이 접수되었습니다. 완료되면 이메일로 다운로드 링크를 받으실 수 있습니다.",
-        { duration: 5000 },
-      );
-    } catch (error) {
-      console.error("Export error:", error);
-      const errorMessage =
-        error instanceof Error
-          ? error.message
-          : "게시물 내보내기에 실패했습니다";
-      toast.error(errorMessage);
-    } finally {
-      setIsExporting(false);
-    }
-  };
 
   const handleSignOut = async () => {
     try {
@@ -112,50 +69,16 @@ export default function AccountSettings() {
             <div className="bg-muted px-6 py-8">
               <div className="flex items-center gap-4">
                 <div>
-                  <h2 className="text-xl font-bold text-foreground">
-                    계정 및 데이터
-                  </h2>
-                  <p className="text-muted-foreground">
-                    데이터 내보내기 및 계정 관리
-                  </p>
+                  <h2 className="text-xl font-bold text-foreground">계정</h2>
+                  <p className="text-muted-foreground">계정 관리</p>
                 </div>
               </div>
             </div>
 
             {/* Content */}
             <div className="p-6 space-y-6">
-              {/* Export Data Section */}
-              <div className="space-y-3">
-                <h4 className="text-sm font-semibold text-foreground">
-                  커뮤 데이터 내보내기
-                </h4>
-                <p className="text-sm text-muted-foreground">
-                  커뮤의 모든 게시물, 메시지, 그룹 채팅, 이미지를 ZIP 파일로
-                  다운로드할 수 있습니다. 내보내기가 완료되면 이메일로 다운로드
-                  링크를 받으실 수 있습니다.
-                </p>
-                <Button
-                  variant="outline"
-                  onClick={handleExportPosts}
-                  disabled={isExporting}
-                  className="w-full h-12 text-base font-medium"
-                >
-                  {isExporting ? (
-                    <div className="flex items-center gap-2">
-                      <Spinner className="h-4 w-4" />
-                      요청 중...
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-2">
-                      <Download className="h-4 w-4" />
-                      데이터 내보내기 요청
-                    </div>
-                  )}
-                </Button>
-              </div>
-
               {/* Sign Out Section */}
-              <div className="border-t border-border pt-6 space-y-3">
+              <div className="space-y-3">
                 <h4 className="text-sm font-semibold text-foreground">
                   로그아웃
                 </h4>

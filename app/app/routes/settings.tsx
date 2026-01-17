@@ -72,8 +72,8 @@ export default function Settings() {
       requiresModeratorOrOwner: true,
     },
     {
-      title: "계정 및 데이터",
-      description: "데이터 내보내기, 로그아웃",
+      title: "계정",
+      description: "로그아웃",
       icon: FileText,
       href: "/settings/account",
     },

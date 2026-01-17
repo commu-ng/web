@@ -1,6 +1,5 @@
 import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
-import { z } from "zod";
 import {
   appAuthMiddleware,
   optionalAppAuthMiddleware,
@@ -22,73 +21,12 @@ import {
   scheduledPostsQuerySchema,
 } from "../../schemas";
 import * as emailService from "../../services/email.service";
-import * as exportJobService from "../../services/export-job.service";
 import * as postService from "../../services/post.service";
 import * as profileService from "../../services/profile.service";
 import type { AuthVariables } from "../../types";
 import { GeneralErrorCode } from "../../types/api-responses";
 
-const exportJobIdParamSchema = z.object({
-  job_id: z.string().uuid(),
-});
-
 export const postsRouter = new Hono<{ Variables: AuthVariables }>()
-  .post(
-    "/export",
-    communityMiddleware,
-    appAuthMiddleware,
-    membershipMiddleware,
-    async (c) => {
-      const user = c.get("user");
-      const community = c.get("community");
-
-      const job = await exportJobService.createExportJob(community.id, user.id);
-
-      return c.json(
-        {
-          data: {
-            job_id: job.id,
-            status: job.status,
-            created_at: job.created_at,
-          },
-        },
-        202,
-      );
-    },
-  )
-  .get(
-    "/export/:job_id",
-    appAuthMiddleware,
-    zValidator("param", exportJobIdParamSchema),
-    async (c) => {
-      const { job_id: jobId } = c.req.valid("param");
-      const user = c.get("user");
-
-      const job = await exportJobService.getExportJobStatus(jobId, user.id);
-
-      return c.json({
-        data: {
-          id: job.id,
-          status: job.status,
-          download_url: job.download_url,
-          expires_at: job.expires_at,
-          error: job.error_message,
-          created_at: job.created_at,
-          completed_at: job.completed_at,
-        },
-      });
-    },
-  )
-  .get("/exports", communityMiddleware, appAuthMiddleware, async (c) => {
-    const user = c.get("user");
-    const community = c.get("community");
-    const exports = await exportJobService.getUserExports(
-      user.id,
-      community.id,
-    );
-
-    return c.json({ data: exports });
-  })
   .post("/upload/file", communityMiddleware, appAuthMiddleware, async (c) => {
     // Check Content-Type before parsing formData
     const contentType = c.req.header("content-type") || "";
