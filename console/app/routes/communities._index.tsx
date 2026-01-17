@@ -1,16 +1,21 @@
 import { useQuery } from "@tanstack/react-query";
-import { Filter, Hash, X } from "lucide-react";
+import { ChevronDown, ChevronUp, Hash, Plus, Search, X } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
+import { Link } from "react-router";
 import { CommunityCard } from "~/components/CommunityCard";
+import { LoadingState } from "~/components/shared/LoadingState";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "~/components/ui/card";
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "~/components/ui/empty";
+import { Input } from "~/components/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
+import { useAuth } from "~/hooks/useAuth";
 import { api } from "~/lib/api-client";
 import type { Route } from "./+types/communities._index";
 
@@ -45,6 +50,7 @@ interface Community {
   is_member: boolean;
   role?: string | null;
   hashtags?: { id: string; tag: string }[];
+  pending_application_count?: number;
 }
 
 async function fetchRecruitingCommunities(): Promise<Community[]> {
@@ -59,8 +65,17 @@ async function fetchOngoingCommunities(): Promise<Community[]> {
   return result.data;
 }
 
+async function fetchMyCommunities(): Promise<Community[]> {
+  const res = await api.console.communities.mine.$get();
+  const result = await res.json();
+  return result.data;
+}
+
 export default function Communities() {
+  const { isAuthenticated } = useAuth();
+  const [searchQuery, setSearchQuery] = useState("");
   const [selectedHashtags, setSelectedHashtags] = useState<string[]>([]);
+  const [showAllHashtags, setShowAllHashtags] = useState(false);
 
   const {
     data: recruitingCommunities,
@@ -82,20 +97,26 @@ export default function Communities() {
     queryFn: fetchOngoingCommunities,
   });
 
+  const { data: myCommunities, isLoading: isLoadingMine } = useQuery({
+    queryKey: ["communities", "mine"],
+    queryFn: fetchMyCommunities,
+    enabled: isAuthenticated,
+  });
+
   const isLoading = isLoadingRecruiting || isLoadingOngoing;
   const error = recruitingError || ongoingError;
 
-  // Combine all communities for hashtag extraction
-  const allCommunities = useMemo(() => {
+  // Combine all public communities for hashtag extraction
+  const allPublicCommunities = useMemo(() => {
     return [...(recruitingCommunities || []), ...(ongoingCommunities || [])];
   }, [recruitingCommunities, ongoingCommunities]);
 
-  // Get top 30 most frequently used hashtags from all communities
+  // Get top hashtags from all communities
   const allHashtags = useMemo(() => {
-    if (allCommunities.length === 0) return [];
+    if (allPublicCommunities.length === 0) return [];
 
     const hashtagCounts = new Map<string, number>();
-    allCommunities.forEach((community) => {
+    allPublicCommunities.forEach((community) => {
       community.hashtags?.forEach((hashtag) => {
         hashtagCounts.set(
           hashtag.tag,
@@ -105,42 +126,57 @@ export default function Communities() {
     });
 
     return Array.from(hashtagCounts.entries())
-      .sort((a, b) => b[1] - a[1]) // Sort by count descending
-      .slice(0, 30) // Take top 30
-      .map((entry) => entry[0]); // Extract hashtag names
-  }, [allCommunities]);
+      .sort((a, b) => b[1] - a[1])
+      .map((entry) => entry[0]);
+  }, [allPublicCommunities]);
 
-  // Filter communities based on selected hashtags
+  const visibleHashtags = showAllHashtags
+    ? allHashtags
+    : allHashtags.slice(0, 10);
+
+  // Filter function for search and hashtags
   const filterCommunities = useCallback(
     (communities: Community[] | undefined) => {
       if (!communities) return [];
-      if (selectedHashtags.length === 0) return communities;
 
       return communities.filter((community) => {
-        if (!community.hashtags || community.hashtags.length === 0)
-          return false;
+        // Search filter
+        const matchesSearch =
+          searchQuery === "" ||
+          community.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          community.slug.toLowerCase().includes(searchQuery.toLowerCase());
 
-        // Check if community has ALL selected hashtags
-        const hashtags = community.hashtags;
-        return selectedHashtags.every((selectedTag) =>
-          hashtags.some((hashtag) => hashtag.tag === selectedTag),
-        );
+        // Hashtag filter
+        const matchesHashtags =
+          selectedHashtags.length === 0 ||
+          (community.hashtags &&
+            selectedHashtags.every((selectedTag) =>
+              community.hashtags?.some(
+                (hashtag) => hashtag.tag === selectedTag,
+              ),
+            ));
+
+        return matchesSearch && matchesHashtags;
       });
     },
-    [selectedHashtags],
+    [searchQuery, selectedHashtags],
   );
 
-  const filteredRecruitingCommunities = useMemo(
+  const filteredRecruiting = useMemo(
     () => filterCommunities(recruitingCommunities),
     [filterCommunities, recruitingCommunities],
   );
 
-  const filteredOngoingCommunities = useMemo(
+  const filteredOngoing = useMemo(
     () => filterCommunities(ongoingCommunities),
     [filterCommunities, ongoingCommunities],
   );
 
-  // Toggle hashtag selection
+  const filteredMine = useMemo(
+    () => filterCommunities(myCommunities),
+    [filterCommunities, myCommunities],
+  );
+
   const toggleHashtag = (hashtag: string) => {
     setSelectedHashtags((prev) =>
       prev.includes(hashtag)
@@ -149,199 +185,269 @@ export default function Communities() {
     );
   };
 
-  // Clear all filters
   const clearFilters = () => {
+    setSearchQuery("");
     setSelectedHashtags([]);
   };
 
+  const hasActiveFilters = searchQuery !== "" || selectedHashtags.length > 0;
+
   if (isLoading) {
     return (
-      <div className="container mx-auto py-8 px-4 max-w-2xl">
-        <div className="text-center">커뮤 목록을 불러오는 중...</div>
+      <div className="container mx-auto py-8 px-4 max-w-4xl">
+        <LoadingState message="커뮤 목록을 불러오는 중..." />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="container mx-auto py-8 px-4 max-w-2xl">
-        <Card className="w-full max-w-md mx-auto">
-          <CardHeader className="text-center">
-            <CardTitle className="text-red-600">오류 발생</CardTitle>
-            <CardDescription>커뮤 목록을 불러올 수 없습니다</CardDescription>
-          </CardHeader>
-          <CardContent className="text-center">
-            <Button
-              onClick={() => {
-                refetchRecruiting();
-                refetchOngoing();
-              }}
-            >
-              다시 시도
-            </Button>
-          </CardContent>
-        </Card>
+      <div className="container mx-auto py-8 px-4 max-w-4xl">
+        <Empty>
+          <EmptyHeader>
+            <EmptyTitle className="text-red-600">오류 발생</EmptyTitle>
+            <EmptyDescription>커뮤 목록을 불러올 수 없습니다</EmptyDescription>
+          </EmptyHeader>
+          <Button
+            onClick={() => {
+              refetchRecruiting();
+              refetchOngoing();
+            }}
+          >
+            다시 시도
+          </Button>
+        </Empty>
       </div>
     );
   }
-
-  const hasRecruitingCommunities =
-    recruitingCommunities && recruitingCommunities.length > 0;
-  const hasOngoingCommunities =
-    ongoingCommunities && ongoingCommunities.length > 0;
-  const hasAnyCommunities = hasRecruitingCommunities || hasOngoingCommunities;
-
-  if (!hasAnyCommunities) {
-    return (
-      <div className="container mx-auto py-8 px-4 max-w-2xl">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-3xl font-bold">커뮤 목록</h1>
-            <p className="text-muted-foreground mt-2">
-              현재 표시할 커뮤가 없습니다.
-            </p>
-          </div>
-        </div>
-
-        <Card className="w-full max-w-md mx-auto">
-          <CardHeader className="text-center">
-            <CardTitle>커뮤가 없습니다</CardTitle>
-            <CardDescription>현재 표시할 커뮤가 없어요.</CardDescription>
-          </CardHeader>
-        </Card>
-      </div>
-    );
-  }
-
-  const totalFiltered =
-    filteredRecruitingCommunities.length + filteredOngoingCommunities.length;
 
   return (
-    <div className="container mx-auto py-8 px-4 max-w-2xl lg:max-w-6xl">
-      <div className="flex items-center justify-between mb-8">
+    <div className="container mx-auto py-8 px-4 max-w-4xl">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-3xl font-bold">커뮤 목록</h1>
-          <p className="text-muted-foreground mt-2">
-            모집 중 {recruitingCommunities?.length || 0}개 · 진행 중{" "}
-            {ongoingCommunities?.length || 0}개
-            {selectedHashtags.length > 0 && (
-              <span className="ml-2 text-blue-600">
-                (필터 적용: {totalFiltered}개)
-              </span>
-            )}
-          </p>
         </div>
+        <Button asChild>
+          <Link to="/communities/create">
+            <Plus className="h-4 w-4 mr-2" />
+            커뮤 만들기
+          </Link>
+        </Button>
+      </div>
+
+      {/* Search Bar */}
+      <div className="relative mb-4">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          type="text"
+          placeholder="커뮤 이름으로 검색..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="pl-10 pr-10"
+        />
+        {searchQuery && (
+          <button
+            type="button"
+            onClick={() => setSearchQuery("")}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        )}
       </div>
 
       {/* Hashtag Filter */}
       {allHashtags.length > 0 && (
-        <div className="bg-background pb-6 mb-6">
-          <Card className="shadow-lg">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Filter className="h-4 w-4" />
-                  <CardTitle className="text-lg">해시태그로 필터링</CardTitle>
-                </div>
-                {selectedHashtags.length > 0 && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={clearFilters}
-                    className="text-xs"
-                  >
-                    <X className="h-3 w-3 mr-1" />
-                    필터 초기화
-                  </Button>
+        <div className="mb-6">
+          <div className="flex flex-wrap items-center gap-2">
+            {visibleHashtags.map((hashtag) => (
+              <Badge
+                key={hashtag}
+                variant={
+                  selectedHashtags.includes(hashtag) ? "default" : "outline"
+                }
+                className={`cursor-pointer transition-colors ${
+                  selectedHashtags.includes(hashtag)
+                    ? "bg-blue-600 hover:bg-blue-700 text-white"
+                    : "hover:bg-accent"
+                }`}
+                onClick={() => toggleHashtag(hashtag)}
+              >
+                <Hash className="h-3 w-3 mr-1" />
+                {hashtag}
+              </Badge>
+            ))}
+            {allHashtags.length > 10 && (
+              <button
+                type="button"
+                onClick={() => setShowAllHashtags(!showAllHashtags)}
+                className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1"
+              >
+                {showAllHashtags ? (
+                  <>
+                    <ChevronUp className="h-3 w-3" />
+                    접기
+                  </>
+                ) : (
+                  <>
+                    <ChevronDown className="h-3 w-3" />+
+                    {allHashtags.length - 10}개 더보기
+                  </>
                 )}
-              </div>
-              <CardDescription>
-                관심 있는 해시태그를 선택해서 커뮤를 필터링하세요
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-wrap gap-2">
-                {allHashtags.map((hashtag) => (
-                  <Badge
-                    key={hashtag}
-                    variant={
-                      selectedHashtags.includes(hashtag) ? "default" : "outline"
-                    }
-                    className={`cursor-pointer transition-colors ${
-                      selectedHashtags.includes(hashtag)
-                        ? "bg-blue-600 hover:bg-blue-700 text-white"
-                        : "hover:bg-blue-50 hover:border-blue-300"
-                    }`}
-                    onClick={() => toggleHashtag(hashtag)}
-                  >
-                    <Hash className="h-3 w-3 mr-1" />
-                    {hashtag}
-                  </Badge>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+              </button>
+            )}
+            {hasActiveFilters && (
+              <button
+                type="button"
+                onClick={clearFilters}
+                className="text-sm text-red-600 hover:text-red-700 flex items-center gap-1 ml-2"
+              >
+                <X className="h-3 w-3" />
+                필터 초기화
+              </button>
+            )}
+          </div>
         </div>
       )}
 
-      {/* No Results After Filter */}
-      {totalFiltered === 0 && selectedHashtags.length > 0 ? (
-        <Card className="w-full max-w-md mx-auto">
-          <CardHeader className="text-center">
-            <CardTitle>선택한 해시태그와 일치하는 커뮤가 없습니다</CardTitle>
-            <CardDescription>
-              다른 해시태그를 선택하거나 필터를 초기화해보세요.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="text-center">
-            <Button onClick={clearFilters} variant="outline">
-              필터 초기화
-            </Button>
-          </CardContent>
-        </Card>
-      ) : (
-        <>
-          {/* Recruiting Communities Section */}
-          {filteredRecruitingCommunities.length > 0 && (
-            <div className="mb-12">
-              <div className="mb-6">
-                <h2 className="text-2xl font-bold">모집 중인 커뮤</h2>
-                <p className="text-muted-foreground mt-1">
-                  새로운 멤버를 모집하고 있는 커뮤 (
-                  {filteredRecruitingCommunities.length}개)
-                </p>
-              </div>
-              <div className="columns-1 md:columns-2 lg:columns-3 gap-4 space-y-4">
-                {filteredRecruitingCommunities.map((community) => (
-                  <div key={community.id} className="break-inside-avoid mb-4">
-                    <CommunityCard community={community} />
-                  </div>
-                ))}
-              </div>
-            </div>
+      {/* Tabs */}
+      <Tabs defaultValue="recruiting" className="w-full">
+        <TabsList className="w-full justify-start mb-6">
+          <TabsTrigger value="recruiting" className="flex-1 sm:flex-none">
+            모집 중
+            <span className="ml-1.5 text-xs bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300 px-1.5 py-0.5 rounded-full">
+              {filteredRecruiting.length}
+            </span>
+          </TabsTrigger>
+          <TabsTrigger value="ongoing" className="flex-1 sm:flex-none">
+            진행 중
+            <span className="ml-1.5 text-xs bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 px-1.5 py-0.5 rounded-full">
+              {filteredOngoing.length}
+            </span>
+          </TabsTrigger>
+          {isAuthenticated && (
+            <TabsTrigger value="mine" className="flex-1 sm:flex-none">
+              내 커뮤
+              <span className="ml-1.5 text-xs bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300 px-1.5 py-0.5 rounded-full">
+                {isLoadingMine ? "..." : filteredMine.length}
+              </span>
+            </TabsTrigger>
           )}
+        </TabsList>
 
-          {/* Ongoing Communities Section */}
-          {filteredOngoingCommunities.length > 0 && (
-            <div>
-              <div className="mb-6">
-                <h2 className="text-2xl font-bold">진행 중인 커뮤</h2>
-                <p className="text-muted-foreground mt-1">
-                  현재 진행 중이지만 모집하지 않는 커뮤 (
-                  {filteredOngoingCommunities.length}개)
-                </p>
-              </div>
-              <div className="columns-1 md:columns-2 lg:columns-3 gap-4 space-y-4">
-                {filteredOngoingCommunities.map((community) => (
-                  <div key={community.id} className="break-inside-avoid mb-4">
-                    <CommunityCard community={community} />
-                  </div>
-                ))}
-              </div>
+        <TabsContent value="recruiting">
+          {filteredRecruiting.length === 0 ? (
+            <Empty>
+              <EmptyHeader>
+                <EmptyMedia variant="icon">
+                  <Search />
+                </EmptyMedia>
+                <EmptyTitle>
+                  {hasActiveFilters
+                    ? "검색 결과가 없습니다"
+                    : "모집 중인 커뮤가 없습니다"}
+                </EmptyTitle>
+                <EmptyDescription>
+                  {hasActiveFilters
+                    ? "다른 검색어나 해시태그를 시도해보세요."
+                    : "새로운 커뮤가 곧 모집을 시작할 예정입니다."}
+                </EmptyDescription>
+              </EmptyHeader>
+              {hasActiveFilters && (
+                <Button variant="outline" onClick={clearFilters}>
+                  필터 초기화
+                </Button>
+              )}
+            </Empty>
+          ) : (
+            <div className="space-y-4">
+              {filteredRecruiting.map((community) => (
+                <CommunityCard key={community.id} community={community} />
+              ))}
             </div>
           )}
-        </>
-      )}
+        </TabsContent>
+
+        <TabsContent value="ongoing">
+          {filteredOngoing.length === 0 ? (
+            <Empty>
+              <EmptyHeader>
+                <EmptyMedia variant="icon">
+                  <Search />
+                </EmptyMedia>
+                <EmptyTitle>
+                  {hasActiveFilters
+                    ? "검색 결과가 없습니다"
+                    : "진행 중인 커뮤가 없습니다"}
+                </EmptyTitle>
+                <EmptyDescription>
+                  {hasActiveFilters
+                    ? "다른 검색어나 해시태그를 시도해보세요."
+                    : "현재 진행 중인 커뮤가 없습니다."}
+                </EmptyDescription>
+              </EmptyHeader>
+              {hasActiveFilters && (
+                <Button variant="outline" onClick={clearFilters}>
+                  필터 초기화
+                </Button>
+              )}
+            </Empty>
+          ) : (
+            <div className="space-y-4">
+              {filteredOngoing.map((community) => (
+                <CommunityCard key={community.id} community={community} />
+              ))}
+            </div>
+          )}
+        </TabsContent>
+
+        {isAuthenticated && (
+          <TabsContent value="mine">
+            {isLoadingMine ? (
+              <LoadingState message="내 커뮤를 불러오는 중..." />
+            ) : filteredMine.length === 0 ? (
+              <Empty>
+                <EmptyHeader>
+                  <EmptyMedia variant="icon">
+                    <Search />
+                  </EmptyMedia>
+                  <EmptyTitle>
+                    {hasActiveFilters
+                      ? "검색 결과가 없습니다"
+                      : "참여 중인 커뮤가 없습니다"}
+                  </EmptyTitle>
+                  <EmptyDescription>
+                    {hasActiveFilters
+                      ? "다른 검색어나 해시태그를 시도해보세요."
+                      : "새로운 커뮤를 만들거나 커뮤를 둘러보세요!"}
+                  </EmptyDescription>
+                </EmptyHeader>
+                {hasActiveFilters ? (
+                  <Button variant="outline" onClick={clearFilters}>
+                    필터 초기화
+                  </Button>
+                ) : (
+                  <div className="flex gap-2">
+                    <Button asChild>
+                      <Link to="/communities/create">
+                        <Plus className="h-4 w-4 mr-2" />
+                        커뮤 만들기
+                      </Link>
+                    </Button>
+                  </div>
+                )}
+              </Empty>
+            ) : (
+              <div className="space-y-4">
+                {filteredMine.map((community) => (
+                  <CommunityCard key={community.id} community={community} />
+                ))}
+              </div>
+            )}
+          </TabsContent>
+        )}
+      </Tabs>
     </div>
   );
 }
