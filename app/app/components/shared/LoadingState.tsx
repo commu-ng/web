@@ -46,7 +46,7 @@ export function LoadingState({
   if (asCard) {
     return (
       <div
-        className={`bg-card rounded-2xl shadow-sm border border-border p-8 text-center ${className}`}
+        className={`bg-card border-b border-border p-8 text-center ${className}`}
       >
         {content}
       </div>

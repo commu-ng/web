@@ -88,7 +88,7 @@ export function MessageSender({
   // If community has ended, show notice instead of message sender
   if (communityEnded) {
     return (
-      <div className="bg-muted border border-border rounded-xl p-6 text-center">
+      <div className="bg-muted border-b border-border p-6 text-center">
         <AlertTriangle className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
         <h3 className="text-lg font-semibold text-foreground mb-2">
           커뮤가 종료되었습니다
@@ -103,7 +103,7 @@ export function MessageSender({
   // If community hasn't started and user is not owner/moderator, show notice
   if (communityNotStarted && !isOwnerOrModerator) {
     return (
-      <div className="bg-muted border border-border rounded-xl p-6 text-center">
+      <div className="bg-muted border-b border-border p-6 text-center">
         <AlertTriangle className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
         <h3 className="text-lg font-semibold text-foreground mb-2">
           커뮤가 아직 시작되지 않았습니다

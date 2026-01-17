@@ -41,7 +41,7 @@ export function EmptyState({
 }: EmptyStateProps) {
   return (
     <div
-      className={`bg-card rounded-2xl shadow-sm border border-border p-12 text-center ${className}`}
+      className={`bg-card border-b border-border p-12 text-center ${className}`}
     >
       <div className="w-16 h-16 bg-accent rounded-full flex items-center justify-center mx-auto mb-6">
         {iconElement ? (
