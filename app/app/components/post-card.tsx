@@ -259,9 +259,11 @@ export const PostCard = memo(function PostCard({
     const depth = post.depth || 0;
     const isReply = depth > 0;
     const cardSize = isReply ? "text-xs" : "text-sm";
-    const padding = isReply ? "pt-1 pl-2" : "p-4";
+    const hasReplies = post.replies && post.replies.length > 0;
+    // Only add bottom padding to deepest replies (those without children)
+    const padding = isReply ? (hasReplies ? "pt-2 pl-2" : "py-2 pl-2") : "p-4";
     return { depth, isReply, cardSize, padding };
-  }, [post.depth]);
+  }, [post.depth, post.replies]);
 
   return (
     <div
@@ -270,8 +272,8 @@ export const PostCard = memo(function PostCard({
           ? "bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30 border-l-4 border-l-amber-500 dark:border-l-amber-600 shadow-lg"
           : isReply
             ? "bg-background"
-            : `bg-card ${!hideBorder ? "border border-border" : ""}`
-      } ${isReply ? "" : "rounded-2xl"} ${!hideBorder && !isReply ? "shadow-sm" : ""} overflow-hidden ${
+            : `bg-card ${!hideBorder ? "border-b border-border" : ""}`
+      } ${isReply ? "" : ""} ${!hideBorder && !isReply ? "" : ""} overflow-hidden ${
         isReply
           ? `border-l-4 ${
               depth === 1

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Header } from "~/components/header";
+import { MastodonLayout } from "~/components/layout";
 import { UnreadCountProvider } from "~/contexts/UnreadCountContext";
 import { useAuth } from "~/hooks/useAuth";
 import { useCurrentInstance } from "~/hooks/useCurrentInstance";
@@ -83,18 +83,19 @@ export function AppLayout({ children }: AppLayoutProps) {
       refreshUnreadCounts={fetchUnreadCounts}
       isHeaderVisible={isHeaderVisible}
     >
-      <div className="min-h-screen bg-background">
-        {isAuthenticated && (
-          <div ref={headerRef}>
-            <Header
-              communityName={instanceName}
-              consoleUrl={env.consoleUrl}
-              unreadCount={unreadCount}
-              unreadMessageCount={unreadMessageCount}
-            />
-          </div>
+      <div ref={headerRef}>
+        {isAuthenticated ? (
+          <MastodonLayout
+            communityName={instanceName}
+            consoleUrl={env.consoleUrl}
+            unreadCount={unreadCount}
+            unreadMessageCount={unreadMessageCount}
+          >
+            {children}
+          </MastodonLayout>
+        ) : (
+          <div className="min-h-screen bg-background">{children}</div>
         )}
-        {children}
       </div>
     </UnreadCountProvider>
   );

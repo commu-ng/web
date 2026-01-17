@@ -34,7 +34,7 @@ export function PostCardImages({
   return (
     <div className={isReply ? "mt-2" : "mt-4"}>
       {images.length === 1 && images[0] ? (
-        <div className="rounded-xl overflow-hidden border border-border">
+        <div className="overflow-hidden border border-border">
           <img
             src={images[0].url}
             alt={images[0].filename}
@@ -68,7 +68,7 @@ export function PostCardImages({
           <CarouselContent className="-ml-2 md:-ml-4">
             {images.map((image) => (
               <CarouselItem key={image.id} className="pl-2 md:pl-4 basis-4/5">
-                <div className="rounded-xl overflow-hidden border border-border">
+                <div className="overflow-hidden border border-border">
                   <img
                     src={image.url}
                     alt={image.filename}

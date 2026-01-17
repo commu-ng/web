@@ -69,7 +69,7 @@ export function PostCardHeader({
         isReply ? "mb-1" : "mb-3"
       }`}
     >
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-3">
         {/* Reply indicator */}
         {isReply && (
           <div className="flex items-center text-muted-foreground">

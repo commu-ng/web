@@ -3,7 +3,6 @@ import { useEffect, useRef } from "react";
 import { useLocation } from "react-router";
 import { LoginButton } from "~/components/LoginButton";
 import { MessageSender } from "~/components/message-sender";
-import { OnlineUsers } from "~/components/online-users";
 import { PostList, type PostListRef } from "~/components/post-list";
 import {
   ScheduledPostsList,
@@ -67,7 +66,7 @@ export default function Home() {
 
   if (isLoading) {
     return (
-      <div className="max-w-4xl mx-auto px-4 py-8">
+      <div className="px-4 py-8">
         <div className="flex items-center justify-center min-h-64">
           <LoadingState message="로딩 중..." asCard={false} />
         </div>
@@ -117,13 +116,10 @@ export default function Home() {
   }
 
   return (
-    <main className="max-w-4xl mx-auto px-4 py-6">
-      <div className="max-w-2xl mx-auto space-y-6">
-        {/* Online Users */}
-        {/* <OnlineUsers /> */}
-
+    <main className="py-4">
+      <div className="space-y-0">
         {/* Message Composer */}
-        <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
+        <div className="border-b border-border">
           <MessageSender
             key={currentProfile?.id || "no-profile"}
             onPostSuccess={handlePostSuccess}
@@ -134,7 +130,7 @@ export default function Home() {
         <ScheduledPostsList ref={scheduledPostsRef} />
 
         {/* Posts Feed */}
-        <div className="space-y-4">
+        <div>
           <PostList ref={postListRef} />
         </div>
       </div>

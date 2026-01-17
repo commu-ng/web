@@ -100,9 +100,9 @@ export const ScheduledPostsList = forwardRef<ScheduledPostsListRef>(
     }
 
     return (
-      <div className="space-y-4">
+      <div>
         {/* Section Header */}
-        <div className="flex items-center gap-3 px-1">
+        <div className="flex items-center gap-3 px-4 py-3 border-b border-border">
           <div className="flex items-center gap-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-100 dark:bg-purple-900/30">
               <Clock className="h-4 w-4 text-purple-600 dark:text-purple-400" />
@@ -119,11 +119,11 @@ export const ScheduledPostsList = forwardRef<ScheduledPostsListRef>(
         </div>
 
         {/* Scheduled Posts */}
-        <div className="space-y-4">
+        <div>
           {scheduledPosts.map((post) => (
             <div
               key={post.id}
-              className="overflow-hidden rounded-2xl border-2 border-purple-200 dark:border-purple-800 bg-purple-50/50 dark:bg-purple-950/20"
+              className="overflow-hidden border-b-2 border-purple-200 dark:border-purple-800 bg-purple-50/50 dark:bg-purple-950/20"
             >
               {/* Scheduled Time */}
               {post.scheduled_at && (
@@ -173,7 +173,7 @@ export const ScheduledPostsList = forwardRef<ScheduledPostsListRef>(
 
         {/* End of content indicator */}
         {!hasNextPage && scheduledPosts.length > 0 && (
-          <div className="bg-background rounded-2xl border border-border p-6 text-center mt-4">
+          <div className="bg-background border-b border-border p-6 text-center">
             <p className="text-muted-foreground text-sm">
               모든 예약 게시물을 확인했습니다
             </p>

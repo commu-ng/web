@@ -192,7 +192,7 @@ export const PostList = forwardRef<PostListRef>((_props, ref) => {
   }
 
   return (
-    <div className="space-y-4">
+    <div>
       {allPosts.length === 0 ? (
         <EmptyState
           iconElement={<span className="text-2xl">📝</span>}
@@ -201,7 +201,7 @@ export const PostList = forwardRef<PostListRef>((_props, ref) => {
         />
       ) : (
         <>
-          <div className="space-y-4">
+          <div>
             {allPosts.map((post) => (
               <PostCard
                 key={post.id}
@@ -225,7 +225,7 @@ export const PostList = forwardRef<PostListRef>((_props, ref) => {
 
           {/* End of content indicator */}
           {!hasNextPage && allPosts.length > 0 && (
-            <div className="bg-background rounded-2xl border border-border p-6 text-center">
+            <div className="bg-background border-b border-border p-6 text-center">
               <p className="text-muted-foreground text-sm">
                 모든 게시물을 확인했습니다
               </p>

@@ -430,9 +430,9 @@ export function MessageComposer({
     ));
 
   return (
-    <div className="bg-card border border-border rounded-xl shadow-sm relative">
+    <div className="bg-card relative">
       {/* Header with toggle buttons */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-background rounded-t-xl">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-background">
         <div className="flex items-center gap-1 sm:gap-2">
           <Button
             type="button"
@@ -723,7 +723,7 @@ export function MessageComposer({
         className={`px-4 py-3 bg-background ${
           showMentionDropdown && mentionProfiles.length > 0 && !isPreviewMode
             ? "border-t-0"
-            : "border-t border-border rounded-b-xl"
+            : "border-t border-border"
         }`}
       >
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0">

@@ -12,7 +12,11 @@ import {
 } from "~/components/ui/dropdown-menu";
 import { useAuth } from "~/hooks/useAuth";
 
-export function ProfileSwitcher() {
+interface ProfileSwitcherProps {
+  compact?: boolean;
+}
+
+export function ProfileSwitcher({ compact = false }: ProfileSwitcherProps) {
   const { currentProfile, availableProfiles, switchProfile } = useAuth();
 
   if (!currentProfile || availableProfiles.length === 0) {
@@ -33,36 +37,49 @@ export function ProfileSwitcher() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="h-auto p-2 justify-start space-x-2">
+        <Button
+          variant="outline"
+          className={
+            compact
+              ? "h-auto p-2 rounded-full"
+              : "h-auto p-2 justify-start space-x-2 rounded-full"
+          }
+        >
           <ProfileAvatar
             profilePictureUrl={displayProfile.profile_picture_url || undefined}
             name={displayProfile.name}
             username={displayProfile.username || ""}
-            size="sm"
+            size={compact ? "md" : "sm"}
           />
-          <div className="text-left">
-            <div className="flex items-center gap-2">
-              <div className="text-sm font-medium">{displayProfile.name}</div>
-              {displayProfile.is_owned === false && (
-                <Badge variant="secondary" className="text-xs">
-                  <div className="flex items-center gap-1">
-                    <Users className="h-3 w-3" />
-                    {displayProfile.role === "owner" ? (
-                      <Crown className="h-3 w-3" />
-                    ) : (
-                      <Settings className="h-3 w-3" />
-                    )}
+          {!compact && (
+            <>
+              <div className="text-left">
+                <div className="flex items-center gap-2">
+                  <div className="text-sm font-medium">
+                    {displayProfile.name}
                   </div>
-                </Badge>
-              )}
-            </div>
-            {displayProfile.username && (
-              <div className="text-xs text-muted-foreground">
-                @{displayProfile.username}
+                  {displayProfile.is_owned === false && (
+                    <Badge variant="secondary" className="text-xs">
+                      <div className="flex items-center gap-1">
+                        <Users className="h-3 w-3" />
+                        {displayProfile.role === "owner" ? (
+                          <Crown className="h-3 w-3" />
+                        ) : (
+                          <Settings className="h-3 w-3" />
+                        )}
+                      </div>
+                    </Badge>
+                  )}
+                </div>
+                {displayProfile.username && (
+                  <div className="text-xs text-muted-foreground">
+                    @{displayProfile.username}
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-          <ChevronDown className="h-4 w-4 text-muted-foreground" />
+              <ChevronDown className="h-4 w-4 text-muted-foreground" />
+            </>
+          )}
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-80">
