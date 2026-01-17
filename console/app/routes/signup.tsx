@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Checkbox } from "~/components/ui/checkbox";
 import {
   Field,
+  FieldDescription,
   FieldError,
   FieldGroup,
   FieldLabel,
@@ -155,6 +156,9 @@ export default function Signup() {
                   }}
                   required
                 />
+                <FieldDescription>
+                  영문 소문자, 숫자, 언더스코어만 사용 가능합니다.
+                </FieldDescription>
               </Field>
               <Field>
                 <FieldLabel htmlFor={passwordId}>비밀번호</FieldLabel>
