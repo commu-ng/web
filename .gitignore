@@ -1,6 +1,8 @@
 *.swp
 .env
 node_modules/
+android/
+ios/
 
 # Claude Code
 .claude/settings.local.json
