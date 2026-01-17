@@ -143,7 +143,16 @@ export default function Signup() {
                   type="text"
                   placeholder="아이디를 입력하세요"
                   value={formData.login_name}
-                  onChange={handleInputChange}
+                  onChange={(e) => {
+                    const filteredValue = e.target.value
+                      .replace(/[^a-zA-Z0-9_]/g, "")
+                      .toLowerCase();
+                    setFormData((prev) => ({
+                      ...prev,
+                      login_name: filteredValue,
+                    }));
+                    setError("");
+                  }}
                   required
                 />
               </Field>

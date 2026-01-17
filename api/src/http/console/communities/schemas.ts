@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { usernameSchema } from "../../../schemas";
 
 export const communityLinkCreateSchema = z.object({
   title: z.string().min(1, "Title cannot be empty"),
@@ -51,7 +52,7 @@ export const communityApplicationParamSchema = z.object({
 export const communityApplicationSchema = z.object({
   message: z.string().nullable().optional(),
   profile_name: z.string().min(1, "Profile name cannot be empty"),
-  profile_username: z.string().min(1, "Profile username cannot be empty"),
+  profile_username: usernameSchema,
   attachment_ids: z.array(z.uuid()).optional(),
 });
 

@@ -262,7 +262,7 @@ export const user = pgTable(
   (table) => [
     unique("user_login_name_key").on(table.loginName),
     unique("user_email_key").on(table.email),
-    sql`CONSTRAINT valid_login_name CHECK (login_name ~ '^[a-z0-9]([a-z0-9_-]*[a-z0-9])?$')`,
+    sql`CONSTRAINT valid_login_name CHECK (login_name ~ '^[a-z0-9_]+$')`,
     sql`CONSTRAINT valid_email CHECK (email IS NULL OR email ~ '^[^@]+@[^@]+\.[^@]+$')`,
   ],
 );

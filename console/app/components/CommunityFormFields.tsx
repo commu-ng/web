@@ -208,10 +208,9 @@ export function CommunityFormFields({
               placeholder="대표 프로필의 ID를 입력하세요"
               value={formData.profile_username}
               onChange={(e) => {
-                const filteredValue = e.target.value.replace(
-                  /[^a-zA-Z0-9_]/g,
-                  "",
-                );
+                const filteredValue = e.target.value
+                  .replace(/[^a-zA-Z0-9_]/g, "")
+                  .toLowerCase();
                 const syntheticEvent: React.ChangeEvent<HTMLInputElement> = {
                   ...e,
                   target: {

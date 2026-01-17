@@ -1,5 +1,27 @@
 import { z } from "zod";
 
+// Reusable username schema - alphanumeric and underscore only, normalized to lowercase
+export const usernameSchema = z
+  .string()
+  .min(1, "Username cannot be empty")
+  .max(50, "Username must be 50 characters or less")
+  .regex(
+    /^[a-zA-Z0-9_]+$/,
+    "Username must contain only alphanumeric characters and underscores",
+  )
+  .transform((val) => val.toLowerCase());
+
+// Login name schema - alphanumeric and underscore only, normalized to lowercase
+export const loginNameSchema = z
+  .string()
+  .min(1, "Login name cannot be empty")
+  .max(100, "Login name must be 100 characters or less")
+  .regex(
+    /^[a-zA-Z0-9_]+$/,
+    "Login name must contain only alphanumeric characters and underscores",
+  )
+  .transform((val) => val.toLowerCase());
+
 export const profileInfoSchema = z.object({
   id: z.uuid(),
   name: z.string(),
@@ -33,7 +55,7 @@ export const communityRoleUpdateRequestSchema = z.object({
 });
 
 export const userSignupSchema = z.object({
-  login_name: z.string().min(1, "Login name cannot be empty"),
+  login_name: loginNameSchema,
   password: z.string().min(8, "Password must be at least 8 characters long"),
 });
 
@@ -94,7 +116,7 @@ export const communityCreateRequestSchema = z.object({
   minimum_birth_year: z.number().int().nullable().optional(),
   image_id: z.uuid().nullable().optional(),
   hashtags: z.array(z.string()).optional(),
-  profile_username: z.string().min(1, "Profile username cannot be empty"),
+  profile_username: usernameSchema,
   profile_name: z.string().min(1, "Profile name cannot be empty"),
   description: z.string().nullable().optional(),
   mute_new_members: z.boolean().optional(),
@@ -117,7 +139,7 @@ export const communityUpdateRequestSchema = z.object({
   minimum_birth_year: z.number().int().nullable().optional(),
   image_id: z.uuid().nullable().optional(),
   hashtags: z.array(z.string()).optional(),
-  profile_username: z.string().optional(),
+  profile_username: usernameSchema.optional(),
   profile_name: z.string().optional(),
   description: z.string().nullable().optional(),
   description_image_ids: z.array(z.uuid()).optional(),
@@ -165,28 +187,14 @@ export const memberProfileIdParamSchema = z.object({
 
 export const profileUpdateRequestSchema = z.object({
   name: z.string().min(1, "Name cannot be empty"),
-  username: z
-    .string()
-    .min(1, "Username cannot be empty")
-    .max(50, "Username must be 50 characters or less")
-    .regex(
-      /^[a-zA-Z0-9_]+$/,
-      "Username must contain only alphanumeric characters and underscores",
-    ),
+  username: usernameSchema,
   bio: z.string().nullable().optional(),
   profile_picture_id: z.uuid().nullable().optional(),
 });
 
 export const profileCreateSchema = z.object({
   name: z.string().min(1, "Name cannot be empty"),
-  username: z
-    .string()
-    .min(1, "Username cannot be empty")
-    .max(50, "Username must be 50 characters or less")
-    .regex(
-      /^[a-zA-Z0-9_]+$/,
-      "Username must contain only alphanumeric characters and underscores",
-    ),
+  username: usernameSchema,
   bio: z.string().nullable().optional(),
   is_primary: z.boolean().default(false),
   profile_picture_id: z.uuid().nullable().optional(),
