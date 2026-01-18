@@ -654,6 +654,22 @@ export default function CommunityBots() {
                     GET {env.apiBaseUrl}/bot/communities/{community.id}
                     /posts/:postId
                   </p>
+                  <p>
+                    PUT {env.apiBaseUrl}/bot/communities/{community.id}
+                    /posts/:postId
+                  </p>
+                  <p>
+                    DELETE {env.apiBaseUrl}/bot/communities/{community.id}
+                    /posts/:postId
+                  </p>
+                  <p>
+                    POST {env.apiBaseUrl}/bot/communities/{community.id}
+                    /posts/:postId/reactions
+                  </p>
+                  <p>
+                    DELETE {env.apiBaseUrl}/bot/communities/{community.id}
+                    /posts/:postId/reactions/:emoji
+                  </p>
                 </div>
                 <p className="text-xs text-muted-foreground mt-2">
                   API 문서:{" "}

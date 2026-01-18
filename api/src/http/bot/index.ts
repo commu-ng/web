@@ -91,6 +91,39 @@ const PostCreatedResponseSchema = z.object({
   }),
 });
 
+const ReactionCreateSchema = z.object({
+  emoji: z
+    .string()
+    .min(1)
+    .max(32)
+    .openapi({ description: "Emoji to react with" }),
+});
+
+const ReactionResponseSchema = z.object({
+  data: z.object({
+    id: z.string().uuid(),
+    emoji: z.string(),
+    message: z.string(),
+  }),
+});
+
+const PostUpdateSchema = z.object({
+  content: z
+    .string()
+    .max(10000)
+    .openapi({ description: "The new content of the post" }),
+  content_warning: z
+    .string()
+    .max(500)
+    .nullable()
+    .optional()
+    .openapi({ description: "Content warning text" }),
+});
+
+const MessageResponseSchema = z.object({
+  message: z.string(),
+});
+
 // Route definitions
 const getPostsRoute = createRoute({
   method: "get",
@@ -233,6 +266,223 @@ const createPostRoute = createRoute({
     },
     403: {
       description: "Forbidden",
+      content: {
+        "application/json": {
+          schema: ErrorSchema,
+        },
+      },
+    },
+  },
+});
+
+// Add reaction route
+const addReactionRoute = createRoute({
+  method: "post",
+  path: "/communities/{communityId}/posts/{postId}/reactions",
+  tags: ["Reactions"],
+  summary: "Add a reaction",
+  description: "Add a reaction to a post.",
+  security: [{ bearerAuth: [] }],
+  request: {
+    params: z.object({
+      communityId: z.string().uuid().openapi({ description: "Community ID" }),
+      postId: z.string().uuid().openapi({ description: "Post ID" }),
+    }),
+    body: {
+      content: {
+        "application/json": {
+          schema: ReactionCreateSchema,
+        },
+      },
+    },
+  },
+  responses: {
+    201: {
+      description: "Reaction added successfully",
+      content: {
+        "application/json": {
+          schema: ReactionResponseSchema,
+        },
+      },
+    },
+    400: {
+      description: "Invalid request or reaction already exists",
+      content: {
+        "application/json": {
+          schema: ErrorSchema,
+        },
+      },
+    },
+    401: {
+      description: "Unauthorized",
+      content: {
+        "application/json": {
+          schema: ErrorSchema,
+        },
+      },
+    },
+    404: {
+      description: "Post not found",
+      content: {
+        "application/json": {
+          schema: ErrorSchema,
+        },
+      },
+    },
+  },
+});
+
+// Remove reaction route
+const removeReactionRoute = createRoute({
+  method: "delete",
+  path: "/communities/{communityId}/posts/{postId}/reactions/{emoji}",
+  tags: ["Reactions"],
+  summary: "Remove a reaction",
+  description: "Remove a reaction from a post.",
+  security: [{ bearerAuth: [] }],
+  request: {
+    params: z.object({
+      communityId: z.string().uuid().openapi({ description: "Community ID" }),
+      postId: z.string().uuid().openapi({ description: "Post ID" }),
+      emoji: z.string().openapi({ description: "Emoji to remove" }),
+    }),
+  },
+  responses: {
+    200: {
+      description: "Reaction removed successfully",
+      content: {
+        "application/json": {
+          schema: MessageResponseSchema,
+        },
+      },
+    },
+    401: {
+      description: "Unauthorized",
+      content: {
+        "application/json": {
+          schema: ErrorSchema,
+        },
+      },
+    },
+    404: {
+      description: "Post or reaction not found",
+      content: {
+        "application/json": {
+          schema: ErrorSchema,
+        },
+      },
+    },
+  },
+});
+
+// Update post route
+const updatePostRoute = createRoute({
+  method: "put",
+  path: "/communities/{communityId}/posts/{postId}",
+  tags: ["Posts"],
+  summary: "Update a post",
+  description:
+    "Update a post created by the bot. Only the bot's own posts can be updated.",
+  security: [{ bearerAuth: [] }],
+  request: {
+    params: z.object({
+      communityId: z.string().uuid().openapi({ description: "Community ID" }),
+      postId: z.string().uuid().openapi({ description: "Post ID" }),
+    }),
+    body: {
+      content: {
+        "application/json": {
+          schema: PostUpdateSchema,
+        },
+      },
+    },
+  },
+  responses: {
+    200: {
+      description: "Post updated successfully",
+      content: {
+        "application/json": {
+          schema: PostCreatedResponseSchema,
+        },
+      },
+    },
+    400: {
+      description: "Invalid request",
+      content: {
+        "application/json": {
+          schema: ErrorSchema,
+        },
+      },
+    },
+    401: {
+      description: "Unauthorized",
+      content: {
+        "application/json": {
+          schema: ErrorSchema,
+        },
+      },
+    },
+    403: {
+      description: "Cannot update posts created by others",
+      content: {
+        "application/json": {
+          schema: ErrorSchema,
+        },
+      },
+    },
+    404: {
+      description: "Post not found",
+      content: {
+        "application/json": {
+          schema: ErrorSchema,
+        },
+      },
+    },
+  },
+});
+
+// Delete post route
+const deletePostRoute = createRoute({
+  method: "delete",
+  path: "/communities/{communityId}/posts/{postId}",
+  tags: ["Posts"],
+  summary: "Delete a post",
+  description:
+    "Delete a post created by the bot. Only the bot's own posts can be deleted.",
+  security: [{ bearerAuth: [] }],
+  request: {
+    params: z.object({
+      communityId: z.string().uuid().openapi({ description: "Community ID" }),
+      postId: z.string().uuid().openapi({ description: "Post ID" }),
+    }),
+  },
+  responses: {
+    200: {
+      description: "Post deleted successfully",
+      content: {
+        "application/json": {
+          schema: MessageResponseSchema,
+        },
+      },
+    },
+    401: {
+      description: "Unauthorized",
+      content: {
+        "application/json": {
+          schema: ErrorSchema,
+        },
+      },
+    },
+    403: {
+      description: "Cannot delete posts created by others",
+      content: {
+        "application/json": {
+          schema: ErrorSchema,
+        },
+      },
+    },
+    404: {
+      description: "Post not found",
       content: {
         "application/json": {
           schema: ErrorSchema,
@@ -464,6 +714,337 @@ botApiRouter
     );
 
     return c.json({ data: result }, 201);
+  })
+
+  // Add reaction
+  .openapi(addReactionRoute, async (c) => {
+    const authHeader = c.req.header("Authorization");
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return c.json(
+        {
+          error: {
+            code: "UNAUTHORIZED",
+            message: "Missing or invalid Authorization header",
+          },
+        },
+        401,
+      );
+    }
+
+    const token = authHeader.substring(7);
+    const { validateBotToken, getCommunityById } = await import(
+      "../../services/bot.service"
+    );
+    const botResult = await validateBotToken(token);
+
+    if (!botResult) {
+      return c.json(
+        {
+          error: {
+            code: "UNAUTHORIZED",
+            message: "Invalid or expired bot token",
+          },
+        },
+        401,
+      );
+    }
+
+    const { communityId, postId } = c.req.valid("param");
+    if (communityId !== botResult.communityId) {
+      return c.json(
+        {
+          error: {
+            code: "FORBIDDEN",
+            message: "Bot does not have access to this community",
+          },
+        },
+        403,
+      );
+    }
+
+    const community = await getCommunityById(communityId);
+    if (!community) {
+      return c.json(
+        { error: { code: "NOT_FOUND", message: "Community not found" } },
+        404,
+      );
+    }
+
+    const { emoji } = c.req.valid("json");
+
+    try {
+      const result = await postService.createReaction(
+        botResult.profileId,
+        postId,
+        communityId,
+        emoji,
+        botResult.profileName,
+      );
+      return c.json({ data: result }, 201);
+    } catch (error) {
+      if (error instanceof Error) {
+        if (error.message.includes("이미 존재")) {
+          return c.json(
+            { error: { code: "BAD_REQUEST", message: error.message } },
+            400,
+          );
+        }
+        if (error.message.includes("찾을 수 없")) {
+          return c.json(
+            { error: { code: "NOT_FOUND", message: error.message } },
+            404,
+          );
+        }
+      }
+      throw error;
+    }
+  })
+
+  // Remove reaction
+  .openapi(removeReactionRoute, async (c) => {
+    const authHeader = c.req.header("Authorization");
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return c.json(
+        {
+          error: {
+            code: "UNAUTHORIZED",
+            message: "Missing or invalid Authorization header",
+          },
+        },
+        401,
+      );
+    }
+
+    const token = authHeader.substring(7);
+    const { validateBotToken, getCommunityById } = await import(
+      "../../services/bot.service"
+    );
+    const botResult = await validateBotToken(token);
+
+    if (!botResult) {
+      return c.json(
+        {
+          error: {
+            code: "UNAUTHORIZED",
+            message: "Invalid or expired bot token",
+          },
+        },
+        401,
+      );
+    }
+
+    const { communityId, postId, emoji } = c.req.valid("param");
+    if (communityId !== botResult.communityId) {
+      return c.json(
+        {
+          error: {
+            code: "FORBIDDEN",
+            message: "Bot does not have access to this community",
+          },
+        },
+        403,
+      );
+    }
+
+    const community = await getCommunityById(communityId);
+    if (!community) {
+      return c.json(
+        { error: { code: "NOT_FOUND", message: "Community not found" } },
+        404,
+      );
+    }
+
+    try {
+      await postService.deleteReaction(
+        botResult.profileId,
+        postId,
+        communityId,
+        decodeURIComponent(emoji),
+      );
+      return c.json({ message: "Reaction removed successfully" }, 200);
+    } catch (error) {
+      if (error instanceof Error && error.message.includes("찾을 수 없")) {
+        return c.json(
+          { error: { code: "NOT_FOUND", message: error.message } },
+          404,
+        );
+      }
+      throw error;
+    }
+  })
+
+  // Update post
+  .openapi(updatePostRoute, async (c) => {
+    const authHeader = c.req.header("Authorization");
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return c.json(
+        {
+          error: {
+            code: "UNAUTHORIZED",
+            message: "Missing or invalid Authorization header",
+          },
+        },
+        401,
+      );
+    }
+
+    const token = authHeader.substring(7);
+    const { validateBotToken, getCommunityById } = await import(
+      "../../services/bot.service"
+    );
+    const botResult = await validateBotToken(token);
+
+    if (!botResult) {
+      return c.json(
+        {
+          error: {
+            code: "UNAUTHORIZED",
+            message: "Invalid or expired bot token",
+          },
+        },
+        401,
+      );
+    }
+
+    const { communityId, postId } = c.req.valid("param");
+    if (communityId !== botResult.communityId) {
+      return c.json(
+        {
+          error: {
+            code: "FORBIDDEN",
+            message: "Bot does not have access to this community",
+          },
+        },
+        403,
+      );
+    }
+
+    const community = await getCommunityById(communityId);
+    if (!community) {
+      return c.json(
+        { error: { code: "NOT_FOUND", message: "Community not found" } },
+        404,
+      );
+    }
+
+    const { content, content_warning } = c.req.valid("json");
+
+    try {
+      const result = await postService.updatePost(
+        botResult.createdByUserId,
+        botResult.profileId,
+        postId,
+        communityId,
+        content,
+        undefined, // No image updates for bots
+        content_warning,
+        undefined, // Bots cannot change announcement status
+        "member", // Bot has member role (cannot set announcements)
+      );
+      return c.json({ data: result }, 200);
+    } catch (error) {
+      if (error instanceof Error) {
+        if (error.message.includes("본인의 게시물만")) {
+          return c.json(
+            { error: { code: "FORBIDDEN", message: error.message } },
+            403,
+          );
+        }
+        if (error.message.includes("찾을 수 없")) {
+          return c.json(
+            { error: { code: "NOT_FOUND", message: error.message } },
+            404,
+          );
+        }
+      }
+      throw error;
+    }
+  })
+
+  // Delete post
+  .openapi(deletePostRoute, async (c) => {
+    const authHeader = c.req.header("Authorization");
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return c.json(
+        {
+          error: {
+            code: "UNAUTHORIZED",
+            message: "Missing or invalid Authorization header",
+          },
+        },
+        401,
+      );
+    }
+
+    const token = authHeader.substring(7);
+    const { validateBotToken, getCommunityById } = await import(
+      "../../services/bot.service"
+    );
+    const botResult = await validateBotToken(token);
+
+    if (!botResult) {
+      return c.json(
+        {
+          error: {
+            code: "UNAUTHORIZED",
+            message: "Invalid or expired bot token",
+          },
+        },
+        401,
+      );
+    }
+
+    const { communityId, postId } = c.req.valid("param");
+    if (communityId !== botResult.communityId) {
+      return c.json(
+        {
+          error: {
+            code: "FORBIDDEN",
+            message: "Bot does not have access to this community",
+          },
+        },
+        403,
+      );
+    }
+
+    const community = await getCommunityById(communityId);
+    if (!community) {
+      return c.json(
+        { error: { code: "NOT_FOUND", message: "Community not found" } },
+        404,
+      );
+    }
+
+    try {
+      await postService.deletePost(
+        botResult.createdByUserId,
+        botResult.profileId,
+        postId,
+        communityId,
+      );
+      return c.json({ message: "Post deleted successfully" }, 200);
+    } catch (error) {
+      if (error instanceof Error) {
+        if (error.message.includes("Only the post author")) {
+          return c.json(
+            {
+              error: {
+                code: "FORBIDDEN",
+                message: "Cannot delete posts created by others",
+              },
+            },
+            403,
+          );
+        }
+        if (error.message.includes("찾을 수 없")) {
+          return c.json(
+            { error: { code: "NOT_FOUND", message: error.message } },
+            404,
+          );
+        }
+      }
+      throw error;
+    }
   });
 
 // OpenAPI documentation endpoint - registered separately
