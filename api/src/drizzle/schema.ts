@@ -1574,3 +1574,71 @@ export const boardPostReply = pgTable(
     sql`CONSTRAINT valid_board_root_reply CHECK ((depth = 0 AND root_reply_id IS NULL) OR (depth > 0 AND root_reply_id IS NOT NULL))`,
   ],
 );
+
+export const bot = pgTable(
+  "bot",
+  {
+    id: uuid().primaryKey().default(sql`uuidv7()`),
+    communityId: uuid("community_id").notNull(),
+    name: text().notNull(),
+    description: text(),
+    profileId: uuid("profile_id").notNull(),
+    createdById: uuid("created_by_id").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+    deletedAt: timestamp("deleted_at", { withTimezone: true, mode: "string" }),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.communityId],
+      foreignColumns: [community.id],
+      name: "bot_community_id_fkey",
+    }),
+    foreignKey({
+      columns: [table.profileId],
+      foreignColumns: [profile.id],
+      name: "bot_profile_id_fkey",
+    }),
+    foreignKey({
+      columns: [table.createdById],
+      foreignColumns: [user.id],
+      name: "bot_created_by_id_fkey",
+    }),
+    index("idx_bot_community_id").on(table.communityId),
+    sql`CONSTRAINT valid_bot_name CHECK (length(name) > 0 AND length(name) <= 100)`,
+    sql`CONSTRAINT valid_bot_description CHECK (description IS NULL OR length(description) <= 1000)`,
+  ],
+);
+
+export const botToken = pgTable(
+  "bot_token",
+  {
+    id: uuid().primaryKey().default(sql`uuidv7()`),
+    token: uuid().notNull().default(sql`uuidv7()`),
+    botId: uuid("bot_id").notNull(),
+    name: text(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+    expiresAt: timestamp("expires_at", { withTimezone: true, mode: "string" }),
+    revokedAt: timestamp("revoked_at", { withTimezone: true, mode: "string" }),
+    lastUsedAt: timestamp("last_used_at", {
+      withTimezone: true,
+      mode: "string",
+    }),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.botId],
+      foreignColumns: [bot.id],
+      name: "bot_token_bot_id_fkey",
+    }),
+    unique("bot_token_token_key").on(table.token),
+    index("idx_bot_token_bot_id").on(table.botId),
+    sql`CONSTRAINT valid_bot_token_name CHECK (name IS NULL OR length(name) <= 100)`,
+  ],
+);

@@ -35,6 +35,7 @@ export default [
     "communities/:slug/analytics",
     "routes/communities.$slug.analytics.tsx",
   ),
+  route("communities/:slug/bots", "routes/communities.$slug.bots.tsx"),
   route("communities/:slug", "routes/communities.$slug.tsx"),
   route("boards", "routes/boards.tsx"),
   route("boards/:boardSlug/create", "routes/boards.$boardSlug.create.tsx"),

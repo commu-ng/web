@@ -383,6 +383,72 @@ export async function createProfile(
 }
 
 /**
+ * Create a profile for a bot
+ */
+export async function createBotProfile(
+  communityId: string,
+  name: string,
+  username: string,
+  createdByUserId: string,
+) {
+  // Check if username is already taken in this community
+  const existingProfile = await db.query.profile.findFirst({
+    where: and(
+      eq(profileTable.username, username),
+      eq(profileTable.communityId, communityId),
+      isNull(profileTable.deletedAt),
+    ),
+  });
+
+  if (existingProfile) {
+    throw new AppException(
+      400,
+      GENERAL_ERROR_CODE,
+      "이 커뮤에서 이미 사용 중인 사용자명입니다",
+    );
+  }
+
+  // Create profile in a transaction
+  const newProfile = await db.transaction(async (tx) => {
+    const newProfileResult = await tx
+      .insert(profileTable)
+      .values({
+        name,
+        username,
+        communityId: communityId,
+        isPrimary: false,
+        activatedAt: sql`NOW()`, // Bot profiles are immediately active
+      })
+      .returning();
+
+    const profile = newProfileResult[0];
+    if (!profile) {
+      throw new Error("Failed to create bot profile");
+    }
+
+    // Create ownership record for the bot profile (owned by the creator)
+    await tx.insert(profileOwnershipTable).values({
+      profileId: profile.id,
+      userId: createdByUserId,
+      role: "owner",
+      createdBy: createdByUserId,
+    });
+
+    return profile;
+  });
+
+  return {
+    id: newProfile.id,
+    username: newProfile.username,
+    name: newProfile.name,
+    bio: newProfile.bio,
+    created_at: newProfile.createdAt,
+    updated_at: newProfile.updatedAt,
+    activatedAt: newProfile.activatedAt,
+  };
+}
+
+/**
  * Get post count for a profile
  */
 export async function getProfilePostCount(profileId: string) {

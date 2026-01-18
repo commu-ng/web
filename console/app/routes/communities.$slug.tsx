@@ -3,6 +3,7 @@ import {
   ArrowLeft,
   ArrowRight,
   BarChart3,
+  Bot,
   CheckCircle,
   Clock,
   ExternalLink,
@@ -387,6 +388,13 @@ export default function CommunityDetails() {
                 <Button variant="outline" size="sm">
                   <Settings className="h-4 w-4" />
                   설정
+                </Button>
+              </Link>
+            )}
+            {currentUser && userRole === "owner" && (
+              <Link to={`/communities/${slug}/bots`}>
+                <Button variant="outline" size="sm">
+                  <Bot className="h-4 w-4" />봇
                 </Button>
               </Link>
             )}
