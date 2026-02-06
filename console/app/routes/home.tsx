@@ -343,6 +343,24 @@ function PlatformNews() {
             X에서 소식 보기
             <ExternalLink className="h-3 w-3" />
           </a>
+          <a
+            href="https://apps.apple.com/us/app/commung/id6755352136"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 text-sm text-primary hover:underline"
+          >
+            App Store에서 앱 다운로드
+            <ExternalLink className="h-3 w-3" />
+          </a>
+          <a
+            href="https://play.google.com/store/apps/details?id=ng.commu"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 text-sm text-primary hover:underline"
+          >
+            Google Play에서 앱 다운로드
+            <ExternalLink className="h-3 w-3" />
+          </a>
         </div>
       </CardContent>
     </Card>
