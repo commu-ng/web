@@ -344,6 +344,15 @@ function PlatformNews() {
             <ExternalLink className="h-3 w-3" />
           </a>
           <a
+            href="https://discord.gg/eWq5ej9mgF"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 text-sm text-primary hover:underline"
+          >
+            Discord 서버 참여하기
+            <ExternalLink className="h-3 w-3" />
+          </a>
+          <a
             href="https://apps.apple.com/us/app/commung/id6755352136"
             target="_blank"
             rel="noopener noreferrer"
