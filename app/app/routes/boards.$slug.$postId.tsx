@@ -5,7 +5,7 @@ import {
   Send,
   Trash2,
 } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { toast } from "sonner";
 import { ProfileAvatar } from "~/components/profile-avatar";
@@ -14,6 +14,7 @@ import { Spinner } from "~/components/ui/spinner";
 import { Textarea } from "~/components/ui/textarea";
 import { useAuth } from "~/hooks/useAuth";
 import { client } from "~/lib/api-client";
+import { getReadOnlyMarkdownInstance } from "~/lib/markdown-utils";
 
 interface ProfilePicture {
   id: string;
@@ -78,6 +79,7 @@ export default function BoardPostDetail() {
   const [replyContent, setReplyContent] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [replyToId, setReplyToId] = useState<string | null>(null);
+  const md = useMemo(() => getReadOnlyMarkdownInstance(), []);
 
   const fetchPost = useCallback(async () => {
     if (!slug || !postId) return;
@@ -393,19 +395,11 @@ export default function BoardPostDetail() {
             {post.title}
           </h1>
 
-          <div className="text-foreground whitespace-pre-wrap">
-            {post.content}
-          </div>
-
-          {post.image && (
-            <div className="mt-4">
-              <img
-                src={post.image.url}
-                alt={post.image.filename}
-                className="rounded-lg max-w-full"
-              />
-            </div>
-          )}
+          <div
+            className="prose dark:prose-invert prose-sm max-w-none text-foreground"
+            // biome-ignore lint/security/noDangerouslySetInnerHtml: sanitized by markdown-it
+            dangerouslySetInnerHTML={{ __html: md.render(post.content) }}
+          />
         </article>
 
         {/* Replies Section */}
