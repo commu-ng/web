@@ -1642,3 +1642,130 @@ export const botToken = pgTable(
     sql`CONSTRAINT valid_bot_token_name CHECK (name IS NULL OR length(name) <= 100)`,
   ],
 );
+
+export const communityBoard = pgTable(
+  "community_board",
+  {
+    id: uuid().primaryKey().default(sql`uuidv7()`),
+    communityId: uuid("community_id").notNull(),
+    name: text().notNull(),
+    slug: text().notNull(),
+    description: text(),
+    allowComments: boolean("allow_comments").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+    deletedAt: timestamp("deleted_at", { withTimezone: true, mode: "string" }),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.communityId],
+      foreignColumns: [community.id],
+      name: "community_board_community_id_fkey",
+    }),
+    uniqueIndex("unique_community_board_slug")
+      .on(table.communityId, table.slug)
+      .where(sql`${table.deletedAt} IS NULL`),
+    index("idx_community_board_community_id").on(table.communityId),
+    sql`CONSTRAINT valid_community_board_name CHECK (length(name) > 0)`,
+    sql`CONSTRAINT valid_community_board_slug CHECK (slug ~ '^[a-z0-9]([a-z0-9-]*[a-z0-9])?$')`,
+    sql`CONSTRAINT valid_community_board_description CHECK (description IS NULL OR length(description) <= 1000)`,
+  ],
+);
+
+export const communityBoardPost = pgTable(
+  "community_board_post",
+  {
+    id: uuid().primaryKey().default(sql`uuidv7()`),
+    boardId: uuid("board_id").notNull(),
+    authorId: uuid("author_id").notNull(),
+    title: text().notNull(),
+    content: text().notNull(),
+    imageId: uuid("image_id"),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+    deletedAt: timestamp("deleted_at", { withTimezone: true, mode: "string" }),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.boardId],
+      foreignColumns: [communityBoard.id],
+      name: "community_board_post_board_id_fkey",
+    }),
+    foreignKey({
+      columns: [table.authorId],
+      foreignColumns: [profile.id],
+      name: "community_board_post_author_id_fkey",
+    }),
+    foreignKey({
+      columns: [table.imageId],
+      foreignColumns: [image.id],
+      name: "community_board_post_image_id_fkey",
+    }),
+    index("idx_community_board_post_board_id_created").on(
+      table.boardId,
+      table.createdAt,
+    ),
+    sql`CONSTRAINT valid_community_board_post_title CHECK (length(title) > 0 AND length(title) <= 200)`,
+    sql`CONSTRAINT valid_community_board_post_content CHECK (length(content) > 0 AND length(content) <= 50000)`,
+  ],
+);
+
+export const communityBoardPostReply = pgTable(
+  "community_board_post_reply",
+  {
+    id: uuid().primaryKey().default(sql`uuidv7()`),
+    postId: uuid("post_id").notNull(),
+    authorId: uuid("author_id").notNull(),
+    content: text().notNull(),
+    inReplyToId: uuid("in_reply_to_id"),
+    depth: integer().notNull().default(0),
+    rootReplyId: uuid("root_reply_id"),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+    deletedAt: timestamp("deleted_at", { withTimezone: true, mode: "string" }),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.postId],
+      foreignColumns: [communityBoardPost.id],
+      name: "community_board_post_reply_post_id_fkey",
+    }),
+    foreignKey({
+      columns: [table.authorId],
+      foreignColumns: [profile.id],
+      name: "community_board_post_reply_author_id_fkey",
+    }),
+    foreignKey({
+      columns: [table.inReplyToId],
+      foreignColumns: [table.id],
+      name: "community_board_post_reply_in_reply_to_id_fkey",
+    }),
+    foreignKey({
+      columns: [table.rootReplyId],
+      foreignColumns: [table.id],
+      name: "community_board_post_reply_root_reply_id_fkey",
+    }),
+    index("idx_community_board_post_reply_post_id_created").on(
+      table.postId,
+      table.createdAt,
+    ),
+    index("idx_community_board_post_reply_in_reply_to_id").on(
+      table.inReplyToId,
+    ),
+    sql`CONSTRAINT valid_community_board_post_reply_content CHECK (length(content) > 0 AND length(content) <= 10000)`,
+    sql`CONSTRAINT valid_community_board_reply_depth CHECK ((in_reply_to_id IS NULL AND depth = 0) OR (in_reply_to_id IS NOT NULL AND depth > 0))`,
+    sql`CONSTRAINT valid_community_board_root_reply CHECK ((depth = 0 AND root_reply_id IS NULL) OR (depth > 0 AND root_reply_id IS NOT NULL))`,
+  ],
+);

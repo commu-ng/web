@@ -84,6 +84,32 @@ export enum BoardSuccessCode {
 }
 
 /**
+ * Error codes for community boards API
+ */
+export enum CommunityBoardErrorCode {
+  // Board errors
+  BOARD_NOT_FOUND = "COMMUNITY_BOARD_NOT_FOUND",
+  DUPLICATE_BOARD_SLUG = "COMMUNITY_BOARD_DUPLICATE_SLUG",
+
+  // Post errors
+  POST_NOT_FOUND = "COMMUNITY_BOARD_POST_NOT_FOUND",
+  NOT_POST_AUTHOR = "COMMUNITY_BOARD_NOT_POST_AUTHOR",
+  INVALID_IMAGE = "COMMUNITY_BOARD_INVALID_IMAGE",
+
+  // Reply errors
+  REPLY_NOT_FOUND = "COMMUNITY_BOARD_REPLY_NOT_FOUND",
+  NOT_REPLY_AUTHOR = "COMMUNITY_BOARD_NOT_REPLY_AUTHOR",
+  COMMENTS_DISABLED = "COMMUNITY_BOARD_COMMENTS_DISABLED",
+
+  // Auth/permission errors
+  UNAUTHORIZED = "COMMUNITY_BOARD_UNAUTHORIZED",
+  FORBIDDEN = "COMMUNITY_BOARD_FORBIDDEN",
+
+  // Validation errors
+  INVALID_REQUEST = "COMMUNITY_BOARD_INVALID_REQUEST",
+}
+
+/**
  * General error codes for API responses
  */
 export enum GeneralErrorCode {

@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { applicationsRouter } from "./applications";
+import { boardsRouter } from "./boards";
 import { botsRouter } from "./bots";
 import { crudRouter } from "./crud";
 import { linksRouter } from "./links";
@@ -14,4 +15,5 @@ export const consoleCommunitiesRouter = new Hono()
   .route("/communities", membersRouter)
   .route("/communities", applicationsRouter)
   .route("/communities", moderationRouter)
-  .route("/communities", botsRouter);
+  .route("/communities", botsRouter)
+  .route("/communities", boardsRouter);

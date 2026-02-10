@@ -8,6 +8,9 @@ import {
   community,
   communityApplication,
   communityBannerImage,
+  communityBoard,
+  communityBoardPost,
+  communityBoardPostReply,
   communityDescriptionImage,
   communityHashtag,
   communityLink,
@@ -64,6 +67,7 @@ export const communityRelations = relations(community, ({ many }) => ({
   directMessages: many(directMessage),
   memberships: many(membership),
   communityHashtags: many(communityHashtag),
+  communityBoards: many(communityBoard),
 }));
 
 export const profileRelations = relations(profile, ({ one, many }) => ({
@@ -617,3 +621,63 @@ export const userBlockRelations = relations(userBlock, ({ one }) => ({
     relationName: "userBlock_blockedId_user_id",
   }),
 }));
+
+export const communityBoardRelations = relations(
+  communityBoard,
+  ({ one, many }) => ({
+    community: one(community, {
+      fields: [communityBoard.communityId],
+      references: [community.id],
+    }),
+    communityBoardPosts: many(communityBoardPost),
+  }),
+);
+
+export const communityBoardPostRelations = relations(
+  communityBoardPost,
+  ({ one, many }) => ({
+    board: one(communityBoard, {
+      fields: [communityBoardPost.boardId],
+      references: [communityBoard.id],
+    }),
+    author: one(profile, {
+      fields: [communityBoardPost.authorId],
+      references: [profile.id],
+    }),
+    image: one(image, {
+      fields: [communityBoardPost.imageId],
+      references: [image.id],
+    }),
+    replies: many(communityBoardPostReply),
+  }),
+);
+
+export const communityBoardPostReplyRelations = relations(
+  communityBoardPostReply,
+  ({ one, many }) => ({
+    post: one(communityBoardPost, {
+      fields: [communityBoardPostReply.postId],
+      references: [communityBoardPost.id],
+    }),
+    author: one(profile, {
+      fields: [communityBoardPostReply.authorId],
+      references: [profile.id],
+    }),
+    inReplyTo: one(communityBoardPostReply, {
+      fields: [communityBoardPostReply.inReplyToId],
+      references: [communityBoardPostReply.id],
+      relationName: "communityBoardPostReply_inReplyToId",
+    }),
+    replies: many(communityBoardPostReply, {
+      relationName: "communityBoardPostReply_inReplyToId",
+    }),
+    rootReply: one(communityBoardPostReply, {
+      fields: [communityBoardPostReply.rootReplyId],
+      references: [communityBoardPostReply.id],
+      relationName: "communityBoardPostReply_rootReplyId",
+    }),
+    childReplies: many(communityBoardPostReply, {
+      relationName: "communityBoardPostReply_rootReplyId",
+    }),
+  }),
+);

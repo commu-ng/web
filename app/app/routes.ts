@@ -19,6 +19,9 @@ export default [
   route("/messages", "routes/messages.tsx"),
   route("/messages/:username", "routes/messages.$username.tsx"),
   route("/group-chats/:group_chat_id", "routes/group-chats.$group_chat_id.tsx"),
+  route("/boards", "routes/boards.tsx"),
+  route("/boards/:slug", "routes/boards.$slug.tsx"),
+  route("/boards/:slug/:postId", "routes/boards.$slug.$postId.tsx"),
   route("/:username/:post_id", "routes/$username.$post_id.tsx"),
   route("/:username", "routes/$username.tsx"),
 ] satisfies RouteConfig;
