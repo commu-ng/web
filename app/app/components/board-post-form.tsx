@@ -1,12 +1,14 @@
-import { ImagePlus, Send, X } from "lucide-react";
-import { useRef, useState } from "react";
+import { Eye, ImagePlus, Pencil, Send, X } from "lucide-react";
+import { useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useAuth } from "~/hooks/useAuth";
 import { client } from "~/lib/api-client";
 import { env } from "~/lib/env";
+import { getReadOnlyMarkdownInstance } from "~/lib/markdown-utils";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Spinner } from "./ui/spinner";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { Textarea } from "./ui/textarea";
 
 interface BoardPostFormProps {
@@ -44,6 +46,7 @@ export function BoardPostForm({
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const md = useMemo(() => getReadOnlyMarkdownInstance(), []);
 
   const uploadImage = async (file: File): Promise<UploadedImage> => {
     const formData = new FormData();
@@ -175,59 +178,87 @@ export function BoardPostForm({
           />
         </div>
 
-        <div>
-          <Textarea
-            ref={textareaRef}
-            placeholder="내용을 입력하세요 (마크다운 형식 지원)"
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            rows={6}
-            className="resize-none"
-          />
-        </div>
+        <Tabs defaultValue="write">
+          <TabsList>
+            <TabsTrigger value="write">
+              <Pencil className="h-4 w-4 mr-1" />
+              작성
+            </TabsTrigger>
+            <TabsTrigger value="preview">
+              <Eye className="h-4 w-4 mr-1" />
+              미리보기
+            </TabsTrigger>
+          </TabsList>
 
-        <div className="flex items-center justify-between">
-          <div>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
-              onChange={handleImageUpload}
-              className="hidden"
+          <TabsContent value="write" className="mt-3">
+            <Textarea
+              ref={textareaRef}
+              placeholder="내용을 입력하세요 (마크다운 형식 지원)"
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              rows={8}
+              className="resize-none"
             />
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={isUploadingImage}
-            >
-              {isUploadingImage ? (
-                <Spinner className="h-4 w-4 mr-2" />
-              ) : (
-                <ImagePlus className="h-4 w-4 mr-2" />
-              )}
-              이미지 추가
-            </Button>
-          </div>
+            <div className="mt-2">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
+                onChange={handleImageUpload}
+                className="hidden"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUploadingImage}
+              >
+                {isUploadingImage ? (
+                  <Spinner className="h-4 w-4 mr-2" />
+                ) : (
+                  <ImagePlus className="h-4 w-4 mr-2" />
+                )}
+                이미지 추가
+              </Button>
+            </div>
+          </TabsContent>
 
-          <div className="flex gap-2">
-            <Button type="button" variant="outline" onClick={onCancel}>
-              <X className="h-4 w-4 mr-2" />
-              취소
-            </Button>
-            <Button
-              type="submit"
-              disabled={!title.trim() || !content.trim() || isSubmitting}
-            >
-              {isSubmitting ? (
-                <Spinner className="h-4 w-4 mr-2" />
-              ) : (
-                <Send className="h-4 w-4 mr-2" />
-              )}
-              등록
-            </Button>
-          </div>
+          <TabsContent value="preview" className="mt-3">
+            {content.trim() ? (
+              <div className="min-h-[200px] rounded-md border border-border bg-background p-4">
+                <div
+                  className="prose dark:prose-invert prose-sm max-w-none text-foreground"
+                  // biome-ignore lint/security/noDangerouslySetInnerHtml: sanitized by markdown-it
+                  dangerouslySetInnerHTML={{ __html: md.render(content) }}
+                />
+              </div>
+            ) : (
+              <div className="min-h-[200px] rounded-md border border-border bg-background p-4 flex items-center justify-center">
+                <p className="text-muted-foreground text-sm">
+                  미리보기할 내용이 없습니다
+                </p>
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
+
+        <div className="flex justify-end gap-2">
+          <Button type="button" variant="outline" onClick={onCancel}>
+            <X className="h-4 w-4 mr-2" />
+            취소
+          </Button>
+          <Button
+            type="submit"
+            disabled={!title.trim() || !content.trim() || isSubmitting}
+          >
+            {isSubmitting ? (
+              <Spinner className="h-4 w-4 mr-2" />
+            ) : (
+              <Send className="h-4 w-4 mr-2" />
+            )}
+            등록
+          </Button>
         </div>
       </div>
     </form>
