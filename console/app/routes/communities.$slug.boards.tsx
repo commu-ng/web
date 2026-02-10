@@ -70,7 +70,7 @@ export default function CommunityBoards() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 p-4">
+      <div className="min-h-screen bg-background p-4">
         <div className="max-w-4xl mx-auto space-y-6">
           <Skeleton className="h-9 w-32" />
           <Card>
@@ -91,7 +91,7 @@ export default function CommunityBoards() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 p-4">
+      <div className="min-h-screen bg-background p-4">
         <div className="max-w-4xl mx-auto">
           <Card>
             <CardContent className="p-6 text-center">
@@ -108,7 +108,7 @@ export default function CommunityBoards() {
 
   if (!hasAccess) {
     return (
-      <div className="min-h-screen bg-gray-50 p-4">
+      <div className="min-h-screen bg-background p-4">
         <div className="max-w-4xl mx-auto">
           <Card>
             <CardHeader>
@@ -138,7 +138,7 @@ export default function CommunityBoards() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4">
+    <div className="min-h-screen bg-background p-4">
       <div className="max-w-4xl mx-auto">
         <div className="mb-6">
           <Link to={`/communities/${slug}`}>

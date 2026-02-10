@@ -9,6 +9,7 @@ import {
   ExternalLink,
   FileText,
   Hash,
+  LayoutList,
   LogOut,
   Settings,
   Users,
@@ -395,6 +396,14 @@ export default function CommunityDetails() {
               <Link to={`/communities/${slug}/bots`}>
                 <Button variant="outline" size="sm">
                   <Bot className="h-4 w-4" />봇
+                </Button>
+              </Link>
+            )}
+            {currentUser && userRole === "owner" && (
+              <Link to={`/communities/${slug}/boards`}>
+                <Button variant="outline" size="sm">
+                  <LayoutList className="h-4 w-4" />
+                  게시판
                 </Button>
               </Link>
             )}

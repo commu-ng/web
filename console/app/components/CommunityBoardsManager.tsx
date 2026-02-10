@@ -285,7 +285,7 @@ export function CommunityBoardsManager({
                     })
                   }
                 />
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-muted-foreground">
                   영문 소문자, 숫자, 하이픈만 사용 가능합니다
                 </p>
               </div>
@@ -340,11 +340,13 @@ export function CommunityBoardsManager({
         {/* Boards list */}
         {boards.length === 0 && !isCreating ? (
           <div className="text-center py-8">
-            <LayoutList className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-            <h4 className="text-lg font-medium text-gray-900 mb-2">
+            <LayoutList className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
+            <h4 className="text-lg font-medium text-foreground mb-2">
               아직 게시판이 없습니다
             </h4>
-            <p className="text-gray-500 mb-4">첫 번째 게시판을 추가해보세요</p>
+            <p className="text-muted-foreground mb-4">
+              첫 번째 게시판을 추가해보세요
+            </p>
             <Button onClick={() => setIsCreating(true)}>
               <Plus className="h-4 w-4 mr-2" />
               게시판 추가
@@ -438,21 +440,21 @@ export function CommunityBoardsManager({
                       <div className="flex-1">
                         <div className="flex items-center gap-3">
                           <span className="font-medium">{board.name}</span>
-                          <span className="text-sm text-gray-500">
+                          <span className="text-sm text-muted-foreground">
                             /{board.slug}
                           </span>
                           {!board.allow_comments && (
-                            <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">
+                            <span className="text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded">
                               댓글 비허용
                             </span>
                           )}
                         </div>
                         {board.description && (
-                          <p className="text-sm text-gray-500 mt-1">
+                          <p className="text-sm text-muted-foreground mt-1">
                             {board.description}
                           </p>
                         )}
-                        <p className="text-xs text-gray-400 mt-1">
+                        <p className="text-xs text-muted-foreground mt-1">
                           생성일:{" "}
                           {new Date(board.created_at).toLocaleString("ko-KR")}
                         </p>
@@ -472,7 +474,7 @@ export function CommunityBoardsManager({
                             <Button
                               variant="outline"
                               size="sm"
-                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950"
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
