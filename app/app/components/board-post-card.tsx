@@ -42,6 +42,17 @@ interface BoardPostCardProps {
   onDelete?: () => void;
 }
 
+/**
+ * Strip markdown image syntax from content, replacing with alt text if present
+ * ![alt text](url) -> alt text
+ * ![](url) -> (removed)
+ */
+function stripImageMarkdown(content: string): string {
+  return content.replace(/!\[([^\]]*)\]\([^)]+\)/g, (_, altText) => {
+    return altText ? altText : "";
+  });
+}
+
 export function BoardPostCard({
   post,
   boardSlug,
@@ -78,11 +89,12 @@ export function BoardPostCard({
     }
   };
 
-  // Truncate content for preview
+  // Strip image markdown and truncate content for preview
+  const strippedContent = stripImageMarkdown(post.content).trim();
   const truncatedContent =
-    post.content.length > 200
-      ? `${post.content.slice(0, 200)}...`
-      : post.content;
+    strippedContent.length > 200
+      ? `${strippedContent.slice(0, 200)}...`
+      : strippedContent;
 
   return (
     <Link
