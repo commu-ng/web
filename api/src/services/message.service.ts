@@ -183,7 +183,7 @@ export async function sendDirectMessage(
         })
       : [];
 
-  // Send push notification to receiver
+  // Send push notification to receiver (skip if sender and receiver are the same user)
   const receiverOwnership = await db.query.profileOwnership.findFirst({
     where: eq(profileOwnershipTable.profileId, receiverProfile.id),
     columns: {
@@ -191,7 +191,7 @@ export async function sendDirectMessage(
     },
   });
 
-  if (receiverOwnership) {
+  if (receiverOwnership && receiverOwnership.userId !== userId) {
     // Get community for URL
     const community = await db.query.community.findFirst({
       where: eq(communityTable.id, communityId),
@@ -1370,6 +1370,65 @@ export async function sendGroupChatMessage(
   const profile_picture_url = profilePicture
     ? addImageUrl(profilePicture).url
     : null;
+
+  // Send push notifications to all group members except sender
+  const allMemberships = await db.query.groupChatMembership.findMany({
+    where: eq(groupChatMembershipTable.groupChatId, groupChatId),
+    columns: {
+      profileId: true,
+    },
+  });
+
+  const recipientProfileIds = allMemberships
+    .map((m) => m.profileId)
+    .filter((id) => id !== profileId);
+
+  if (recipientProfileIds.length > 0) {
+    // Get user IDs for all recipient profiles
+    const recipientOwnerships = await db.query.profileOwnership.findMany({
+      where: inArray(profileOwnershipTable.profileId, recipientProfileIds),
+      columns: {
+        profileId: true,
+        userId: true,
+      },
+    });
+
+    // Filter out recipients whose user account matches the sender's user account
+    const recipientUserIds = [
+      ...new Set(
+        recipientOwnerships
+          .filter((o) => o.userId !== userId)
+          .map((o) => o.userId),
+      ),
+    ];
+
+    if (recipientUserIds.length > 0) {
+      // Get community for URL
+      const community = await db.query.community.findFirst({
+        where: eq(communityTable.id, communityId),
+      });
+
+      if (community) {
+        const baseDomain = process.env.BASE_DOMAIN || "commu.ng";
+        const communityUrl = `https://${community.slug}.${baseDomain}`;
+
+        // Send push notification to each recipient
+        for (const recipientUserId of recipientUserIds) {
+          await pushNotificationService.sendPushNotification(recipientUserId, {
+            title: groupChat.name || "그룹 채팅",
+            body: `${profile.name}님이 메시지를 보냈습니다`,
+            data: {
+              type: "group_message",
+              message_id: newMessage.id,
+              group_chat_id: groupChatId,
+              sender_id: profileId,
+              community_url: communityUrl,
+            },
+          });
+        }
+      }
+    }
+  }
 
   return {
     id: newMessage.id,
