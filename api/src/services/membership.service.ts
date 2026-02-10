@@ -1320,6 +1320,148 @@ export async function withdrawApplication(
 }
 
 /**
+ * Update a pending application
+ */
+export async function updateApplication(
+  userId: string,
+  applicationId: string,
+  communityId: string,
+  data: {
+    message?: string | null;
+    profileName: string;
+    profileUsername: string;
+    attachmentIds?: string[];
+  },
+) {
+  // Find the application
+  const application = await db.query.communityApplication.findFirst({
+    where: and(
+      eq(communityApplicationTable.id, applicationId),
+      eq(communityApplicationTable.userId, userId),
+    ),
+    with: {
+      attachments: true,
+    },
+  });
+
+  if (!application) {
+    throw new AppException(
+      404,
+      GENERAL_ERROR_CODE,
+      "지원서를 찾을 수 없습니다",
+    );
+  }
+
+  // Can only edit pending applications
+  if (application.status !== "pending") {
+    throw new AppException(
+      400,
+      GENERAL_ERROR_CODE,
+      "대기 중인 지원서만 수정할 수 있습니다",
+    );
+  }
+
+  // Check if username is already taken by an existing profile (if username changed)
+  if (data.profileUsername !== application.profileUsername) {
+    const existingProfile = await db.query.profile.findFirst({
+      where: and(
+        eq(profileTable.username, data.profileUsername),
+        eq(profileTable.communityId, communityId),
+        isNull(profileTable.deletedAt),
+      ),
+      with: {
+        ownerships: {
+          where: and(
+            eq(profileOwnershipTable.userId, userId),
+            eq(profileOwnershipTable.role, "owner"),
+          ),
+        },
+      },
+    });
+
+    if (existingProfile) {
+      const isOwnProfile = existingProfile.ownerships.length > 0;
+      const isActive = existingProfile.activatedAt !== null;
+
+      if (!isOwnProfile || isActive) {
+        throw new AppException(
+          409,
+          GENERAL_ERROR_CODE,
+          "이 사용자명은 이미 사용중입니다. 다른 사용자명을 선택해주세요",
+        );
+      }
+    }
+
+    // Check if username is reserved by another pending application
+    const pendingApplicationWithUsername =
+      await db.query.communityApplication.findFirst({
+        where: and(
+          eq(communityApplicationTable.profileUsername, data.profileUsername),
+          eq(communityApplicationTable.communityId, communityId),
+          eq(communityApplicationTable.status, "pending"),
+          ne(communityApplicationTable.id, applicationId),
+        ),
+      });
+
+    if (pendingApplicationWithUsername) {
+      throw new AppException(
+        409,
+        GENERAL_ERROR_CODE,
+        "이 사용자명은 다른 대기 중인 지원서에서 사용중입니다. 다른 사용자명을 선택해주세요",
+      );
+    }
+  }
+
+  // Validate that all attachment images exist if provided
+  if (data.attachmentIds && data.attachmentIds.length > 0) {
+    const existingImages = await db.query.image.findMany({
+      where: inArray(imageTable.id, data.attachmentIds),
+    });
+
+    if (existingImages.length !== data.attachmentIds.length) {
+      throw new AppException(
+        400,
+        GENERAL_ERROR_CODE,
+        "하나 이상의 첨부 이미지를 찾을 수 없습니다",
+      );
+    }
+  }
+
+  // Update application in a transaction
+  const updatedApplication = await db.transaction(async (tx) => {
+    // Update the application
+    const [updated] = await tx
+      .update(communityApplicationTable)
+      .set({
+        message: data.message,
+        profileName: data.profileName,
+        profileUsername: data.profileUsername,
+        updatedAt: new Date().toISOString(),
+      })
+      .where(eq(communityApplicationTable.id, applicationId))
+      .returning();
+
+    // Handle attachments: delete old ones and create new ones
+    await tx
+      .delete(applicationAttachmentTable)
+      .where(eq(applicationAttachmentTable.applicationId, applicationId));
+
+    if (data.attachmentIds && data.attachmentIds.length > 0) {
+      await tx.insert(applicationAttachmentTable).values(
+        data.attachmentIds.map((imageId) => ({
+          applicationId: applicationId,
+          imageId: imageId,
+        })),
+      );
+    }
+
+    return updated;
+  });
+
+  return updatedApplication;
+}
+
+/**
  * Get all applications for a user in a specific community
  */
 export async function getUserApplicationsForCommunity(

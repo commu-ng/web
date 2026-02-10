@@ -1,19 +1,22 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
-import { ArrowLeft, CheckCircle, XCircle } from "lucide-react";
+import { ArrowLeft, CheckCircle, Edit2, XCircle } from "lucide-react";
 import MarkdownIt from "markdown-it";
 import { useId, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { toast } from "sonner";
+import { MarkdownEditor } from "~/components/MarkdownEditor";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Field, FieldGroup, FieldLabel } from "~/components/ui/field";
+import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { Spinner } from "~/components/ui/spinner";
 import { Textarea } from "~/components/ui/textarea";
-import { api } from "~/lib/api-client";
+import { useAuth } from "~/hooks/useAuth";
+import { api, getErrorMessage, uploadImage } from "~/lib/api-client";
 
 export function meta() {
   return [
@@ -94,8 +97,15 @@ export default function ApplicationView() {
   }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   const rejectionReasonId = useId();
+  const profileNameId = useId();
+  const profileUsernameId = useId();
   const [rejectionReason, setRejectionReason] = useState("");
+  const [isEditing, setIsEditing] = useState(false);
+  const [editProfileName, setEditProfileName] = useState("");
+  const [editProfileUsername, setEditProfileUsername] = useState("");
+  const [editMessage, setEditMessage] = useState("");
 
   const {
     data: application,
@@ -112,6 +122,23 @@ export default function ApplicationView() {
     queryFn: () => fetchCommunity(slug ?? ""),
     enabled: !!slug,
   });
+
+  // Handle inline image upload for MarkdownEditor
+  const handleMessageImageUpload = async (
+    file: File,
+  ): Promise<{ url: string; id: string }> => {
+    try {
+      const uploadData = await uploadImage(file);
+      return {
+        id: uploadData.id,
+        url: uploadData.url,
+      };
+    } catch (err) {
+      console.error("Message image upload failed:", err);
+      toast.error("이미지 업로드에 실패했습니다");
+      throw err;
+    }
+  };
 
   const approveMutation = useMutation({
     mutationFn: async (applicationId: string) => {
@@ -195,6 +222,83 @@ export default function ApplicationView() {
     },
   });
 
+  const updateMutation = useMutation({
+    mutationFn: async ({
+      applicationId,
+      profileName,
+      profileUsername,
+      message,
+    }: {
+      applicationId: string;
+      profileName: string;
+      profileUsername: string;
+      message: string;
+    }) => {
+      if (!slug) throw new Error("커뮤를 찾을 수 없습니다");
+      const res = await api.console.communities[":id"].applications[
+        ":application_id"
+      ].$patch({
+        param: { id: slug, application_id: applicationId },
+        json: {
+          profile_name: profileName,
+          profile_username: profileUsername,
+          message: message || null,
+        },
+      });
+      if (!res.ok) {
+        const errorData = await res.json();
+        toast.error(getErrorMessage(errorData, "수정에 실패했습니다"));
+        throw new Error("수정에 실패했습니다");
+      }
+      return await res.json();
+    },
+    onSuccess: () => {
+      toast.success("지원서가 수정되었습니다");
+      setIsEditing(false);
+      queryClient.invalidateQueries({
+        queryKey: ["application", slug, applicationId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["my-applications", slug],
+      });
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const startEditing = () => {
+    if (application) {
+      setEditProfileName(application.profile_name);
+      setEditProfileUsername(application.profile_username);
+      setEditMessage(application.message || "");
+      setIsEditing(true);
+    }
+  };
+
+  const cancelEditing = () => {
+    setIsEditing(false);
+    setEditProfileName("");
+    setEditProfileUsername("");
+    setEditMessage("");
+  };
+
+  const handleUpdate = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (
+      !applicationId ||
+      !editProfileName.trim() ||
+      !editProfileUsername.trim()
+    )
+      return;
+    updateMutation.mutate({
+      applicationId,
+      profileName: editProfileName.trim(),
+      profileUsername: editProfileUsername.trim(),
+      message: editMessage,
+    });
+  };
+
   if (!slug || !applicationId) {
     return (
       <div className="container mx-auto py-8 px-4 max-w-4xl">
@@ -268,6 +372,9 @@ export default function ApplicationView() {
   const isModerator =
     community?.user_role === "owner" || community?.user_role === "moderator";
 
+  // Check if current user is the applicant (can edit their own pending application)
+  const isApplicant = !!user && application.status === "pending";
+
   return (
     <div className="container mx-auto py-8 px-4 max-w-4xl">
       <div className="space-y-6">
@@ -282,13 +389,21 @@ export default function ApplicationView() {
           >
             <Button variant="ghost" size="sm">
               <ArrowLeft className="h-4 w-4 mr-2" />
-              커뮤로 돌아가기
+              {isModerator ? "신청 목록으로" : "지원 페이지로"}
             </Button>
           </Link>
-          <Badge className={status.className}>
-            {status.icon}
-            {status.label}
-          </Badge>
+          <div className="flex items-center gap-2">
+            {isApplicant && !isEditing && !isModerator && (
+              <Button variant="outline" size="sm" onClick={startEditing}>
+                <Edit2 className="h-4 w-4 mr-2" />
+                수정
+              </Button>
+            )}
+            <Badge className={status.className}>
+              {status.icon}
+              {status.label}
+            </Badge>
+          </div>
         </div>
 
         {/* Application Details */}
@@ -297,114 +412,198 @@ export default function ApplicationView() {
             <CardTitle>가입 신청서</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            {/* Applicant Info */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label>신청자 이름</Label>
-                <p className="text-lg font-semibold mt-1">
-                  {application.profile_name}
-                </p>
-              </div>
-              <div>
-                <Label>사용자명</Label>
-                <p className="text-lg font-mono mt-1">
-                  @{application.profile_username}
-                </p>
-              </div>
-            </div>
-
-            {/* Dates */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label>신청일</Label>
-                <p className="mt-1">
-                  {format(new Date(application.created_at), "PPP p", {
-                    locale: ko,
-                  })}
-                </p>
-              </div>
-              {application.reviewed_at && (
-                <div>
-                  <Label>처리일</Label>
-                  <p className="mt-1">
-                    {format(new Date(application.reviewed_at), "PPP p", {
-                      locale: ko,
-                    })}
+            {isEditing ? (
+              /* Edit Form */
+              <form onSubmit={handleUpdate} className="space-y-6">
+                <div className="space-y-2">
+                  <Label htmlFor={profileNameId}>프로필 이름</Label>
+                  <Input
+                    id={profileNameId}
+                    placeholder="커뮤에서 사용할 이름을 입력하세요"
+                    value={editProfileName}
+                    onChange={(e) => setEditProfileName(e.target.value)}
+                    required
+                    disabled={updateMutation.isPending}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    커뮤 내에서 표시될 이름입니다
                   </p>
                 </div>
-              )}
-            </div>
 
-            {/* Application Message */}
-            {application.message && (
-              <div>
-                <Label className="text-base font-semibold">신청 메시지</Label>
-                <div
-                  className="prose prose-sm dark:prose-invert max-w-none border rounded-lg p-4 bg-muted/30 mt-2"
-                  // biome-ignore lint/security/noDangerouslySetInnerHtml: markdown is sanitized by markdown-it
-                  dangerouslySetInnerHTML={{
-                    __html: md.render(application.message),
-                  }}
-                />
-              </div>
-            )}
+                <div className="space-y-2">
+                  <Label htmlFor={profileUsernameId}>프로필 ID *</Label>
+                  <Input
+                    id={profileUsernameId}
+                    placeholder="@username (영문, 숫자, 언더스코어만 사용 가능)"
+                    value={editProfileUsername}
+                    onChange={(e) =>
+                      setEditProfileUsername(
+                        e.target.value
+                          .replace(/\s/g, "_")
+                          .replace(/[^a-zA-Z0-9_]/g, "")
+                          .toLowerCase(),
+                      )
+                    }
+                    required
+                    disabled={updateMutation.isPending}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    @{editProfileUsername || "username"} 형태로 표시됩니다
+                  </p>
+                </div>
 
-            {/* Action Buttons for Pending Applications - Only for Moderators/Owners */}
-            {application.status === "pending" && isModerator && (
-              <div className="pt-4 border-t space-y-4">
-                <FieldGroup>
-                  <Field>
-                    <FieldLabel htmlFor={rejectionReasonId}>
-                      거절 사유 (선택사항)
-                    </FieldLabel>
-                    <Textarea
-                      id={rejectionReasonId}
-                      placeholder="신청을 거절하는 경우 사유를 입력하세요..."
-                      value={rejectionReason}
-                      onChange={(e) => setRejectionReason(e.target.value)}
-                      rows={3}
-                    />
-                  </Field>
-                </FieldGroup>
+                <div className="space-y-2">
+                  <Label>신청 메시지 (선택사항)</Label>
+                  <MarkdownEditor
+                    value={editMessage}
+                    onChange={setEditMessage}
+                    placeholder="가입하고 싶은 이유나 자기소개를 작성해주세요..."
+                    disabled={updateMutation.isPending}
+                    onImageUpload={handleMessageImageUpload}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    운영자에게 전달될 메시지입니다. 텍스트에 이미지를 직접
+                    삽입할 수 있습니다.
+                  </p>
+                </div>
 
                 <div className="flex gap-3">
                   <Button
-                    variant="default"
-                    className="flex-1"
-                    onClick={() => approveMutation.mutate(application.id)}
+                    type="submit"
                     disabled={
-                      approveMutation.isPending || rejectMutation.isPending
+                      updateMutation.isPending ||
+                      !editProfileName.trim() ||
+                      !editProfileUsername.trim()
                     }
                   >
-                    {approveMutation.isPending ? (
-                      <Spinner />
-                    ) : (
-                      <CheckCircle className="h-4 w-4" />
-                    )}
-                    {approveMutation.isPending ? "승인 중..." : "승인"}
+                    {updateMutation.isPending && <Spinner className="mr-2" />}
+                    {updateMutation.isPending ? "저장 중..." : "저장"}
                   </Button>
                   <Button
-                    variant="destructive"
-                    className="flex-1"
-                    onClick={() =>
-                      rejectMutation.mutate({
-                        applicationId: application.id,
-                        reason: rejectionReason.trim() || undefined,
-                      })
-                    }
-                    disabled={
-                      approveMutation.isPending || rejectMutation.isPending
-                    }
+                    type="button"
+                    variant="outline"
+                    onClick={cancelEditing}
+                    disabled={updateMutation.isPending}
                   >
-                    {rejectMutation.isPending ? (
-                      <Spinner />
-                    ) : (
-                      <XCircle className="h-4 w-4" />
-                    )}
-                    {rejectMutation.isPending ? "거절 중..." : "거절"}
+                    취소
                   </Button>
                 </div>
-              </div>
+              </form>
+            ) : (
+              /* View Mode */
+              <>
+                {/* Applicant Info */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>신청자 이름</Label>
+                    <p className="text-lg font-semibold mt-1">
+                      {application.profile_name}
+                    </p>
+                  </div>
+                  <div>
+                    <Label>사용자명</Label>
+                    <p className="text-lg font-mono mt-1">
+                      @{application.profile_username}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Dates */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>신청일</Label>
+                    <p className="mt-1">
+                      {format(new Date(application.created_at), "PPP p", {
+                        locale: ko,
+                      })}
+                    </p>
+                  </div>
+                  {application.reviewed_at && (
+                    <div>
+                      <Label>처리일</Label>
+                      <p className="mt-1">
+                        {format(new Date(application.reviewed_at), "PPP p", {
+                          locale: ko,
+                        })}
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Application Message */}
+                {application.message && (
+                  <div>
+                    <Label className="text-base font-semibold">
+                      신청 메시지
+                    </Label>
+                    <div
+                      className="prose prose-sm dark:prose-invert max-w-none border rounded-lg p-4 bg-muted/30 mt-2"
+                      // biome-ignore lint/security/noDangerouslySetInnerHtml: markdown is sanitized by markdown-it
+                      dangerouslySetInnerHTML={{
+                        __html: md.render(application.message),
+                      }}
+                    />
+                  </div>
+                )}
+
+                {/* Action Buttons for Pending Applications - Only for Moderators/Owners */}
+                {application.status === "pending" && isModerator && (
+                  <div className="pt-4 border-t space-y-4">
+                    <FieldGroup>
+                      <Field>
+                        <FieldLabel htmlFor={rejectionReasonId}>
+                          거절 사유 (선택사항)
+                        </FieldLabel>
+                        <Textarea
+                          id={rejectionReasonId}
+                          placeholder="신청을 거절하는 경우 사유를 입력하세요..."
+                          value={rejectionReason}
+                          onChange={(e) => setRejectionReason(e.target.value)}
+                          rows={3}
+                        />
+                      </Field>
+                    </FieldGroup>
+
+                    <div className="flex gap-3">
+                      <Button
+                        variant="default"
+                        className="flex-1"
+                        onClick={() => approveMutation.mutate(application.id)}
+                        disabled={
+                          approveMutation.isPending || rejectMutation.isPending
+                        }
+                      >
+                        {approveMutation.isPending ? (
+                          <Spinner />
+                        ) : (
+                          <CheckCircle className="h-4 w-4" />
+                        )}
+                        {approveMutation.isPending ? "승인 중..." : "승인"}
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        className="flex-1"
+                        onClick={() =>
+                          rejectMutation.mutate({
+                            applicationId: application.id,
+                            reason: rejectionReason.trim() || undefined,
+                          })
+                        }
+                        disabled={
+                          approveMutation.isPending || rejectMutation.isPending
+                        }
+                      >
+                        {rejectMutation.isPending ? (
+                          <Spinner />
+                        ) : (
+                          <XCircle className="h-4 w-4" />
+                        )}
+                        {rejectMutation.isPending ? "거절 중..." : "거절"}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </>
             )}
           </CardContent>
         </Card>

@@ -10,6 +10,7 @@ import {
   applicationReviewSchema,
   communityApplicationParamSchema,
   communityApplicationSchema,
+  communityApplicationUpdateSchema,
   communityIdParamSchema,
 } from "./schemas";
 
@@ -92,6 +93,46 @@ export const applicationsRouter = new Hono()
         },
         201,
       );
+    },
+  )
+  .patch(
+    "/:id/applications/:application_id",
+    authMiddleware,
+    zValidator("param", communityApplicationParamSchema),
+    zValidator("json", communityApplicationUpdateSchema),
+    async (c) => {
+      const { id: slug, application_id: applicationId } = c.req.valid("param");
+      const user = c.get("user");
+      const { message, profile_name, profile_username, attachment_ids } =
+        c.req.valid("json");
+
+      // Validate community exists and get its ID
+      const community =
+        await communityService.validateCommunityExistsBySlug(slug);
+
+      // Update application using service (will validate ownership and pending status)
+      const updatedApplication = await membershipService.updateApplication(
+        user.id,
+        applicationId,
+        community.id,
+        {
+          message,
+          profileName: profile_name,
+          profileUsername: profile_username,
+          attachmentIds: attachment_ids,
+        },
+      );
+
+      return c.json({
+        data: {
+          id: updatedApplication.id,
+          status: updatedApplication.status,
+          profile_name: updatedApplication.profileName,
+          profile_username: updatedApplication.profileUsername,
+          message: updatedApplication.message,
+          updated_at: updatedApplication.updatedAt,
+        },
+      });
     },
   )
   .put(

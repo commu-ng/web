@@ -56,6 +56,13 @@ export const communityApplicationSchema = z.object({
   attachment_ids: z.array(z.uuid()).optional(),
 });
 
+export const communityApplicationUpdateSchema = z.object({
+  message: z.string().nullable().optional(),
+  profile_name: z.string().min(1, "Profile name cannot be empty"),
+  profile_username: usernameSchema,
+  attachment_ids: z.array(z.uuid()).optional(),
+});
+
 export const applicationReviewSchema = z.object({
   status: z.enum(["approved", "rejected"]),
   rejection_reason: z.string().optional(),
